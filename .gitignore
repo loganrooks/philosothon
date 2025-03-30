@@ -1,11 +1,11 @@
 # Project specific files
-context.txt
+# context.txt
 create_context_file.py
 .roomodes
 .clinerules-*
 .context-ignore
 *system-prompt*
-memory-bank/*.md
+# memory-bank/*.md
 
 # Environment files
 .env

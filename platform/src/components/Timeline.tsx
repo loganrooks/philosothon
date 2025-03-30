@@ -1,12 +1,12 @@
 const Timeline = () => {
+  // Data populated from docs/event_info/philosothon_landscape.md
   const timelineEvents = [
-    { year: 2007, event: "First Philosothon held at Hale School, Perth, Western Australia." },
-    { year: 2011, event: "First national Australasian Philosothon hosted at Cranbrook School, Sydney." },
-    { year: 2012, event: "First UK Philosothon held at King's College, Taunton." },
-    { year: 2017, event: "Templeton Religion Trust provides funding for Australasian Philosothon project." },
+    { year: 2007, event: "First Philosothon held at Hale School, Perth, Western Australia, by Matthew Wills and Leanne Rucks." },
+    { year: 2011, event: "First national Australasian Philosothon hosted by FAPSA at Cranbrook School, Sydney." },
+    { year: 2012, event: "First UK Philosothon held at King's College, Taunton, led by Mark Smith and Julie Arliss." },
+    { year: 2017, event: "Templeton Religion Trust awards funding to the Australasian Philosothon project." },
     { year: 2019, event: "Templeton funding awarded to Ian Ramsey Centre, Oxford, to support new Philosothons." },
-    { year: 2020, event: "First online Australasian Philosothon run due to COVID-19 pandemic." },
-    // Add more events as needed
+    { year: 2020, event: "Australasian Association of Philosophy runs the first online Philosothon." },
   ];
 
   return (

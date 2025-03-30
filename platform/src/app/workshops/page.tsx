@@ -1,14 +1,37 @@
 import WorkshopCard from "@/components/WorkshopCard";
+import { createClient } from '@/lib/supabase/server'; // Import server client
 
-// Mock data - replace with actual data fetching later
-const workshops = [
-  { id: '1', title: 'Language Models as Philosophical Objects', description: 'Exploring LLMs beyond practical applications...', facilitator: 'Dr. AI' },
-  { id: '2', title: 'Generative AI Art', description: 'Creativity, authorship, and aesthetics...', facilitator: 'Prof. Bot' },
-  { id: '3', title: 'Technology as Tool vs Master', description: 'Beyond instrumentalism...', facilitator: 'Dr. Cog' },
-  // Add more mock workshops or fetch from API/DB
-];
+// Define the type for a workshop based on the database schema
+interface Workshop {
+  id: string; // Assuming UUID is treated as string
+  created_at: string; // Assuming TIMESTAMPTZ is treated as string
+  title: string;
+  description: string;
+  relevant_themes: unknown | null; // Assuming JSONB, use unknown instead of any
+  facilitator: string | null; // Assuming TEXT, nullable
+  max_capacity: number | null; // Assuming INTEGER, nullable
+}
 
-export default function WorkshopsPage() {
+// Set revalidation time for ISR (6 hours = 21600 seconds)
+export const revalidate = 21600;
+
+export default async function WorkshopsPage() {
+  const supabase = await createClient(); // Use server client
+
+  // Fetch data from Supabase
+  const { data: workshops, error } = await supabase
+    .from('workshops') // Ensure this table name matches your Supabase schema
+    .select('*')
+    .order('title', { ascending: true }); // Optional: order workshops alphabetically
+
+  if (error) {
+    console.error('Error fetching workshops:', error);
+    // Optionally render an error message to the user
+  }
+
+  // Use fetched workshops (or empty array if error)
+  const workshopList: Workshop[] = workshops || [];
+
   return (
     <div>
       <h1 className="text-3xl font-bold mb-6 text-gray-900 border-b pb-2">Event Workshops</h1>
@@ -21,18 +44,20 @@ export default function WorkshopsPage() {
       </p>
 
       {/* List of Workshops */}
-      <div>
-        {workshops.map((workshop) => (
+      <div className="space-y-6">
+        {error && <p className="text-red-500">Could not fetch workshops. Please try again later.</p>}
+        {!error && workshopList.length === 0 && <p>No workshops available at the moment.</p>}
+        {!error && workshopList.length > 0 && workshopList.map((workshop) => (
           <WorkshopCard
             key={workshop.id}
             title={workshop.title}
             description={workshop.description}
-            facilitator={workshop.facilitator}
+            facilitator={workshop.facilitator ?? undefined} // Pass undefined if null
           />
         ))}
       </div>
 
-      {/* TODO: Implement actual data fetching (ISR from Supabase) and filtering */}
+      {/* TODO: Implement filtering if needed */}
     </div>
   );
 }
