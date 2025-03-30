@@ -61,7 +61,7 @@ Key implementation aspects include:
 -   **Supabase Config**: Enable Email provider, disable other providers (Password, OAuth initially). Configure "Disable signup" setting if using a strict allowlist, or configure domain restrictions. Set secure session expiry (e.g., 1 hour inactivity, 8 hours absolute).
 -   **Admin Onboarding**: Initial admin users (e.g., event organizers) will have their specific email addresses manually added to an allowlist within the Supabase Auth settings by the lead developer/administrator. They will then use the magic link flow to log in for the first time.
 -   **Role-Based Access (MVP)**: For MVP, all authenticated admins will have the same level of access ('admin' role implicitly). RLS policies in Supabase will check `auth.role() = 'authenticated'` and potentially `auth.email() = ANY('{admin1@domain.com, admin2@domain.com}')` for critical operations if needed, although relying on the Auth allowlist is primary. More granular roles (e.g., 'content_editor', 'registration_viewer') can be added later using custom claims or a separate roles table if complexity increases.
--   **Next.js Integration**: Use Supabase Auth helpers (`@supabase/auth-helpers-nextjs`) for managing sessions and protecting routes/API endpoints. Check user authentication status in middleware or server-side props/API route handlers.
+-   **Next.js Integration**: Use the Supabase SSR package (`@supabase/ssr`) for managing sessions and protecting routes/API endpoints. Check user authentication status in middleware or server components/route handlers.
 -   **UI**: Create a simple `/admin/login` page with an email input field to trigger the magic link flow. Redirect authenticated users to `/admin/dashboard`. Provide a logout button.
 
 ### Security Considerations
@@ -99,7 +99,7 @@ Re-evaluate this decision if:
 -   Project Specifications §3.1 (Authentication) ([docs/project_specifications.md](docs/project_specifications.md))
 -   Project Specifications §4.2.2 (Auth Logic) ([docs/project_specifications.md](docs/project_specifications.md))
 -   Supabase Auth Documentation: [https://supabase.com/docs/guides/auth](https://supabase.com/docs/guides/auth)
--   Supabase Auth Helpers for Next.js: [https://supabase.com/docs/guides/auth/auth-helpers/nextjs](https://supabase.com/docs/guides/auth/auth-helpers/nextjs)
+-   Supabase SSR Package Documentation: [https://supabase.com/docs/guides/auth/server-side-rendering](https://supabase.com/docs/guides/auth/server-side-rendering)
 
 ```mermaid
 graph TD
@@ -132,3 +132,4 @@ flowchart LR
 | Version | Date       | Author        | Changes                                                                 |
 |---------|------------|---------------|-------------------------------------------------------------------------|
 | 1.0     | 2025-03-30 | Roo (AI)      | Initial draft incorporating feedback on onboarding, roles, recovery, logging. |
+| 1.1     | 2025-03-30 | Roo (AI)      | Updated Next.js integration details and references to use `@supabase/ssr` instead of deprecated `@supabase/auth-helpers-nextjs`. |
