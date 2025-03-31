@@ -1,36 +1,26 @@
 import WorkshopCard from "@/components/WorkshopCard";
-import { createClient } from '@/lib/supabase/server'; // Import server client
-
-// Define the type for a workshop based on the database schema
-interface Workshop {
-  id: string; // Assuming UUID is treated as string
-  created_at: string; // Assuming TIMESTAMPTZ is treated as string
-  title: string;
-  description: string;
-  relevant_themes: unknown | null; // Assuming JSONB, use unknown instead of any
-  facilitator: string | null; // Assuming TEXT, nullable
-  max_capacity: number | null; // Assuming INTEGER, nullable
-}
+// Import the new data fetching function and type
+import { fetchWorkshops, type Workshop } from '@/lib/data/workshops';
 
 // Set revalidation time for ISR (6 hours = 21600 seconds)
+// This remains relevant for the page itself
 export const revalidate = 21600;
 
 export default async function WorkshopsPage() {
-  const supabase = await createClient(); // Use server client
+  let workshopList: Workshop[] = [];
+  let fetchError: string | null = null;
 
-  // Fetch data from Supabase
-  const { data: workshops, error } = await supabase
-    .from('workshops') // Ensure this table name matches your Supabase schema
-    .select('*')
-    .order('title', { ascending: true }); // Optional: order workshops alphabetically
-
-  if (error) {
-    console.error('Error fetching workshops:', error);
-    // Optionally render an error message to the user
+  try {
+    // Call the extracted data fetching function
+    workshopList = await fetchWorkshops();
+  } catch (error) {
+    // Log the error on the server
+    console.error('UI error loading workshops:', error);
+    // Set a user-friendly error message
+    fetchError = 'Could not load workshop information at this time. Please try again later.';
+    // More specific messages could be set based on error type if needed
+    // fetchError = error instanceof Error ? error.message : 'An unknown error occurred.';
   }
-
-  // Use fetched workshops (or empty array if error)
-  const workshopList: Workshop[] = workshops || [];
 
   return (
     <div>
@@ -45,9 +35,14 @@ export default async function WorkshopsPage() {
 
       {/* List of Workshops */}
       <div className="space-y-6">
-        {error && <p className="text-red-500">Could not fetch workshops. Please try again later.</p>}
-        {!error && workshopList.length === 0 && <p>No workshops available at the moment.</p>}
-        {!error && workshopList.length > 0 && workshopList.map((workshop) => (
+        {/* Display error message if fetching failed */}
+        {fetchError && <p className="text-red-500">{fetchError}</p>}
+
+        {/* Display message if no error but list is empty */}
+        {!fetchError && workshopList.length === 0 && <p>No workshops available at the moment.</p>}
+
+        {/* Display workshop cards if no error and list is not empty */}
+        {!fetchError && workshopList.length > 0 && workshopList.map((workshop) => (
           <WorkshopCard
             key={workshop.id}
             title={workshop.title}

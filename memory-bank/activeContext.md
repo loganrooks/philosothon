@@ -6,13 +6,13 @@ This file tracks the project's current status, including recent changes, current
 *
 
 ## Current Focus
-
-*   Initializing Memory Bank.
-*   Implement component logic (Countdown, Accordion) and styling.
-*   Paused task: Refactoring placeholder components into separate files in `platform/src/components/` and updating page imports. Currently working on the Register page components (`FormEmbed`, `InstructionBlock`).
+*   Implement/Refactor `platform/src/components/FormEmbed.tsx` for the Register page.
 
 ## Recent Changes
 
+*   [2025-03-31 10:19] Implemented `platform/src/components/InstructionBlock.tsx`.
+*   [2025-03-31 10:15] Set up Supabase client utilities (`client.ts`, `server.ts`, `middleware.ts`) and environment variables (`.env.local`).
+*   [2025-03-31 10:10] Completed TDD review and created test overview (`memory-bank/testOverview.md`).
 *   [2025-03-30 19:10] Completed refactoring of all placeholder components into separate files and updated page imports.
 *   Initialized Next.js project in `platform/`.
 *   Installed Supabase libraries (`@supabase/supabase-js`, `@supabase/ssr`).
@@ -33,5 +33,5 @@ This file tracks the project's current status, including recent changes, current
 *   Need to implement actual content population for pages (from docs or Supabase).
 *   Need to implement actual component logic (Countdown timer, Accordion interaction if needed beyond native `details`, etc.).
 *   Need to get Google Form embed code for Register page.
-*   Need to implement Supabase integration (client setup, data fetching, auth).
+*   Need to implement Supabase data fetching (SSG/ISR) and auth flows.
 *   Need to build Admin UI.
