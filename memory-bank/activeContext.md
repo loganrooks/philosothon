@@ -6,10 +6,11 @@ This file tracks the project's current status, including recent changes, current
 *
 
 ## Current Focus
-*   Implement/Refactor `platform/src/components/FormEmbed.tsx` for the Register page.
+*   Start implementing the basic structure for the Admin page (`platform/src/app/admin/page.tsx`).
 
 ## Recent Changes
 
+*   [2025-03-31 11:06] Skipped `platform/src/components/FormEmbed.tsx` implementation (awaiting Google Form embed code).
 *   [2025-03-31 10:19] Implemented `platform/src/components/InstructionBlock.tsx`.
 *   [2025-03-31 10:15] Set up Supabase client utilities (`client.ts`, `server.ts`, `middleware.ts`) and environment variables (`.env.local`).
 *   [2025-03-31 10:10] Completed TDD review and created test overview (`memory-bank/testOverview.md`).

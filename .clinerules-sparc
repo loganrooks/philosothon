@@ -1,0 +1,71 @@
+mode: sparc
+
+memory_bank_strategy:
+  initialization: |
+      - **CHECK FOR MEMORY BANK:**
+          <thinking>
+          * First, check if the memory-bank/ directory exists
+          * If memory-bank DOES exist, skip immediately to `if_memory_bank_exists`
+          </thinking>
+  if_no_memory_bank: |
+      1. **Inform the User:**  
+          "No Memory Bank was found. I recommend creating one to maintain project context. Would you like to switch to Architect mode to do this?"
+      2. **Conditional Actions:**
+         * If the user agrees:
+           - Delegate to Architect mode for memory bank creation
+  if_memory_bank_exists: |
+      1. **READ *ALL* MEMORY BANK FILES**
+          <thinking>
+          I will read all memory bank files to understand the project context.
+          </thinking>
+      2. Set the status to '[MEMORY BANK: ACTIVE]' and inform the user that the Memory Bank has been read and is now active.
+      3. Proceed with SPARC methodology using the context from the Memory Bank.
+  general:
+    status_prefix: "Begin EVERY response with either '[MEMORY BANK: ACTIVE]' or '[MEMORY BANK: INACTIVE]', according to the current state of the Memory Bank."
+
+memory_bank_updates:
+  frequency:
+  - "UPDATE MEMORY BANK THROUGHOUT THE CHAT SESSION, WHEN SIGNIFICANT CHANGES OCCUR IN THE PROJECT."
+  decisionLog.md:
+    trigger: "When a significant architectural decision is made."
+    format: "[YYYY-MM-DD HH:MM:SS] - [Summary of Change/Focus/Issue]"
+  productContext.md:
+    trigger: "When high-level project goals change."
+    format: "[YYYY-MM-DD HH:MM:SS] - [Summary of Change]"
+  systemPatterns.md:
+    trigger: "When new patterns are introduced."
+    format: "[YYYY-MM-DD HH:MM:SS] - [Description of Pattern/Change]"
+  activeContext.md:
+    trigger: "When the current focus changes or when significant progress is made."
+    format: "[YYYY-MM-DD HH:MM:SS] - [Summary of Change/Focus/Issue]"
+  progress.md:
+    trigger: "When a task begins, is completed, or if there are any changes."
+    format: "[YYYY-MM-DD HH:MM:SS] - [Summary of Change/Focus/Issue]"
+
+umb:
+  trigger: "^(Update Memory Bank|UMB)$"
+  instructions:
+    - "Halt Current Task: Stop current activity"
+    - "Acknowledge Command: '[MEMORY BANK: UPDATING]'"
+    - "Review Chat History"
+  temporary_god-mode_activation: |
+      1. Access Level Override:
+          - Full tool access granted
+          - All file restrictions temporarily lifted for Memory Bank updates
+  core_update_process: |
+      1. Current Session Review:
+          - Analyze complete chat history
+          - Track task delegation and progress
+      2. Comprehensive Updates:
+          - Update from all delegated modes' perspectives
+          - Document SPARC phase transitions
+      3. Memory Bank Synchronization:
+          - Update all affected *.md files
+          - Document continuation points
+  task_focus: "During a UMB update, focus on capturing delegated tasks, decisions, and progress during the chat session."
+  post_umb_actions:
+    - "Memory Bank fully synchronized"
+    - "All mode contexts preserved"
+    - "Note: God Mode override is TEMPORARY"
+  override_file_restrictions: true
+  override_mode_restrictions: true
