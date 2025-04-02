@@ -1,210 +1,9 @@
 # Codebase Context File for Gemini 2.5 Pro
 
-Generated on: 2025-03-31T10:04:24.448091
+Generated on: 2025-04-01T12:57:53.984057
 Root directory: /home/rookslog/philosothon
 
 
-
-================================================================================
-FILE: .clinerules.md
-TYPE: documentation
-SIZE: 7607 bytes
-LAST MODIFIED: 2025-03-31T09:09:01.833270
-================================================================================
-
-# Boomerang Memory Bank System
-
-## Main Workflow
-
-```mermaid
-flowchart TD
-    %% Main flow
-    Start([Task Begins]) --> ExistingMB{Existing MB?}
-    
-    %% New Project path
-    ExistingMB -->|No| MBI["Boomerang Memory Bank Initializer<br>Creates all documents"]
-    MBI -->|TOOL: switch_mode| BS
-    
-    %% Existing Project path
-    ExistingMB -->|Yes| BS["Boomerang Startup<br>Reviews all documents in sequence"]
-    BS -->|TOOL: switch_mode| B["Boomerang Mode<br>Orchestrates workflow"]
-    
-    %% Planning phase
-    B -->|TOOL: new_task| BE["Explorer<br>Gathers context"]
-    BE -->|TOOL: attempt_completion| B
-    B -->|TOOL: new_task| A["Architect<br>Creates implementation plan"]
-    A -->|TOOL: attempt_completion| B
-    
-    %% Execution phase - Classification using new_task
-    B -->|task classification| TaskType{Task Type?}
-    
-    %% Implementation path
-    TaskType -->|Implementation<br>TOOL: new_task| ST_SS["Subtask Startup<br>Focused review"]
-    ST_SS -->|TOOL: switch_mode| ST_C["Code Mode<br>Implementation"]
-    ST_C -.->|"if errors<br>TOOL: switch_mode"| D["Debug Mode<br>Issue resolution"]
-    D -->|TOOL: switch_mode| ST_C
-    ST_C -->|TOOL: attempt_completion| B
-    
-    %% Debug path
-    TaskType -->|Debugging<br>TOOL: new_task| D["Debug Mode<br>Issue resolution"]
-    D -->|TOOL: attempt_completion| B
-    
-    %% Update phase
-    B -->|"All subtasks done or 'update MB'<br>TOOL: switch_mode"| MBU["MB Update<br>Document updates"]
-    MBU -->|TOOL: attempt_completion| End([Task Complete])
-    End -.->|"TOOL: switch_mode"| BS
-    
-    %% Universal requirements
-    UR["CRITICAL RULES:
-    - If files missing, stop and ask user
-    - All workflow rules in flowcharts
-    - Docs in roo_plan/ folder
-    - USE APPLY_DIFF NOT WRITE_TO_FILE WHEN EDITING FILES.
-    - WRITE_TO_FILE IS ONLY FOR NEW FILES OR REPLACING THE ENTIRE FILE.
-    -IT IS ENVIRONMENTALLY UNFRIENDLY TO USE IT OTHERWISE."]
-```
-
-## Document Structure & Review Rules
-
-```mermaid
-graph TD
-  %% Document hierarchy with clear labels
-  PB["projectbrief.md<br>(Foundation Document)"] --> PC
-  PB --> SP
-  PB --> TC
-  
-  PC["productContext.md<br>(Project Purpose & Scope)"] --> SP
-  PC --> TC
-  
-  SP["systemPatterns.md<br>(Architecture & Rules)"] --> PR
-  TC["techContext.md<br>(Tech Stack & Constraints)"] --> PR
-  
-  PR["progress.md<br>(Project Status)"] --> AC
-  AC["activeContext.md<br>(Current Focus)"]
-  
-  %% Document update and review rules
-  UpdateRules["Document Update Rules:
-  • productContext: Only when core purpose changes (explicit approval)
-  • systemPatterns: When architecture patterns change (technical review)
-  • techContext: When tech stack changes (validation required)
-  • progress: Status changes (maintain Status Legend)
-  • activeContext: Focus changes (track dependencies)"]
-  
-  ReviewPatterns["Review Patterns:
-  • Boomerang Startup: ALL documents sequentially (1→5)
-  • Subtask Startup: ONLY content relevant to subtask"]
-```
-
-## Workflow Sequence
-
-```mermaid
-sequenceDiagram
-    %% Full mode names for clarity
-    participant User as User
-    participant Init as Boomerang Memory Bank Initializer
-    participant Startup as Boomerang Startup
-    participant Boomerang as Boomerang Mode
-    participant Explorer as Boomerang Explorer
-    participant Architect as Architect Mode
-    participant SubStartup as Boomerang Subtask Startup
-    participant Code as Code Mode
-    participant Debug as Debug Mode
-    participant Update as Boomerang Memory Bank Update
-
-    %% Clear phase separation
-    Note over User,Update: INITIALIZATION PHASE
-    
-    alt New Project (No Boomerang Memory Bank)
-        User->>Init: Start New Project
-        Init->>Init: Create all required documents
-        Init->>Startup: TOOL: switch_mode (initialization complete)
-    else Existing Project
-        User->>Startup: Start Task
-    end
-    
-    Startup->>Boomerang: TOOL: switch_mode (after full document review)
-    
-    Note over User,Update: PLANNING PHASE
-    
-    Boomerang->>Explorer: TOOL: new_task (explore context)
-    Explorer->>Boomerang: TOOL: attempt_completion (findings)
-    Boomerang->>Architect: TOOL: new_task (create plan)
-    Architect->>Boomerang: TOOL: attempt_completion (implementation plan)
-    
-    Note over User,Update: EXECUTION PHASE
-    
-    loop For Each Subtask with Task Classification
-        Note over Boomerang: Task Classification uses new_task tool
-        alt Implementation Task
-            Note right of Boomerang: Classified as Implementation
-            Boomerang->>SubStartup: TOOL: new_task (implementation subtask)
-            SubStartup->>Code: TOOL: switch_mode (focused review)
-            
-            opt Issues Encountered
-                Code->>Debug: TOOL: switch_mode (debugging needed)
-                Debug->>Code: TOOL: switch_mode (issues resolved)
-            end
-            
-            Code->>Boomerang: TOOL: attempt_completion (implementation summary)
-        else Debugging Task
-            Note right of Boomerang: Classified as Debugging
-            Boomerang->>Debug: TOOL: new_task (debugging subtask)
-            Debug->>Boomerang: TOOL: attempt_completion (debug resolution)
-        end
-    end
-    
-    Note over User,Update: UPDATE & CYCLE PHASE
-    
-    Note right of Boomerang: Use switch_mode to transition to MB Update
-    Boomerang->>Update: TOOL: switch_mode (all subtasks complete)
-    Update->>User: TOOL: attempt_completion (task complete)
-    
-    Note over User,Update: Optional: Continue with new task using switch_mode
-    User->>Startup: Start New Task
-    Startup->>Boomerang: TOOL: switch_mode (complete context)
-    
-    Note over User,Update: KEY MODE TRANSITIONS:
-    Note over User,Update: • Code → Debug: When errors encountered
-    Note over User,Update: • Boomerang → Update: When all subtasks complete
-    Note over User,Update: • Task Completion → New Task: Optional continuation
-```
-
-## System Maintenance & Update Rules
-
-```mermaid
-flowchart TD
-    %% System maintenance with clear paths
-    SystemUpdate([System Update Needed]) --> UpdateType{What needs updating?}
-    
-    %% Three main update paths
-    UpdateType -->|"Mode Behavior Changes"| ModeBehavior["Update .roomodes.json<br>Mode definitions & capabilities"]
-    UpdateType -->|"Workflow Rule Changes"| WorkflowRules["Update .clinerules.md<br>Flowcharts & diagrams"]
-    UpdateType -->|"Document Content Changes"| DocContent["Use MB Update Mode<br>Content updates"]
-    
-    %% Update process details
-    DocContent --> UpdateProcess["Document Update Process:
-    1. Review current content
-    2. Validate against document rules
-    3. Get explicit user approval
-    4. Use apply_diff for precise updates
-    5. Verify document integrity"]
-    
-    %% System validation
-    ModeBehavior & WorkflowRules & UpdateProcess --> Consistency["System Consistency Check<br>Verify workflow alignments"]
-    
-    %% Critical system rules
-    CriticalRules["CRITICAL SYSTEM RULES:
-    
-    • All workflow rules must be defined in flowcharts, not mode instructions
-    • All Boomerang Memory Bank documents must remain in roo_plan/ folder
-    • Document updates require appropriate level approvals
-    • Progress.md must maintain its Status Legend
-    • Documents must use simple structure without protocol sections
-    • All modes must reference flowcharts for workflow guidance
-    • apply_diff must be used for all document updates"]
-```
-
-The flowcharts above provide the complete workflow rules for the Boomerang Memory Bank system. Any changes to the workflow should be made by updating these flowcharts.
 
 ================================================================================
 FILE: docs/adr/2025-03-30-admin-authentication.md
@@ -3419,8 +3218,8 @@ Philosophy of Technology Group
 ================================================================================
 FILE: memory-bank/activeContext.md
 TYPE: documentation
-SIZE: 2127 bytes
-LAST MODIFIED: 2025-03-30T19:10:49.586288
+SIZE: 2355 bytes
+LAST MODIFIED: 2025-03-31T11:06:51.342072
 ================================================================================
 
 # Active Context
@@ -3431,13 +3230,14 @@ This file tracks the project's current status, including recent changes, current
 *
 
 ## Current Focus
-
-*   Initializing Memory Bank.
-*   Implement component logic (Countdown, Accordion) and styling.
-*   Paused task: Refactoring placeholder components into separate files in `platform/src/components/` and updating page imports. Currently working on the Register page components (`FormEmbed`, `InstructionBlock`).
+*   Start implementing the basic structure for the Admin page (`platform/src/app/admin/page.tsx`).
 
 ## Recent Changes
 
+*   [2025-03-31 11:06] Skipped `platform/src/components/FormEmbed.tsx` implementation (awaiting Google Form embed code).
+*   [2025-03-31 10:19] Implemented `platform/src/components/InstructionBlock.tsx`.
+*   [2025-03-31 10:15] Set up Supabase client utilities (`client.ts`, `server.ts`, `middleware.ts`) and environment variables (`.env.local`).
+*   [2025-03-31 10:10] Completed TDD review and created test overview (`memory-bank/testOverview.md`).
 *   [2025-03-30 19:10] Completed refactoring of all placeholder components into separate files and updated page imports.
 *   Initialized Next.js project in `platform/`.
 *   Installed Supabase libraries (`@supabase/supabase-js`, `@supabase/ssr`).
@@ -3458,7 +3258,7 @@ This file tracks the project's current status, including recent changes, current
 *   Need to implement actual content population for pages (from docs or Supabase).
 *   Need to implement actual component logic (Countdown timer, Accordion interaction if needed beyond native `details`, etc.).
 *   Need to get Google Form embed code for Register page.
-*   Need to implement Supabase integration (client setup, data fetching, auth).
+*   Need to implement Supabase data fetching (SSG/ISR) and auth flows.
 *   Need to build Admin UI.
 
 ================================================================================
@@ -3612,8 +3412,8 @@ This file provides a high-level overview of the project and the expected product
 ================================================================================
 FILE: memory-bank/progress.md
 TYPE: documentation
-SIZE: 2175 bytes
-LAST MODIFIED: 2025-03-30T19:10:02.653889
+SIZE: 2229 bytes
+LAST MODIFIED: 2025-03-31T11:07:20.485269
 ================================================================================
 
 # Progress
@@ -3637,26 +3437,23 @@ This file tracks the project's progress using a task list format.
 *   [2025-03-30] Refactored placeholder components into separate files (`Hero`, `Countdown`, `EventHighlights`, `ContentBlock`, `Timeline`, `ThemeCard`, `WorkshopCard`, `AccordionGroup`, `FormEmbed`, `InstructionBlock`) and updated page imports.
 *   [2025-03-30] Implemented basic structure/styling for `Hero`, `Countdown`, `EventHighlights`, `Timeline`, `ThemeCard`, `WorkshopCard`, `AccordionGroup` components.
 *   [2025-03-30] Initialized Memory Bank files (`productContext.md`, `activeContext.md`).
+*   [2025-03-31] Completed TDD review and created test overview (`memory-bank/testOverview.md`).
+*   [2025-03-31] Set up Supabase client utilities (`client.ts`, `server.ts`, `middleware.ts`) and environment variables (`.env.local`).
 
 ## Current Tasks
-*   [2025-03-30] Set up Supabase client utilities (`client.ts`, `server.ts`, `middleware.ts`) and environment variables (`.env.local`).
-
-*   Set up Supabase client and environment variables.
-*   Initializing Memory Bank (`progress.md`, `decisionLog.md`, `systemPatterns.md`).
-
-*   Implement Admin authentication flow.
-*   Implement Home page components (`Hero`, `Countdown`, `EventHighlights`).
+*   [2025-03-31] Resume refactoring Register page components (`InstructionBlock.tsx`).
 ## Next Steps
 
-*   Finish initializing Memory Bank.
-*   Resume refactoring Register page components (`InstructionBlock.tsx`).
 *   Implement actual component logic and styling.
 *   Populate pages with content.
-*   Set up Supabase client.
 *   Implement data fetching (SSG/ISR).
 *   Implement Admin authentication.
 *   Build Admin UI.
 *   Embed Google Form.
+
+[2025-03-31 10:18:42] - Implemented `platform/src/components/InstructionBlock.tsx` based on placeholder, project specs, and ADRs.
+
+[2025-03-31 11:07:01] - Reviewed initial structure of `platform/src/app/admin/page.tsx`. Basic auth check and placeholders are present.
 
 ================================================================================
 FILE: memory-bank/systemPatterns.md
@@ -3693,6 +3490,68 @@ It is optional, but recommended to be updated as the project evolves.
 
 *   **MVP:** Manual testing (core journeys, responsive, form validation, admin security).
 *   **Future:** Consider unit tests (e.g., Vitest/Jest), integration tests, end-to-end tests (e.g., Playwright/Cypress) as complexity increases.
+
+================================================================================
+FILE: memory-bank/testOverview.md
+TYPE: documentation
+SIZE: 4682 bytes
+LAST MODIFIED: 2025-03-31T10:07:32.747867
+================================================================================
+
+# Test Suite Overview (as of 2025-03-31)
+
+This document summarizes the status and coverage of the automated tests (using Vitest and React Testing Library) for the `platform` application.
+
+## Overall Status
+
+The test suite provides good coverage for most implemented components and utilities. Tests generally follow best practices, including mocking dependencies (`next/link`, `next/navigation`, Supabase client/hooks, child components) and testing various states (rendering, success, error, empty data, conditional logic).
+
+## Coverage Details
+
+Tests exist for the following areas:
+
+*   **Pages (`src/app/`):**
+    *   `Home`: Mocks children, verifies component rendering.
+    *   `About`: Mocks children, verifies content blocks and timeline rendering.
+    *   `Themes`: Mocks Supabase/children, tests data fetching (success, error, empty), verifies props passed to `ThemeCard`.
+    *   `FAQ`: Mocks `AccordionGroup`, verifies heading and mock rendering.
+    *   `Register`: Mocks children, verifies heading and mock rendering.
+    *   `Admin`: Mocks Supabase/redirect/children, tests auth redirection and dashboard rendering.
+    *   `Admin Login`: Mocks Supabase/hooks, tests form input, success/error states for magic link.
+    *   `Layout`: Mocks children/fonts/providers, tests structure, font classes, child rendering.
+    *   `Workshops`: Mocks data fetching function (`fetchWorkshops`), tests success/error/empty states. **Note:** Significant issues were encountered trying to test this async Server Component reliably in the `jsdom` environment, leading to the decision to skip further attempts on this specific test suite for now after refactoring the component.
+
+*   **Components (`src/components/`):**
+    *   `AccordionGroup`: Tests item rendering, question/answer presence, toggle functionality, empty state.
+    *   `ContentBlock`: Tests title and children rendering.
+    *   `Countdown`: Uses fake timers, tests initial state, timer updates, expiration message, interval cleanup.
+    *   `EventHighlights`: Tests heading, item count, title/description rendering per item.
+    *   `Footer`: Tests copyright notice and dynamic year.
+    *   `FormEmbed`: Tests placeholder rendering (implementation pending).
+    *   `Hero`: Mocks `next/link`, tests heading, subheading, text, date, register link.
+    *   `InstructionBlock`: Tests heading and paragraph rendering.
+    *   `LogoutButton`: Mocks Supabase/hooks, tests initial state, success/failure scenarios, router calls.
+    *   `NavBar`: Mocks `next/link`, tests brand link, navigation item rendering and `hrefs`.
+    *   `SupabaseProvider`: Mocks client creation, tests provider rendering, hook usage (inside/outside provider), client initialization count.
+    *   `ThemeCard`: Tests title/description, conditional rendering of traditions, list parsing.
+    *   `Timeline`: Tests heading, item count, year/event rendering per item.
+    *   `WorkshopCard`: Tests title/description, conditional rendering of facilitator.
+
+*   **Utilities (`src/lib/`):**
+    *   `Supabase Client (client.ts)`: Mocks dependency, tests correct function call and return value.
+    *   `Supabase Middleware (middleware.ts)`: Mocks dependency, tests function call, return value, cookie handler logic.
+    *   `Supabase Server Client (server.ts)`: Mocks dependencies, tests function calls, return value, cookie handler logic (including error suppression).
+    *   `Root Middleware (middleware.ts)`: Mocks dependency, tests function call, return value, config export.
+
+## Key Issues / Gaps
+
+*   **Async Server Component Testing:** Significant difficulty was encountered testing the `WorkshopsPage` component due to its `async` nature interacting unpredictably with the `jsdom` test environment, even after refactoring and trying various strategies (`act`, `Suspense`, polyfills, explicit awaits). Further investigation into environment setup or alternative testing strategies (e.g., integration/E2E tests) might be needed for reliable testing of such components.
+*   **Placeholder Components:** Tests for components like `FormEmbed` are basic and need expansion once the actual implementation (e.g., iframe rendering) is complete.
+*   **Content Population:** Tests currently verify component rendering structure but often rely on mocked data or hardcoded text within the test/component. Tests verifying content fetched from Supabase (e.g., in `ThemesPage`, `WorkshopsPage`) mock the fetching layer.
+
+## Conclusion
+
+The test suite provides a solid foundation, covering most synchronous components and utility functions effectively. The primary challenge lies in unit testing async Server Components within the current Vitest/RTL/jsdom setup.
 
 ================================================================================
 FILE: platform/.npmrc
@@ -5681,20 +5540,25 @@ describe('InstructionBlock Component', () => {
 ================================================================================
 FILE: platform/src/components/InstructionBlock.tsx
 TYPE: code
-SIZE: 618 bytes
-LAST MODIFIED: 2025-03-30T19:02:06.647018
+SIZE: 801 bytes
+LAST MODIFIED: 2025-03-31T10:18:42.416203
 ================================================================================
 
-const InstructionBlock = () => {
-  // TODO: Add more specific instructions if needed, potentially fetch from CMS/DB
+import React from 'react';
+
+/**
+ * Renders a block of instructions for the registration form.
+ * TODO: Add more specific instructions if needed, potentially fetch from CMS/DB
+ */
+const InstructionBlock: React.FC = () => {
   return (
-    <div className="prose max-w-none text-gray-700 mt-6">
-      <h2 className="text-xl font-semibold mb-3 text-gray-800">Registration Instructions</h2>
+    <div className="prose max-w-none text-gray-700 dark:text-gray-300 mt-6">
+      <h2 className="text-xl font-semibold mb-3 text-gray-800 dark:text-gray-200">Registration Instructions</h2>
       <p>
-        Please fill out the form above completely to register for the Philosothon event. Ensure all required fields are answered.
+        Please fill out the form below completely to register for the Philosothon event. Ensure all required fields are answered.
       </p>
       <p>
-        Team assignments and final theme selection will be communicated via email after the registration deadline.
+        Team assignments and final theme selection will be communicated via email after the registration deadline. Check your university email regularly.
       </p>
     </div>
   );
@@ -7200,7 +7064,7 @@ import '@testing-library/jest-dom/vitest';
 ================================================================================
 SUMMARY
 Files processed: 94
-Files ignored by .context-ignore: 189
-Files skipped for other reasons: 23910
-Total size: 371145 bytes
+Files ignored by .context-ignore: 292
+Files skipped for other reasons: 23911
+Total size: 368685 bytes
 ================================================================================
