@@ -1,7 +1,118 @@
 # Code Specific Memory
 
+
+## Implementation Notes
+### Implementation: UI Theme Overhaul Final Refinements (Matrix Spacing/Speed) - 2025-04-02 07:27:00
+- **Approach**: Addressed final user feedback on the Matrix background effect. Increased vertical spacing multiplier for philosopher names in `MatrixBackground.tsx` to 2.5. Adjusted speed logic to use a very slow range (0.05-0.1) for binary rain under names, ensuring a noticeable difference.
+- **Key Files Modified/Created**:
+  - `platform/src/components/MatrixBackground.tsx`: Updated name character spacing and binary rain speed logic.
+- **Notes**: Further iteration on Matrix effect parameters based on visual review.
+
+
+### Implementation: UI Theme Overhaul Final Refinements - 2025-04-02 07:09:00
+- **Approach**: Addressed final user feedback on the hacker theme. Refined `MatrixBackground.tsx` to use binary rain (dark green) and make philosopher names more prominent (bright green, slower column speed, spaced letters). Fixed syntax errors in `NavBar.tsx` caused by previous diff applications and ensured minimalist styling. Increased padding in the main layout container (`layout.tsx`).
+- **Key Files Modified/Created**:
+  - `platform/src/components/MatrixBackground.tsx`: Updated character sets, colors, speed logic, and letter spacing for names.
+  - `platform/src/components/NavBar.tsx`: Corrected JSX structure using `write_to_file`.
+  - `platform/src/app/layout.tsx`: Increased padding in `<main>` element.
+- **Notes**: This completes the theme overhaul, incorporating the Matrix background and addressing layout/styling feedback.
+
+
+### Implementation: UI Theme Overhaul Revision & Matrix Background - 2025-04-02 06:58:00
+- **Approach**: Revised the UI theme overhaul based on user feedback. Corrected base styles in `layout.tsx` to ensure dark background, light text, and monospaced font apply correctly. Redesigned `NavBar` for a minimalist hacker aesthetic. Created a new `MatrixBackground.tsx` component using HTML Canvas to render falling characters (alphanumeric + Katakana + philosopher names) with variable speeds and subtle opacity. Integrated `MatrixBackground` into `layout.tsx`.
+- **Key Files Modified/Created**:
+  - `platform/src/app/layout.tsx`: Corrected base styles (bg, text, font), imported and rendered `MatrixBackground`.
+  - `platform/src/components/NavBar.tsx`: Redesigned for minimalist hacker style.
+  - `platform/src/components/MatrixBackground.tsx`: Created new component for background effect.
+  - *Previously modified components (Hero, Countdown, etc.) were implicitly affected by base style changes.*
+- **Notes**: Addresses feedback on incorrect colors, font, and NavBar style. Implements the requested Matrix background effect. Further refinement of component spacing might be needed after review.
+
+
+### Implementation: UI Theme Overhaul (Hacker Style) - 2025-04-02 06:50:00
+- **Approach**: Overhauled the UI theme to a minimalist, hacker-inspired green/black style. Defined a new color palette in `tailwind.config.ts`. Updated base styles in `globals.css`. Refactored Tailwind classes across major components (`NavBar`, `Footer`, `Hero`, `Countdown`, `EventHighlights`, `ScheduleDisplay`, `ThemeCard`, `WorkshopCard`, `AccordionGroup`, `ContentBlock`, `InstructionBlock`, `FormEmbed`) to use the new colors and improve padding/margins. Installed and configured `@tailwindcss/typography` plugin, applying `prose-invert` to relevant components for dark theme compatibility. Resolved React hydration error in `Countdown` component by delaying render of time values until client-side mount.
+- **Key Files Modified/Created**:
+  - `platform/tailwind.config.ts`: Added new color palette, added typography plugin.
+  - `platform/src/app/globals.css`: Set base background/text colors, removed light/dark mode specifics.
+  - `platform/src/components/NavBar.tsx`: Updated styles.
+  - `platform/src/components/Footer.tsx`: Updated styles.
+  - `platform/src/components/Hero.tsx`: Updated styles.
+  - `platform/src/components/Countdown.tsx`: Updated styles, fixed hydration error.
+  - `platform/src/components/EventHighlights.tsx`: Updated styles.
+  - `platform/src/components/ScheduleDisplay.tsx`: Updated styles.
+  - `platform/src/components/ThemeCard.tsx`: Updated styles.
+  - `platform/src/components/WorkshopCard.tsx`: Updated styles.
+  - `platform/src/components/AccordionGroup.tsx`: Updated styles.
+  - `platform/src/components/ContentBlock.tsx`: Updated styles, added `prose-invert`.
+  - `platform/src/components/InstructionBlock.tsx`: Updated styles, added `prose-invert`.
+  - `platform/src/components/FormEmbed.tsx`: Updated placeholder styles.
+  - `platform/src/app/page.tsx`: Added container padding.
+  - `platform/package.json`: Added `@tailwindcss/typography` dev dependency.
+- **Notes**: Core theme refactoring complete. Optional background effects (Matrix, philosopher images) were not implemented. Further typography adjustments within `prose` elements might be needed depending on specific content.
+
+
+### Implementation: Functional Adjustments (Countdown, Schedule, Highlights) - 2025-04-02 06:29:00
+- **Approach**: Implemented several functional adjustments as requested: updated the target date in `Countdown.tsx` to April 7, 2025, 9:00 AM; located the event schedule in `docs/event_info/letter_to_department.md`; created a new component `ScheduleDisplay.tsx` to render the extracted schedule; integrated `ScheduleDisplay` into the Home page (`app/page.tsx`); and removed the "Keynote Speaker" item from the `highlights` array in `EventHighlights.tsx`.
+- **Key Files Modified/Created**:
+  - `platform/src/components/Countdown.tsx`: Modified target date.
+  - `platform/src/components/ScheduleDisplay.tsx`: Created new component.
+  - `platform/src/app/page.tsx`: Imported and rendered `ScheduleDisplay`.
+  - `platform/src/components/EventHighlights.tsx`: Removed keynote highlight item.
+- **Notes**: Completed all requested adjustments. The schedule is now displayed on the home page, the countdown timer is correct, and the event highlights are updated.
+
+
+<!-- Append notes for features/components using the format below -->
+
+### Implementation: Admin Authentication Flow (Magic Link) - 2025-04-01 23:11:00
+- **Approach**: Implemented the admin login flow using Supabase Auth's `signInWithOtp` (magic link). Verified the existing `@supabase/ssr` setup for session management in middleware (`middleware.ts`, `lib/supabase/middleware.ts`), client (`lib/supabase/client.ts`), server (`lib/supabase/server.ts`), and provider (`components/SupabaseProvider.tsx`). Created a new client component for the login page (`app/admin/login/page.tsx`) with an email input, form handler calling `signInWithOtp`, and state management for loading/messages/errors. Set `emailRedirectTo` to handle the callback via `/auth/callback` before redirecting to `/admin`. Verified that the main admin page (`app/admin/page.tsx`) already contained server-side logic using `createClient` and `supabase.auth.getUser()` to redirect unauthenticated users to `/admin/login`. Verified the existing `LogoutButton.tsx` component correctly uses `useSupabase`, calls `supabase.auth.signOut()`, and redirects/refreshes.
+- **Key Files Modified/Created**:
+  - `platform/src/app/admin/login/page.tsx`: Created new login page component.
+  - `platform/src/middleware.ts`: Verified.
+  - `platform/src/lib/supabase/middleware.ts`: Verified.
+  - `platform/src/lib/supabase/client.ts`: Verified.
+  - `platform/src/lib/supabase/server.ts`: Verified.
+  - `platform/src/components/SupabaseProvider.tsx`: Verified.
+  - `platform/src/app/admin/page.tsx`: Verified route protection logic.
+  - `platform/src/components/LogoutButton.tsx`: Verified logout logic.
+- **Notes**: The core magic link authentication flow is implemented. Requires manual testing and potentially setting up the `/auth/callback` route if not already present (though `@supabase/ssr` might handle this implicitly). Fixed minor linting/type errors in the login page.
+
+
+## Technical Debt Log
+<!-- Append new or resolved tech debt items using the format below -->
+
+## Dependencies Log
+<!-- Append new dependencies using the format below -->
+
+### Dependency: @tailwindcss/typography - 2025-04-02 06:48:00
+- **Version**: ^0.5.13 (Based on typical latest version, check `package-lock.json` for exact)
+- **Purpose**: Provides `prose` classes for styling HTML content (like markdown) with sensible defaults, including dark mode (`prose-invert`).
+- **Used by**: `ContentBlock.tsx`, `InstructionBlock.tsx`
+- **Config notes**: Added to `plugins` array in `tailwind.config.ts`.
+
+
+## Code Patterns Log
+<!-- Append new code patterns using the format below -->
+
 ## Implementation Notes
 <!-- Append notes for features/components using the format below -->
+
+### Implementation: FAQ Delete Functionality - 2025-04-01 23:05:00
+- **Approach**: Implemented the delete flow for FAQ items. Verified the `deleteFaqItem` Server Action already existed in `platform/src/app/admin/faq/actions.ts`. Created a new Client Component `FaqActions` (`platform/src/components/FaqActions.tsx`) similar to `ThemeActions` and `WorkshopActions` to encapsulate the Edit link and the Delete button. The Delete button is wrapped in a `<form>` whose `action` is bound to the `deleteFaqItem` server action with the specific `faqItemId`. An `onSubmit` handler uses `window.confirm` for confirmation. Modified the Admin FAQ list page (`platform/src/app/admin/faq/page.tsx`) to import and use the `FaqActions` component, passing the `faqItemId`. Fixed TypeScript errors in `FaqActions.test.tsx` and `admin/faq/page.tsx` by changing default imports to named imports for `FaqActions`.
+- **Key Files Modified/Created**:
+  - `platform/src/components/FaqActions.tsx`: Created new Client Component.
+  - `platform/src/components/FaqActions.test.tsx`: Updated import to named import.
+  - `platform/src/app/admin/faq/page.tsx`: Imported and used `FaqActions` component, updated import to named import.
+- **Notes**: FAQ Delete functionality is now implemented using Server Actions and client-side confirmation, consistent with Theme and Workshop delete patterns.
+
+
+
+### Implementation: Theme Server Action Tests (add/update) - 2025-04-01 21:25:00
+- **Approach**: Wrote unit tests for `addTheme` and `updateTheme` server actions using Vitest. Mocked Supabase client (`createClient`), `next/cache` (`revalidatePath`), and `next/navigation` (`redirect`). Used `beforeEach` to set up default successful mocks and reset mocks between tests. Used test-specific mocks (`mockResolvedValueOnce`) for error cases. Refactored tests and action code iteratively to resolve type errors and mock inconsistencies, particularly around chained Supabase calls (`.update().eq()`) and `useFormState` return types.
+- **Key Files Modified/Created**:
+  - `platform/src/app/admin/themes/actions.test.ts`: Created test file, added tests for `addTheme` and `updateTheme`, refined mocks.
+  - `platform/src/app/admin/themes/actions.ts`: Adjusted function signatures, return types, field names (`title` vs `name`), and error handling to align with tests and `useFormState`.
+  - `platform/src/components/ThemeForm.tsx`: Adjusted `action` prop type and field names (`title` vs `name`) to align with server actions and `useFormState`.
+- **Notes**: Tests for `addTheme` and `updateTheme` are now passing. Encountered significant issues with mock setup consistency and diff tool application due to context window limitations. Tests for `deleteTheme` are written but still failing due to mock issues.
+
 
 ### Implementation: Update FAQ Functionality - 2025-04-01 15:11:48
 - **Approach**: Implemented the update functionality for FAQ items. Created a new Server Action `updateFaqItem` in `platform/src/app/admin/faq/actions.ts`. This action accepts the FAQ item `id` (bound) and `FormData`, extracts and processes form fields (question, answer, category, display_order - parsing string to number/null), uses the Supabase server client to update the corresponding record in `faq_items` table matching the `id`, includes error handling, revalidates `/admin/faq` and `/admin/faq/[id]/edit` paths on success, and redirects back to `/admin/faq`. Verified that `FaqForm` (`platform/src/components/FaqForm.tsx`) already correctly handled the required `action` prop and included the hidden `id` input when `initialData` was present. Verified that the "Add New FAQ" page (`platform/src/app/admin/faq/new/page.tsx`) correctly passes the `addFaqItem` action. Updated the "Edit FAQ Item" page (`platform/src/app/admin/faq/[id]/edit/page.tsx`) to import the `updateFaqItem` action, bind the `faqItem.id` to it, and pass the bound action to the `FaqForm` component. Corrected an initial TypeScript error related to the import path for the action in the edit page.

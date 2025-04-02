@@ -12,29 +12,26 @@ const NavBar = () => {
   ];
 
   return (
-    <nav className="bg-white shadow-md">
-      <div className="container mx-auto px-4 py-3">
-        <div className="flex justify-between items-center">
-          {/* Logo/Brand */}
-          <Link href="/" className="text-xl font-bold text-blue-600 hover:text-blue-800">
-            {/* TODO: Replace text with actual logo/SVG if available */}
-            Philosothon UofT
-          </Link>
+    <nav className="py-6">
+      <div className="container mx-auto px-4 flex justify-between items-center">
+        {/* Logo/Brand */}
+        <Link href="/" className="text-xl font-bold font-mono text-hacker-green hover:brightness-125 transition">
+          Philosothon UofT
+        </Link>
 
-          {/* Navigation Links */}
-          <ul className="flex space-x-4">
-            {navItems.map((item) => (
-              <li key={item.name}>
-                <Link
-                  href={item.href}
-                  className="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
-                >
-                  {item.name}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
+        {/* Navigation Links */}
+        <ul className="flex space-x-6">
+          {navItems.map((item) => (
+            <li key={item.name}>
+              <Link
+                href={item.href}
+                className="text-hacker-green hover:brightness-125 font-mono text-sm font-medium transition"
+              >
+                {item.name}
+              </Link>
+            </li>
+          ))}
+        </ul>
       </div>
     </nav>
   );

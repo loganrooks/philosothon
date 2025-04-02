@@ -6,8 +6,8 @@ import React from 'react';
  */
 const InstructionBlock: React.FC = () => {
   return (
-    <div className="prose max-w-none text-gray-700 dark:text-gray-300 mt-6">
-      <h2 className="text-xl font-semibold mb-3 text-gray-800 dark:text-gray-200">Registration Instructions</h2>
+    <div className="prose prose-invert max-w-none text-light-text mt-8 p-6 border border-dark-green rounded-lg bg-dark-base"> {/* Updated colors, added padding, border, bg, margin & prose-invert */}
+      <h2 className="text-xl font-semibold mb-3 text-hacker-green font-philosopher">Registration Instructions</h2> {/* Updated color, added font */}
       <p>
         Please fill out the form below completely to register for the Philosothon event. Ensure all required fields are answered.
       </p>

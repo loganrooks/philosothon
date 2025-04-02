@@ -3,6 +3,7 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import NavBar from "@/components/NavBar"; // Assuming components live in src/components
 import Footer from "@/components/Footer"; // Assuming components live in src/components
 import SupabaseProvider from "@/components/SupabaseProvider";
+import MatrixBackground from '@/components/MatrixBackground';
 import "./globals.css";
 
 // Configure fonts
@@ -35,12 +36,13 @@ export default function RootLayout({
     <html lang="en">
       {/* Apply font variables to the body */}
       <body
-        className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased bg-gray-50 text-gray-900`} // Use font-sans (Inter) by default
+        className={`${inter.variable} ${jetbrainsMono.variable} font-mono antialiased bg-dark-base text-light-text`} // Use font-mono (JetBrains) by default, apply theme base colors
       >
         <SupabaseProvider>
+          <MatrixBackground />
           <div className="flex flex-col min-h-screen">
             <NavBar />
-            <main className="flex-grow container mx-auto px-4 py-8">
+            <main className="flex-grow container mx-auto px-6 py-12"> {/* Increased padding */}
               {/* Page content goes here */}
               {children}
             </main>

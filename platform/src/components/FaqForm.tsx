@@ -94,7 +94,7 @@ const FaqForm: React.FC<FaqFormProps> = ({ initialData, action }) => {
         />
       </div>
 
-      {/* TODO: Add hidden input for ID if editing */}
+      {/* Hidden input for ID if editing */}
       {initialData?.id && <input type="hidden" name="id" value={initialData.id} />}
 
       <div className="flex justify-end">
@@ -102,7 +102,8 @@ const FaqForm: React.FC<FaqFormProps> = ({ initialData, action }) => {
           type="submit"
           className="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:bg-indigo-500 dark:hover:bg-indigo-600 dark:focus:ring-offset-gray-800"
         >
-          Save FAQ Item
+          {/* Conditionally render button text */}
+          {initialData ? 'Update FAQ Item' : 'Save FAQ Item'}
         </button>
       </div>
     </form>

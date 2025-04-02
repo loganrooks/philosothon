@@ -6,7 +6,7 @@ export interface Workshop {
   created_at: string;
   title: string;
   description: string;
-  relevant_themes: unknown | null;
+  relevant_themes: string[] | null; // Updated for JSONB array
   facilitator: string | null;
   max_capacity: number | null;
 }

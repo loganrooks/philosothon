@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "NODE_EXTRA_CA_CERTS=\"/etc/ssl/certs/ca-certificates.crt\" next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -20,6 +20,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
+    "@tailwindcss/typography": "^0.5.16",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.2.0",
     "@testing-library/user-event": "^14.6.1",
@@ -33,6 +34,7 @@
     "jsdom": "^26.0.0",
     "tailwindcss": "^4",
     "typescript": "^5",
+    "undici": "^6.21.2",
     "vitest": "^3.1.1"
   }
 }

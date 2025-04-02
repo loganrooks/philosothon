@@ -12,7 +12,7 @@ interface TimeLeft {
 const Countdown = () => {
   // Set the target date (adjust time if needed, e.g., 9:00 AM)
   // Note: Month is 0-indexed (0 = January, 3 = April)
-  const targetDate = new Date(2025, 3, 7, 0, 0, 0);
+  const targetDate = new Date(2025, 3, 7, 9, 0, 0); // Set to April 7, 2025, 9:00 AM
 
   const calculateTimeLeft = (): TimeLeft | null => {
     const difference = +targetDate - +new Date();
@@ -32,9 +32,13 @@ const Countdown = () => {
 
   const [timeLeft, setTimeLeft] = useState<TimeLeft | null>(calculateTimeLeft());
 
+  const [hasMounted, setHasMounted] = useState(false);
+
   useEffect(() => {
     // Update the countdown every second
     const timer = setInterval(() => {
+    setHasMounted(true);
+
       setTimeLeft(calculateTimeLeft());
     }, 1000);
 
@@ -45,29 +49,36 @@ const Countdown = () => {
   const formatTime = (time: number) => time.toString().padStart(2, '0');
 
   return (
-    <div className="bg-gradient-to-r from-purple-50 to-blue-50 p-6 md:p-8 rounded-lg text-center mb-12 shadow-sm">
-      <h2 className="text-2xl md:text-3xl font-semibold text-gray-800 mb-4">Event Starts In:</h2>
-      {timeLeft ? (
-        <div className="grid grid-cols-4 gap-2 md:gap-4 max-w-md mx-auto">
-          <div className="bg-white/70 backdrop-blur-sm p-3 md:p-4 rounded-lg shadow">
-            <div data-testid="countdown-days" className="text-3xl md:text-4xl font-bold text-purple-700">{formatTime(timeLeft.days)}</div>
-            <div className="text-xs md:text-sm text-gray-600 uppercase">Days</div>
+    <div className="bg-medium-gray p-8 md:p-10 rounded-lg text-center mb-16 border border-dark-green"> {/* Updated bg, padding, margin, border */}
+      <h2 className="text-2xl md:text-3xl font-semibold text-hacker-green mb-6 font-philosopher">Event Starts In:</h2> {/* Updated color, margin, font */}
+      {/* Hydration Fix: Only render the dynamic content after mounting */}
+      {hasMounted ? (
+        timeLeft ? (
+          <div className="grid grid-cols-4 gap-2 md:gap-4 max-w-md mx-auto">
+            <div className="bg-dark-base p-3 md:p-4 rounded-lg border border-dark-green">
+              <div data-testid="countdown-days" className="text-3xl md:text-4xl font-bold text-hacker-green">{formatTime(timeLeft.days)}</div>
+              <div className="text-xs md:text-sm text-light-text opacity-70 uppercase">Days</div>
+            </div>
+            <div className="bg-dark-base p-3 md:p-4 rounded-lg border border-dark-green">
+              <div data-testid="countdown-hours" className="text-3xl md:text-4xl font-bold text-hacker-green">{formatTime(timeLeft.hours)}</div>
+              <div className="text-xs md:text-sm text-light-text opacity-70 uppercase">Hours</div>
+            </div>
+            <div className="bg-dark-base p-3 md:p-4 rounded-lg border border-dark-green">
+              <div data-testid="countdown-minutes" className="text-3xl md:text-4xl font-bold text-hacker-green">{formatTime(timeLeft.minutes)}</div>
+              <div className="text-xs md:text-sm text-light-text opacity-70 uppercase">Minutes</div>
+            </div>
+            <div className="bg-dark-base p-3 md:p-4 rounded-lg border border-dark-green">
+              <div data-testid="countdown-seconds" className="text-3xl md:text-4xl font-bold text-hacker-green">{formatTime(timeLeft.seconds)}</div>
+              <div className="text-xs md:text-sm text-light-text opacity-70 uppercase">Seconds</div>
+            </div>
           </div>
-          <div className="bg-white/70 backdrop-blur-sm p-3 md:p-4 rounded-lg shadow">
-            <div data-testid="countdown-hours" className="text-3xl md:text-4xl font-bold text-purple-700">{formatTime(timeLeft.hours)}</div>
-            <div className="text-xs md:text-sm text-gray-600 uppercase">Hours</div>
-          </div>
-          <div className="bg-white/70 backdrop-blur-sm p-3 md:p-4 rounded-lg shadow">
-            <div data-testid="countdown-minutes" className="text-3xl md:text-4xl font-bold text-purple-700">{formatTime(timeLeft.minutes)}</div>
-            <div className="text-xs md:text-sm text-gray-600 uppercase">Minutes</div>
-          </div>
-          <div className="bg-white/70 backdrop-blur-sm p-3 md:p-4 rounded-lg shadow">
-            <div data-testid="countdown-seconds" className="text-3xl md:text-4xl font-bold text-purple-700">{formatTime(timeLeft.seconds)}</div>
-            <div className="text-xs md:text-sm text-gray-600 uppercase">Seconds</div>
-          </div>
-        </div>
+        ) : (
+          <p className="text-xl text-hacker-green">The event has started!</p>
+        )
       ) : (
-        <p className="text-xl text-gray-700">The event has started!</p>
+        // Render null or a placeholder during server render/initial client render
+        // to prevent hydration mismatch. A placeholder could be added here if needed.
+        null
       )}
     </div>
   );

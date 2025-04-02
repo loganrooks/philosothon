@@ -1,30 +1,41 @@
 'use client';
 
 import React from 'react';
+// Import useActionState from react instead of react-dom
+import { useActionState } from 'react';
 // Server actions (addTheme, updateTheme) will be passed as props
 
 // Define Theme type (consider moving to a shared types file)
 interface Theme {
   id: string; // Assuming ID is always present when editing
   created_at: string; // Keep other fields as needed
-  title: string;
+  title: string; // Reverted back to title
   description: string;
   analytic_tradition: string | null;
   continental_tradition: string | null;
 }
 
+// Define initial state for useActionState
+const initialState: { success: boolean, message: string | undefined } = { // Use undefined for message
+  success: true,
+  message: undefined,
+};
+
 // Define props for the form
 interface ThemeFormProps {
   initialData?: Theme;
-  action: (formData: FormData) => void | Promise<void>; // Match expected type for form action
+  // Action now expects the original server action signature, compatible with useActionState and corrected state type
+  action: (prevState: typeof initialState, formData: FormData) => Promise<{ success: boolean, message: string | undefined }>;
 }
 
 export default function ThemeForm({ initialData, action }: ThemeFormProps) {
+  // Use useActionState to manage form state and action return values
+  const [state, dispatch] = useActionState(action, initialState);
   // TODO: Implement form state management (e.g., useState or react-hook-form)
   // TODO: Implement form submission logic (calling onSubmit prop)
 
   return (
-    <form action={action} className="space-y-6"> {/* Use the passed Server Action */}
+    <form action={dispatch} className="space-y-6"> {/* Use the dispatch function from useActionState */}
       {/* Hidden input for ID when editing */}
       {initialData?.id && <input type="hidden" name="id" value={initialData.id} />}
 
@@ -95,6 +106,11 @@ export default function ThemeForm({ initialData, action }: ThemeFormProps) {
           Save Theme
         </button>
       </div>
+
+      {/* Display error message if submission failed */}
+      {!state.success && state.message && (
+        <p className="text-sm text-red-600 mt-2">{state.message}</p>
+      )}
     </form>
   );
 }

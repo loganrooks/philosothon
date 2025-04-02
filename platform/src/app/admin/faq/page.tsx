@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
-import FaqActions from '@/components/FaqActions';
+import { FaqActions } from '@/components/FaqActions';
 
 // Define the type for an FAQ item based on the expected schema
 interface FaqItem {

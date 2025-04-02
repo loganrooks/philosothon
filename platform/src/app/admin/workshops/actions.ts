@@ -14,6 +14,8 @@ export async function addWorkshop(formData: FormData) {
 
   const title = formData.get('title') as string | null;
   const description = formData.get('description') as string | null;
+  const date = formData.get('date') as string | null; // Get date
+  const location = formData.get('location') as string | null; // Get location
   const relevantThemesString = formData.get('relevant_themes') as string | null;
   const facilitator = formData.get('facilitator') as string | null;
   const maxCapacityString = formData.get('max_capacity') as string | null;
@@ -24,6 +26,12 @@ export async function addWorkshop(formData: FormData) {
     // Consider returning an error state to the form instead of just logging
     return; // Or throw an error, or return { error: '...' }
   }
+  // Add validation for date and location if they become mandatory
+  if (!date || !location) {
+     console.error('Error: Date and location are required.'); // Basic validation added
+     return;
+  }
+
 
   let relevantThemesJson: unknown | null = null;
   if (relevantThemesString) {
@@ -51,6 +59,8 @@ export async function addWorkshop(formData: FormData) {
   const workshopData: WorkshopInsert = {
     title,
     description,
+    date, // Add date
+    location, // Add location
     // Ensure the relevant_themes field in your DB accepts JSONB or similar
     relevant_themes: relevantThemesJson,
     facilitator: facilitator || null, // Ensure facilitator is nullable in DB or handle empty string
@@ -86,6 +96,8 @@ export async function updateWorkshop(id: string, formData: FormData) {
 
   const title = formData.get('title') as string | null;
   const description = formData.get('description') as string | null;
+  const date = formData.get('date') as string | null; // Get date
+  const location = formData.get('location') as string | null; // Get location
   const relevantThemesString = formData.get('relevant_themes') as string | null;
   const facilitator = formData.get('facilitator') as string | null;
   const maxCapacityString = formData.get('max_capacity') as string | null;
@@ -96,6 +108,10 @@ export async function updateWorkshop(id: string, formData: FormData) {
     // Consider returning an error state to the form
     return; // Or throw an error, or return { error: '...' }
   }
+   if (!date || !location) { // Add validation
+     console.error('Error: Date and location are required.');
+     return;
+   }
   if (!id) {
     console.error('Error: Workshop ID is missing.');
     return;
@@ -126,6 +142,8 @@ export async function updateWorkshop(id: string, formData: FormData) {
   const workshopData: Record<string, unknown> = {
     title,
     description,
+    date, // Add date
+    location, // Add location
     relevant_themes: relevantThemesJson,
     facilitator: facilitator || null,
     max_capacity: maxCapacityNumber,

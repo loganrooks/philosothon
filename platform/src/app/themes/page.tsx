@@ -9,8 +9,8 @@ interface Theme {
   created_at: string; // Assuming TIMESTAMPTZ is treated as string
   title: string;
   description: string;
-  analytic_tradition: string | null; // Assuming TEXT, nullable
-  continental_tradition: string | null; // Assuming TEXT, nullable
+  analytic_tradition: string[] | null; // Changed from string | null for JSONB
+  continental_tradition: string[] | null; // Changed from string | null for JSONB
   is_selected: boolean | null; // Assuming BOOLEAN, nullable
 }
 

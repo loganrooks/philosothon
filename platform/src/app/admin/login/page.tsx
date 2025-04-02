@@ -1,10 +1,12 @@
-'use client'; // Required for useState, useEffect, form handling
+'use client';
 
 import { useState } from 'react';
-import { useSupabase } from '@/components/SupabaseProvider'; // Use the custom hook
+// import { useRouter } from 'next/navigation'; // Removed unused import
+import { useSupabase } from '@/components/SupabaseProvider';
 
 export default function AdminLoginPage() {
-  const supabase = useSupabase(); // Get Supabase client instance directly
+  const supabase = useSupabase(); // useSupabase returns the client directly
+  // const router = useRouter(); // Removed unused variable
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -12,63 +14,84 @@ export default function AdminLoginPage() {
 
   const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setError('');
-    setMessage('');
     setLoading(true);
+    setMessage('');
+    setError('');
 
-    const { error } = await supabase.auth.signInWithOtp({
-      email: email,
-      options: {
-        // set this to false if you do not want the user to be automatically signed up
-        shouldCreateUser: false,
-        // Where to redirect the user after they click the magic link
-        emailRedirectTo: `${window.location.origin}/admin`, // Redirect to admin dashboard
-      },
-    });
+    try {
+      const { error: signInError } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          // Ensure this matches the redirect URL configured in your Supabase project auth settings
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=/admin`, // Redirect to callback, then admin
+        },
+      });
 
-    if (error) {
-      console.error('Error sending magic link:', error);
-      setError(`Error: ${error.message}`);
-    } else {
+      if (signInError) {
+        throw signInError;
+      }
+
       setMessage('Check your email for the magic login link!');
-      setEmail(''); // Clear email field on success
+    } catch (err: unknown) {
+      console.error('Login error:', err);
+      const message = err instanceof Error ? err.message : 'An unexpected error occurred.';
+      // Attempt to get a more specific Supabase error message if available
+      const supabaseError = err as { error_description?: string; message?: string };
+      setError(supabaseError?.error_description || supabaseError?.message || message);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
+  // Redirect if user is already logged in (optional, but good UX)
+  // This requires checking session state, which might be better handled
+  // by the middleware or the protected route itself. For simplicity,
+  // we'll rely on the protected route check for now.
+
   return (
-    <div>
-      <h1 className="text-3xl font-bold mb-6 text-gray-900">Admin Login</h1>
-      <p className="mb-4 text-gray-700">Enter your email to receive a magic login link.</p>
+    <div className="flex min-h-screen flex-col items-center justify-center bg-gray-100 p-4">
+      <div className="w-full max-w-md rounded-lg bg-white p-8 shadow-md">
+        <h1 className="mb-6 text-center text-2xl font-semibold text-gray-800">
+          Admin Login
+        </h1>
+        <form onSubmit={handleLogin}>
+          <div className="mb-4">
+            <label htmlFor="email" className="mb-2 block text-sm font-medium text-gray-700">
+              Email Address
+            </label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="block w-full rounded-md border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+              placeholder="you@example.com"
+              disabled={loading}
+            />
+          </div>
 
-      {message && <p className="mb-4 text-green-600 bg-green-100 p-3 rounded-md">{message}</p>}
-      {error && <p className="mb-4 text-red-600 bg-red-100 p-3 rounded-md">{error}</p>}
-
-      <form onSubmit={handleLogin} className="space-y-4">
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-            Email address
-          </label>
-          <input
-            type="email"
-            name="email"
-            id="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+          <button
+            type="submit"
             disabled={loading}
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm disabled:bg-gray-100"
-            placeholder="you@example.com"
-          />
-        </div>
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {loading ? 'Sending...' : 'Send Magic Link'}
-        </button>
-      </form>
+            className={`w-full rounded-md px-4 py-2 text-sm font-medium text-white shadow-sm ${
+              loading
+                ? 'cursor-not-allowed bg-indigo-300'
+                : 'bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2'
+            }`}
+          >
+            {loading ? 'Sending...' : 'Send Magic Link'}
+          </button>
+
+          {message && (
+            <p className="mt-4 text-center text-sm text-green-600">{message}</p>
+          )}
+          {error && (
+            <p className="mt-4 text-center text-sm text-red-600">{error}</p>
+          )}
+        </form>
+      </div>
     </div>
   );
 }

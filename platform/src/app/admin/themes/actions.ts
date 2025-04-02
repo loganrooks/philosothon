@@ -4,26 +4,24 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 
-export async function addTheme(formData: FormData) {
+
+export async function addTheme(prevState: { success: boolean, message: string | undefined }, formData: FormData): Promise<{ success: boolean, message: string | undefined }> {
   const supabase = await createClient();
 
   // Basic validation (consider using a library like Zod for more robust validation)
-  const title = formData.get('title') as string;
+  const title = formData.get('title') as string; // Reverted to 'title'
   const description = formData.get('description') as string;
   const analyticTradition = formData.get('analytic_tradition') as string | null;
   const continentalTradition = formData.get('continental_tradition') as string | null;
 
   if (!title || !description) {
-    // Handle error - perhaps return an error state to the form
+    // Handle error - return an error state to the form
     console.error('Title and Description are required.');
-    // In a real app, you'd likely return an object indicating the error
-    // e.g., return { error: 'Title and Description are required.' };
-    // For now, we'll just log and potentially let the DB handle constraints
-    return;
+    return { success: false, message: 'Title and description are required.' }; // Return error object matching FormState
   }
 
   const themeData = {
-    title,
+    title, // Reverted to 'title'
     description,
     analytic_tradition: analyticTradition || null, // Ensure null if empty
     continental_tradition: continentalTradition || null, // Ensure null if empty
@@ -32,37 +30,41 @@ export async function addTheme(formData: FormData) {
   try {
     const { data, error } = await supabase
       .from('themes')
-      .insert([themeData])
-      .select(); // Select to potentially get the inserted data back if needed
+      .insert([themeData]); // Removed .select()
 
     if (error) {
       console.error('Supabase insert error:', error);
       // Handle error - return error state to the form
-      // e.g., return { error: `Database error: ${error.message}` }; // Removed return
-      return; // Still return void on error, but don't return an object
+      return { success: false, message: `Error adding theme: ${error.message}` }; // Return error object matching FormState
     }
 
     console.log('Theme added successfully:', data);
 
     // Revalidate the path to show the new theme in the list
     revalidatePath('/admin/themes');
+    revalidatePath('/themes'); // Revalidate public path as well
 
     // Redirect back to the themes list page
     redirect('/admin/themes');
 
-  } catch (error) {
+  } catch (error: unknown) { // Add type annotation for catch block variable
     console.error('Error adding theme:', error);
-    // Handle unexpected errors - Removed return
-    // e.g., return { error: 'An unexpected error occurred.' };
+    // Handle unexpected errors
+    const message = error instanceof Error ? error.message : 'An unexpected error occurred.';
+    return { success: false, message: `Error adding theme: ${message}` }; // Return error object matching FormState
   }
+  // Note: redirect throws an error, so code below it won't execute.
+  // For type safety with useFormState, technically it expects a state return.
+  // However, in practice, the redirect prevents this return.
+  // If redirect didn't throw, we'd need: return { success: true, message: undefined };
 }
 
 
-export async function updateTheme(id: string, formData: FormData) {
+export async function updateTheme(id: string, prevState: { success: boolean, message: string | undefined }, formData: FormData): Promise<{ success: boolean, message: string | undefined }> {
   const supabase = await createClient();
 
   // Basic validation
-  const title = formData.get('title') as string;
+  const title = formData.get('title') as string; // Keep as 'title'
   const description = formData.get('description') as string;
   const analyticTradition = formData.get('analytic_tradition') as string | null;
   const continentalTradition = formData.get('continental_tradition') as string | null;
@@ -70,19 +72,17 @@ export async function updateTheme(id: string, formData: FormData) {
   if (!id) {
     console.error('Update error: ID is missing.');
     // Return error state
-    // return { error: 'Theme ID is missing and required for an update.' }; // Removed return
-    return; // Return void on error
+    return { success: false, message: 'Theme ID is missing and required for an update.' }; // Return error object
   }
 
   if (!title || !description) {
     console.error('Update error: Title and Description are required.');
     // Return error state
-    // return { error: 'Title and Description are required.' }; // Removed return
-    return; // Return void on error
+    return { success: false, message: 'Title and Description are required.' }; // Return error object
   }
 
   const themeData = {
-    title,
+    title, // Keep as 'title'
     description,
     analytic_tradition: analyticTradition || null,
     continental_tradition: continentalTradition || null,
@@ -91,17 +91,16 @@ export async function updateTheme(id: string, formData: FormData) {
   try {
     const { data, error } = await supabase
       .from('themes')
-      .update(themeData)
-      .eq('id', id)
-      .select(); // Select to potentially get the updated data back if needed
+      .update(themeData) // Original order was correct
+      .eq('id', id); // Filter after update
+      // Removed .select() here previously, ensure it stays removed
 
     if (error) {
       console.error('Supabase update error:', error);
-      // Return error state
-      // return { error: `Database error: ${error.message}` }; // Removed return
-      return; // Return void on error
+      // Return error state immediately
+      return { success: false, message: `Database error: ${error.message}` };
     }
-
+    // Only proceed if there was no error
     console.log('Theme updated successfully:', data);
 
     // Revalidate the path to show the updated theme in the list
@@ -112,12 +111,14 @@ export async function updateTheme(id: string, formData: FormData) {
     // Redirect back to the themes list page
     redirect('/admin/themes');
 
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error updating theme:', error);
     // Handle unexpected errors
-    // return { error: 'An unexpected error occurred during the update.' }; // Removed return
-    return; // Return void on error
+    const message = error instanceof Error ? error.message : 'An unexpected error occurred during the update.';
+    return { success: false, message }; // Return error object
   }
+  // Note: redirect throws an error, so code below it won't execute.
+  // If redirect didn't throw, we'd need: return { success: true, message: undefined };
 }
 
 

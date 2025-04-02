@@ -48,6 +48,7 @@ export default async function WorkshopsPage() {
             title={workshop.title}
             description={workshop.description}
             facilitator={workshop.facilitator ?? undefined} // Pass undefined if null
+            relevantThemes={workshop.relevant_themes ?? undefined} // Pass relevant themes
           />
         ))}
       </div>
