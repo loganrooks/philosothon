@@ -135,8 +135,7 @@ describe('Supabase Server Client Utility (server.ts)', () => {
   it('cookie "remove" handler should call cookieStore.set with empty value', async () => {
     await createClient(); // Run to capture handlers
     const cookieName = 'server-cookie-remove';
-    const cookieOptions: CookieOptions = { path: '/admin' };
-
+    const cookieOptions: CookieOptions = { path: '/' }; // Changed from '/admin' to '/'
     capturedCookieHandlers.remove(cookieName, cookieOptions);
 
     expect(mockCookieStore.set).toHaveBeenCalledTimes(1);
