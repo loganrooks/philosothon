@@ -3,9 +3,9 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { FormState } from '@/lib/definitions'; // Import shared type
 
-// Define the expected state structure for form actions
-type FormState = { success: boolean; message: string | undefined };
+// Removed local FormState definition
 
 export async function addFaqItem(prevState: FormState, formData: FormData): Promise<FormState> {
   const supabase = await createClient();

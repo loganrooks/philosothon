@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { FormState } from '@/lib/definitions'; // Import shared type
 
 // Define FaqItem type locally for now
 // TODO: Move to a shared types file (e.g., @/lib/types.ts)
@@ -13,14 +14,18 @@ type FaqItem = {
   created_at: string;
 };
 
-// Define props for the form, including the server action
+// Removed local FormState definition, now imported
+
+// Define props for the form, including the server action and state
 interface FaqFormProps {
   initialData?: FaqItem; // Optional prop for pre-populating the form
-  action: (formData: FormData) => Promise<void>; // Server action prop
+  // Action prop expects the dispatch function from useFormState
+  action: (formData: FormData) => void;
+  state: FormState; // Prop to receive state from useFormState
 }
 
 // Using React.FC without props for now, adjust as needed
-const FaqForm: React.FC<FaqFormProps> = ({ initialData, action }) => {
+const FaqForm: React.FC<FaqFormProps> = ({ initialData, action, state }) => {
   // TODO: Add state management if needed for client-side validation or interactivity
 
   return (
@@ -96,6 +101,14 @@ const FaqForm: React.FC<FaqFormProps> = ({ initialData, action }) => {
 
       {/* Hidden input for ID if editing */}
       {initialData?.id && <input type="hidden" name="id" value={initialData.id} />}
+
+      {/* Display server action messages */}
+      {state?.message && (
+        <div className="mb-4 text-sm text-red-600 dark:text-red-400" aria-live="polite">
+          {state.message}
+        </div>
+      )}
+      {/* TODO: Add display for field-specific errors (state.errors) if needed */}
 
       <div className="flex justify-end">
         <button
