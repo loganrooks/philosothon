@@ -78,3 +78,9 @@ p {
 .bg-dark-base details > div {
   font-weight: bold !important;
 }
+
+Link {
+  color: var(--foreground);
+  text-decoration: none;
+  padding: 2rem !important; /* Override global and utility padding */
+}
