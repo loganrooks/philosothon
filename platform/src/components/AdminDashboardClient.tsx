@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import DataTable from '@/components/DataTable';
 import StatusFilters from '@/components/StatusFilters';
 
@@ -22,11 +21,11 @@ interface Registration {
   status: 'Pending' | 'Approved' | 'Rejected'; // Assuming enum/text
 }
 
-interface AdminDashboardClientProps {
+interface DashboardClientProps {
   initialRegistrations: Registration[];
 }
 
-export default function AdminDashboardClient({ initialRegistrations }: AdminDashboardClientProps) {
+export default function DashboardClient({ initialRegistrations }: DashboardClientProps) {
   const [currentFilter, setCurrentFilter] = useState<'All' | 'Pending' | 'Approved' | 'Rejected'>('All');
 
   const handleFilterChange = (status: 'All' | 'Pending' | 'Approved' | 'Rejected') => {
@@ -39,26 +38,12 @@ export default function AdminDashboardClient({ initialRegistrations }: AdminDash
 
   return (
     <>
-      {/* START: Content Management Navigation */}
-      <div className="mb-4 flex items-center space-x-4">
-        <h3 className="text-lg font-semibold mr-4">Manage Content:</h3>
-        <Link href="/admin/themes" className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded shadow">
-          Themes
-        </Link>
-        <Link href="/admin/workshops" className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded shadow">
-          Workshops
-        </Link>
-        <Link href="/admin/faq" className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded shadow">
-          FAQ
-        </Link>
-      </div>
-      {/* END: Content Management Navigation */}
-
       {/* Pass state and handler to StatusFilters */}
       <StatusFilters
         currentFilter={currentFilter}
         onFilterChange={handleFilterChange}
       />
+      
       <div className="p-4 border rounded bg-gray-50 mt-4">
         {/* Pass filtered data to DataTable */}
         <DataTable registrations={filteredRegistrations} />

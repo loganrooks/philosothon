@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
 
 interface ThemeActionsProps {
   themeId: string;
@@ -13,6 +12,7 @@ export default function ThemeActions({ themeId }: ThemeActionsProps) {
     // Replace with client-side notification until server actions are implemented
     alert('Delete functionality temporarily disabled during deployment');
     // You can implement a client-side alternative or API call here
+    console.log('Theme ID to delete (for future implementation):', themeId);
   };
 
   return (

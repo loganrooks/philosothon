@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
 
 interface WorkshopActionsProps {
   workshopId: string;
@@ -10,6 +9,8 @@ interface WorkshopActionsProps {
 export default function WorkshopActions({ workshopId }: WorkshopActionsProps) {
   const handleDeleteClick = () => {
     alert('Delete functionality temporarily disabled during deployment');
+    // For future implementation
+    console.log('Workshop ID to delete:', workshopId);
   };
 
   return (
