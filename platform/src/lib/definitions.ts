@@ -9,4 +9,12 @@ export type FormState = {
 // Add other shared types here as needed
 // e.g., export type Theme = { ... };
 // export type Workshop = { ... };
-// export type FaqItem = { ... };
+
+export type FaqItem = {
+  id: string;
+  question: string;
+  answer: string;
+  category: string | null;
+  display_order: number | null;
+  created_at: string;
+};

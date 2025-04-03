@@ -6,22 +6,13 @@ import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import FaqForm from '@/components/FaqForm';
 import { updateFaqItem } from '../../actions'; // Import the update action
-import { FormState } from '@/lib/definitions'; // Import shared type
+import { FormState, FaqItem } from '@/lib/definitions'; // Import shared types
 // TODO: Define FaqItem type in a shared location (e.g., lib/types.ts) if used elsewhere
 // Removed duplicate interface definition
 
 // Removed EditFaqPageProps interface
 
-// Define FaqItem type locally for now
-// TODO: Move to a shared types file (e.g., @/lib/types.ts)
-type FaqItem = {
-  id: string;
-  question: string;
-  answer: string;
-  category: string | null;
-  display_order: number | null;
-  created_at: string;
-};
+// Removed local FaqItem definition, now imported from @/lib/definitions
 
 
 // Wrapper component to use the hook
