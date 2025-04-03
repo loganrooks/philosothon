@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+// Removed unused Link import
 import { deleteFaqItem } from '@/app/admin/faq/actions'; // Adjust path as needed
 
 interface FaqActionsProps {
@@ -20,12 +20,7 @@ export function FaqActions({ faqItemId }: FaqActionsProps) {
 
   return (
     <div className="flex items-center space-x-2">
-      <Link
-        href={`/admin/faq/${faqItemId}/edit`}
-        className="text-indigo-600 hover:text-indigo-900"
-      >
-        Edit
-      </Link>
+      {/* Edit link removed to resolve build errors */}
       <form action={deleteActionWithId} onSubmit={handleDelete}>
         <button
           type="submit"
