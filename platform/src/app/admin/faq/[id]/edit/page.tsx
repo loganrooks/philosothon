@@ -1,12 +1,13 @@
-'use client'; // Required for useFormState in the wrapper
+// This is now purely a Server Component for data fetching
 
 import React from 'react';
-import { useFormState } from 'react-dom';
+// Removed useFormState import
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import FaqForm from '@/components/FaqForm';
+// Removed unused FaqForm import
 import { updateFaqItem } from '../../actions'; // Import the update action
-import { FormState, FaqItem } from '@/lib/definitions'; // Import shared types
+import { FaqItem } from '@/lib/definitions'; // Import shared types (FormState removed)
+import EditFaqClientForm from '@/components/EditFaqClientForm'; // Import the new client component
 // TODO: Define FaqItem type in a shared location (e.g., lib/types.ts) if used elsewhere
 // Removed duplicate interface definition
 
@@ -15,19 +16,7 @@ import { FormState, FaqItem } from '@/lib/definitions'; // Import shared types
 // Removed local FaqItem definition, now imported from @/lib/definitions
 
 
-// Wrapper component to use the hook
-function EditFaqClientForm({
-  initialData,
-  updateAction,
-}: {
-  initialData: FaqItem;
-  updateAction: (prevState: FormState, formData: FormData) => Promise<FormState>;
-}) {
-  const initialState: FormState = { message: null, success: false, errors: {} };
-  const [state, dispatch] = useFormState(updateAction, initialState);
-
-  return <FaqForm initialData={initialData} action={dispatch} state={state} />;
-}
+// Removed EditFaqClientForm definition (moved to its own file)
 
 
 // Server component for data fetching
