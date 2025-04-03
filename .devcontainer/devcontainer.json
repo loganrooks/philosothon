@@ -1,0 +1,52 @@
+{
+	"name": "Philosothon Dev Container",
+	// Sets the run context to one level up instead of the .devcontainer folder.
+	"context": "..",
+	// Update the VARIANT arg in docker-compose.yml to pick a Node.js version
+	"dockerFile": "../Dockerfile",
+
+	// Add the IDs of extensions you want installed when the container is created.
+	// Also includes container specific settings.
+	"customizations": {
+		"vscode": {
+			// Set *default* container specific settings.json values on container create.
+			"settings": {},
+			// Add the IDs of extensions you want installed when the container is created.
+			"extensions": [
+				"ms-azuretools.vscode-docker", // Docker extension
+				"dbaeumer.vscode-eslint",      // ESLint
+				"esbenp.prettier-vscode",       // Prettier
+				"rooveterinaryinc.roo-cline"   // Roo Cline extension
+			]
+		}
+	},
+
+	// Use 'forwardPorts' to make a list of ports inside the container available locally.
+	"forwardPorts": [3000],
+
+	// Use 'postCreateCommand' to run commands after the container is created.
+	"postCreateCommand": "cd platform && npm install",
+
+	// Comment out connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
+	"remoteUser": "node",
+
+	// Mounts for persisting data and mapping workspace
+	"mounts": [
+		// Persist VS Code server state
+		{
+			"source": "vscode-server-state-${localWorkspaceFolderBasename}",
+			"target": "/home/node/.vscode-server",
+			"type": "volume"
+		},
+		// Mount the project workspace
+		{
+			"source": "${localWorkspaceFolder}",
+			"target": "/workspace",
+			"type": "bind"
+		}
+	],
+
+	// Define the workspace folder within the container
+	"workspaceFolder": "/workspace"
+	// Removed "workspaceMount" as it's now handled in "mounts"
+}

@@ -1,4 +1,7 @@
+import Link from 'next/link';
+
 interface ThemeCardProps {
+  id: string; // Added theme ID for linking
   title: string;
   description: string;
   analyticTradition?: string[]; // Updated for JSONB array
@@ -6,6 +9,7 @@ interface ThemeCardProps {
 }
 
 const ThemeCard: React.FC<ThemeCardProps> = ({
+  id, // Added id
   title,
   description,
   analyticTradition,
@@ -25,9 +29,16 @@ const ThemeCard: React.FC<ThemeCardProps> = ({
 
 
   return (
-    <div className="border border-dark-green rounded-lg p-6 mb-6 bg-dark-base"> {/* Updated bg, border, padding */}
+    <div className="border border-dark-green rounded-lg p-8 mb-6 bg-dark-base"> {/* Increased padding */}
       <h3 className="text-xl font-semibold mb-2 text-hacker-green">{title}</h3> {/* Updated color */}
       <p className="text-light-text mb-4">{description}</p> {/* Updated color */}
+
+      {/* Added See More Details Link */}
+      <div className="mt-2 mb-4">
+        <Link href={`/themes/${id}`} className="text-hacker-green hover:underline text-sm">
+          See More Details &rarr;
+        </Link>
+      </div>
 
       {(analyticTradition || continentalTradition) && (
          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-t-dark-green pt-3 mt-3"> {/* Updated border color */}

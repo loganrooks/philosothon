@@ -57,6 +57,7 @@ export default async function ThemesPage() {
         {!error && themeList.length > 0 && themeList.map((theme) => (
           <ThemeCard
             key={theme.id}
+            id={theme.id} // Added the missing id prop
             title={theme.title}
             description={theme.description}
             analyticTradition={theme.analytic_tradition ?? undefined} // Pass undefined if null

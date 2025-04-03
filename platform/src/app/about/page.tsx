@@ -13,7 +13,7 @@ export default function AboutPage() {
         <p className="mb-4">
           Philosophy has traditionally been practiced as a solitary pursuit—reading, writing, and thinking in isolation. The Philosothon challenges this norm by creating a space where philosophical ideas can emerge through dialogue and collaboration, mirroring how many other disciplines approach complex problems.
         </p>
-        <blockquote className="border-l-4 border-purple-300 pl-4 italic text-gray-600 my-4">
+        <blockquote className="border-l-4 border-purple-300 pl-10 italic text-gray-600 my-4">
           &quot;Philosophy students rarely get structured opportunities for extended collaborative thinking,&quot; notes the event organizer. &quot;We&apos;re testing whether the hackathon format can bring new energy to philosophical inquiry while building intellectual community.&quot;
         </blockquote>
       </ContentBlock>

@@ -20,10 +20,13 @@ memory_bank_strategy:
       2. **Conditional Actions:**
          * If user agrees and current mode is Architect:
             <thinking> I'll create the memory-bank structure now </thinking>
-            - Create the memory-bank directory structure (core/, feedback/, mode-specific/)
-            - Initialize core files (productContext.md, activeContext.md, systemPatterns.md, decisionLog.md, progress.md) with basic templates/headers.
-            - Create placeholder `.md` files for known modes within `mode-specific/` (e.g., `architect.md`, `code.md`, `test.md`, etc.) with a basic header like `# [Mode Name] Specific Memory`.
-            - Create placeholder feedback files for known modes within `feedback/` (e.g., `architect-feedback.md`).
+            - Create `memory-bank/` directory.
+            - Create `memory-bank/activeContext.md` with a basic header.
+            - Create `memory-bank/globalContext.md` with headers for Product Context, System Patterns, Decision Log, Progress.
+            - Create `memory-bank/feedback/` directory.
+            - Create `memory-bank/mode-specific/` directory.
+            - Create placeholder `.md` files for known modes within `mode-specific/` (e.g., `sparc.md`, `code.md`, etc.) with a basic header like `# [Mode Name] Specific Memory`.
+            - Create placeholder feedback files for known modes within `feedback/` (e.g., `sparc-feedback.md`).
             - Set status to '[MEMORY BANK: ACTIVE]'
          * If user agrees but current mode is not Architect:
             <thinking> I need Architect mode to create the memory-bank </thinking>
@@ -34,13 +37,10 @@ memory_bank_strategy:
             - Set status to '[MEMORY BANK: INACTIVE]'
             - Continue with task using session-only context
   if_memory_bank_exists: |
-      1. **READ CORE MEMORY BANK FILES**
-          <thinking> I'll read all core memory bank files in sequence, waiting for confirmation after each. </thinking>
-          <read_file> <path>memory-bank/core/productContext.md</path> </read_file> # WAIT
-          <read_file> <path>memory-bank/core/activeContext.md</path> </read_file> # WAIT
-          <read_file> <path>memory-bank/core/systemPatterns.md</path> </read_file> # WAIT
-          <read_file> <path>memory-bank/core/decisionLog.md</path> </read_file> # WAIT
-          <read_file> <path>memory-bank/core/progress.md</path> </read_file> # WAIT
+      1. **READ GLOBAL & ACTIVE MEMORY BANK FILES**
+          <thinking> I'll read the active and global memory bank files in sequence, waiting for confirmation after each. </thinking>
+          <read_file> <path>memory-bank/activeContext.md</path> </read_file> # WAIT
+          <read_file> <path>memory-bank/globalContext.md</path> </read_file> # WAIT
 
       2. **READ MODE-SPECIFIC & FEEDBACK FILES**
           <thinking> I'll read the single mode-specific file and the feedback file for sparc. </thinking>
@@ -63,7 +63,7 @@ memory_bank_updates:
       4. On explicit "Update Memory Bank" or "UMB" command
   update_process: |
       1. For all updates: Include timestamp, descriptive titles, maintain structure, use insert_content to append under correct headers, use apply_diff sparingly, avoid overwriting logs, keep concise.
-      2. File-Specific Updates: Update relevant core files. Update `memory-bank/mode-specific/sparc.md` under appropriate headers. Cross-reference if needed.
+      2. File-Specific Updates: Update `activeContext.md` and relevant sections in `globalContext.md`. Update `memory-bank/mode-specific/sparc.md` under appropriate headers. Cross-reference if needed.
   feedback_handling: |
       Save feedback to `memory-bank/feedback/sparc-feedback.md`, document source/issue/action, apply learnings.
 
@@ -79,16 +79,13 @@ memory_bank_updates:
     - During phase transitions in SPARC methodology
     - Before ending a session
   core_file_updates:
-    projectContext.md: |
-      - Update when project scope is clarified or changes
     activeContext.md: |
       - Update with current focus, active delegations, blockers
-    systemPatterns.md: |
-      - Update with architecture decisions from Architect mode
-    decisionLog.md: |
-      - Record key orchestration decisions, methodology adjustments
-    progress.md: |
-      - Update task status, milestones, dependencies
+    globalContext.md: |
+      - Update `# Product Context` section when project scope is clarified or changes
+      - Update `# System Patterns` section with architecture decisions from Architect mode
+      - Update `# Decision Log` section to record key orchestration decisions, methodology adjustments
+      - Update `# Progress` section with task status, milestones, dependencies
   mode_specific_updates:
     target_file: memory-bank/mode-specific/sparc.md
     structure: |
@@ -120,5 +117,5 @@ umb:
   instructions: |
       1. Halt Current Task. Acknowledge Command: '[MEMORY BANK: UPDATING]'. Review Chat History.
       2. Temporary God-Mode Activation.
-      3. Core Update Process: Update core files. Update `memory-bank/mode-specific/sparc.md` under relevant headers. Update feedback file. Ensure consistency.
+      3. Core Update Process: Update `activeContext.md` and `globalContext.md`. Update `memory-bank/mode-specific/sparc.md` under relevant headers. Update feedback file. Ensure consistency.
       4. Confirm Completion: '[MEMORY BANK: UPDATED]'.

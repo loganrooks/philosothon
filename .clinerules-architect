@@ -15,10 +15,11 @@ memory_bank_strategy:
          * If user agrees:
             <thinking> I will create the memory-bank structure now. </thinking>
             - Create `memory-bank/` directory.
-            - Create `memory-bank/core/` directory and initialize core files (productContext.md, activeContext.md, systemPatterns.md, decisionLog.md, progress.md) with basic templates/headers.
+            - Create `memory-bank/activeContext.md` with a basic header.
+            - Create `memory-bank/globalContext.md` with headers for Product Context, System Patterns, Decision Log, Progress.
             - Create `memory-bank/feedback/` directory.
             - Create `memory-bank/mode-specific/` directory.
-            - Create placeholder `.md` files for known modes within `mode-specific/` (e.g., `architect.md`, `code.md`, `test.md`, etc.) with a basic header like `# [Mode Name] Specific Memory`.
+            - Create placeholder `.md` files for known modes within `mode-specific/` (e.g., `architect.md`, `code.md`, etc.) with a basic header like `# [Mode Name] Specific Memory`.
             - Create placeholder feedback files for known modes within `feedback/` (e.g., `architect-feedback.md`).
             - Inform user: "Memory Bank structure created."
             - Set status to '[MEMORY BANK: ACTIVE]'
@@ -28,7 +29,7 @@ memory_bank_strategy:
             - Set status to '[MEMORY BANK: INACTIVE]'
             - Continue with task using session-only context.
   if_memory_bank_exists: |
-      1. Read Core Files: productContext.md, activeContext.md, systemPatterns.md, decisionLog.md, progress.md (WAIT after each)
+      1. Read Global & Active Files: `memory-bank/activeContext.md`, `memory-bank/globalContext.md` (WAIT after each)
       2. Read Mode-Specific & Feedback: `memory-bank/mode-specific/architect.md`, `memory-bank/feedback/architect-feedback.md` (WAIT after each, if exists)
       3. Activation: Set status '[MEMORY BANK: ACTIVE]', inform user, apply feedback.
   general:
@@ -43,7 +44,7 @@ memory_bank_updates:
       4. On explicit "Update Memory Bank" or "UMB" command
   update_process: |
       1. For all updates: Include timestamp, descriptive titles, maintain structure, use insert_content/apply_diff appropriately, avoid overwriting logs, keep concise.
-      2. File-Specific Updates: Update relevant core files (esp. systemPatterns.md, decisionLog.md). Update `memory-bank/mode-specific/architect.md` under appropriate headers. Cross-reference if needed.
+      2. File-Specific Updates: Update `activeContext.md` and relevant sections in `globalContext.md` (esp. System Patterns, Decision Log). Update `memory-bank/mode-specific/architect.md` under appropriate headers. Cross-reference if needed.
   feedback_handling: |
       Save feedback to `memory-bank/feedback/architect-feedback.md`, document source/issue/action, apply learnings.
 
@@ -59,13 +60,11 @@ memory_bank_updates:
     - After receiving specification changes impacting architecture
     - Before calling attempt_completion
   core_file_updates:
-    systemPatterns.md: | # Architect primarily owns this
-      - Update with new or modified architecture diagrams (Mermaid or descriptions)
-      - Document component relationships, responsibilities, boundaries, patterns
-    decisionLog.md: |
-      - Record architectural decisions, technology choices, pattern selections
     activeContext.md: |
       - Update with current architectural focus, unresolved questions
+    globalContext.md: |
+      - Update `# System Patterns` section with new/modified diagrams, component relationships, responsibilities, boundaries, patterns (Architect primarily owns this section)
+      - Update `# Decision Log` section to record architectural decisions, technology choices, pattern selections
   mode_specific_updates:
     target_file: memory-bank/mode-specific/architect.md
     structure: |
@@ -111,5 +110,5 @@ umb:
   instructions: |
       1. Halt Current Task. Acknowledge Command: '[MEMORY BANK: UPDATING]'. Review Chat History.
       2. Temporary God-Mode Activation.
-      3. Core Update Process: Update core files (esp. systemPatterns, decisionLog). Update `memory-bank/mode-specific/architect.md` under relevant headers. Update feedback file. Ensure consistency.
+      3. Core Update Process: Update `activeContext.md` and `globalContext.md` (esp. System Patterns, Decision Log sections). Update `memory-bank/mode-specific/architect.md` under relevant headers. Update feedback file. Ensure consistency.
       4. Confirm Completion: '[MEMORY BANK: UPDATED]'.

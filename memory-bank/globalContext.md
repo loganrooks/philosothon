@@ -59,6 +59,19 @@ This file consolidates less frequently updated global project information, inclu
 *   **JSONB Handling:** Supabase JSONB columns mapped to `string[] | null` in TypeScript interfaces. Components updated to render arrays.
 
 
+*   **[2025-04-03] Development Environment:** VS Code Dev Containers used to provide a consistent, isolated environment with all necessary dependencies (Node.js, Puppeteer system libs) pre-installed via Dockerfile. Resolves host-container dependency conflicts (e.g., shared library issues in WSL).
+
+*   **[2025-04-03] Dev Container Configuration:** Updated `.devcontainer/devcontainer.json` to use the `customizations.vscode` structure for `settings` and `extensions` to conform to the latest specification and resolve schema warnings.
+
+
+*   **[2025-04-03] Dev Container State Persistence:** Use the `mounts` property in `devcontainer.json` to define both workspace mounts and named volumes. A named volume (`vscode-server-state-${localWorkspaceFolderBasename}`) is used to persist VS Code server state (`/home/node/.vscode-server`) across container rebuilds, improving startup time and preserving UI state.
+
+
+*   **[2025-04-03] Dev Container Persistence Clarification:** Corrected a JSON error in `.devcontainer/devcontainer.json` by removing an invalid `consistency: 'cached'` property from the workspace bind mount. Re-emphasized that persistence of VS Code state (including extension data like RooCode history) is handled correctly by the *volume mount* targeting `/home/node/.vscode-server`, not properties of the bind mount.
+
+
+
+*   **[2025-04-03] Dev Container Volume Permissions (Dockerfile Fix):** Added `RUN mkdir -p /home/node/.vscode-server && chown -R 1000:1000 /home/node/.vscode-server` to the `Dockerfile` to ensure the directory exists with correct ownership *during* the image build, resolving permission errors encountered during container startup when using a volume mount. Reverted the previous `postCreateCommand` fix in `devcontainer.json`.
 # Decision Log
 
 ## Decision
@@ -172,6 +185,53 @@ Node.js on the development machine was unable to find the system's trusted CA ce
 Added `NODE_EXTRA_CA_CERTS="/etc/ssl/certs/ca-certificates.crt"` prefix to the `next dev` command in `platform/package.json`'s `scripts.dev` section.
 
 
+*
+
+## Decision
+[2025-04-03] Use VS Code Dev Containers for the development environment.
+
+## Rationale
+Provides an isolated and consistent development environment defined by a Dockerfile. Resolves shared library conflicts encountered when running tools like Puppeteer directly within WSL/VS Code Server, ensuring dependencies match the container's OS rather than the host's.
+
+## Implementation Details
+Created `Dockerfile` based on `node:18-bullseye`, installed Node.js and required Puppeteer/Chromium system libraries. Created `.devcontainer/devcontainer.json` to configure the container build, workspace mount, port forwarding, extensions, and post-creation commands (`npm install`).
+
+
+*
+
+## Decision
+[2025-04-03] Use `mounts` property and named volume for VS Code server state persistence in Dev Container.
+
+## Rationale
+Consolidates mount definitions (`workspaceMount` is deprecated in favor of `mounts`). Persisting VS Code server state (`/home/node/.vscode-server`) via a named volume significantly speeds up container rebuilds and restores UI state (open files, etc.), improving the developer experience.
+
+## Implementation Details
+Added a `mounts` array to `.devcontainer/devcontainer.json`. Moved the existing workspace bind mount definition into this array. Added a new entry for a named volume (`vscode-server-state-${localWorkspaceFolderBasename}`) targeting `/home/node/.vscode-server`. Removed the standalone `workspaceMount` property. Added `rooveterinaryinc.roo-cline` to the `customizations.vscode.extensions` array.
+
+
+
+*
+
+## Decision
+[2025-04-03] Add directory creation and ownership commands to `Dockerfile` for `/home/node/.vscode-server` volume.
+
+## Rationale
+The previous attempt to fix permissions using `postCreateCommand` failed because VS Code Server attempted to access/create subdirectories before the command completed. Moving the directory creation (`mkdir -p`) and ownership change (`chown`) into the `Dockerfile` ensures these steps happen during the image build, guaranteeing correct permissions *before* the container starts and VS Code connects.
+
+## Implementation Details
+Added `RUN mkdir -p /home/node/.vscode-server && chown -R 1000:1000 /home/node/.vscode-server` to `Dockerfile`. Reverted `postCreateCommand` in `.devcontainer/devcontainer.json` to its original state (`cd platform && npm install`).
+
+
+*
+
+## Decision
+[2025-04-03 07:22:00] Add `libnss3` package to Dev Container Dockerfile.
+
+## Rationale
+Puppeteer was failing with a missing shared library error (`libnss3.so`) within the Dev Container. Installing packages directly in a running container is ephemeral. Adding the dependency to the `Dockerfile` ensures it's consistently included in the image build.
+
+## Implementation Details
+Added `libnss3` to the `apt-get install -y` command list within the `RUN` instruction in `Dockerfile`.
 # Progress
 
 ## Completed Tasks
@@ -202,3 +262,4 @@ Added `NODE_EXTRA_CA_CERTS="/etc/ssl/certs/ca-certificates.crt"` prefix to the `
 
 [2025-03-31 11:07:01] - Reviewed initial structure of `platform/src/app/admin/page.tsx`.
 [2025-04-02 07:27:00] - Completed UI theme overhaul (hacker style, fixed base styles, refined Matrix background spacing/speed, fixed NavBar, increased padding).
+[2025-04-02 11:58:00] - Added specific global CSS rules to fix FAQ padding and bold answers.

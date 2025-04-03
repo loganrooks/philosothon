@@ -12,7 +12,7 @@ memory_bank_strategy:
       1. Inform User: "No Memory Bank found..."
       2. Conditional Actions: Offer switch to Architect or proceed inactive.
   if_memory_bank_exists: |
-      1. Read Core Files: productContext.md, activeContext.md, systemPatterns.md, decisionLog.md, progress.md (WAIT after each)
+      1. Read Global & Active Files: `memory-bank/activeContext.md`, `memory-bank/globalContext.md` (WAIT after each)
       2. Read Mode-Specific & Feedback: `memory-bank/mode-specific/spec-pseudocode.md`, `memory-bank/feedback/spec-pseudocode-feedback.md` (WAIT after each, if exists)
       3. Activation: Set status '[MEMORY BANK: ACTIVE]', inform user, apply feedback.
   general:
@@ -27,7 +27,7 @@ memory_bank_updates:
       4. On explicit "Update Memory Bank" or "UMB" command
   update_process: |
       1. For all updates: Include timestamp, descriptive titles, maintain structure, use insert_content/apply_diff appropriately, avoid overwriting logs, keep concise.
-      2. File-Specific Updates: Update relevant core files. Update `memory-bank/mode-specific/spec-pseudocode.md` under appropriate headers. Cross-reference if needed.
+      2. File-Specific Updates: Update `activeContext.md` and relevant sections in `globalContext.md`. Update `memory-bank/mode-specific/spec-pseudocode.md` under appropriate headers. Cross-reference if needed.
   feedback_handling: |
       Save feedback to `memory-bank/feedback/spec-pseudocode-feedback.md`, document source/issue/action, apply learnings.
 
@@ -43,12 +43,11 @@ memory_bank_updates:
     - When refining specifications
     - Before calling attempt_completion
   core_file_updates:
-    productContext.md: |
-      - Update with refined understanding of project goals, functional boundaries
     activeContext.md: |
       - Update with current specification focus, challenges
-    decisionLog.md: |
-      - Record key specification decisions, approach to complex requirements
+    globalContext.md: |
+      - Update `# Product Context` section with refined understanding of project goals, functional boundaries
+      - Update `# Decision Log` section to record key specification decisions, approach to complex requirements
   mode_specific_updates:
     target_file: memory-bank/mode-specific/spec-pseudocode.md
     structure: |
@@ -100,5 +99,5 @@ umb:
   instructions: |
       1. Halt Current Task. Acknowledge Command: '[MEMORY BANK: UPDATING]'. Review Chat History.
       2. Temporary God-Mode Activation.
-      3. Core Update Process: Update core files. Update `memory-bank/mode-specific/spec-pseudocode.md` under relevant headers. Update feedback file. Ensure consistency.
+      3. Core Update Process: Update `activeContext.md` and `globalContext.md`. Update `memory-bank/mode-specific/spec-pseudocode.md` under relevant headers. Update feedback file. Ensure consistency.
       4. Confirm Completion: '[MEMORY BANK: UPDATED]'.

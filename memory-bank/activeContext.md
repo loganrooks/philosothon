@@ -6,6 +6,87 @@ This file tracks the project's current status, including recent changes, current
 *
 
 ## Current Focus
+### Active Context Update - 2025-04-03 07:47:00
+-   **Current Focus**: Resolve Puppeteer MCP X server error using `xvfb`.
+-   **Progress**: Added `xvfb` package to `apt-get install` command in `Dockerfile` based on user-provided solution.
+-   **Challenges**: Requires user intervention to rebuild container and restart MCP server with `xvfb-run -a` wrapper.
+-   **Next Step**: Awaiting user confirmation of container rebuild and MCP server restart before retrying `puppeteer_navigate`.
+
+
+
+### Active Context Update - 2025-04-03 07:44:00
+-   **Current Focus**: Retry Puppeteer navigation after user attempted to configure the MCP server for headless mode.
+-   **Progress**: Identified root cause of previous Puppeteer failure (`Missing X server or $DISPLAY`) as likely needing headless mode. User confirmed they attempted this configuration change.
+-   **Challenges**: Verifying if the user's change to the MCP server was successful.
+-   **Next Step**: Retry `puppeteer_navigate` tool.
+
+
+
+### Active Context Update - 2025-04-02 11:58:00
+-   **Current Focus**: Finalizing FAQ page formatting and updating Memory Bank.
+-   **Progress**: Added specific CSS rules to `globals.css` to apply padding and bold font-weight within the `AccordionGroup` component, overriding potentially conflicting global styles for that specific context. Confirmed NavBar and MatrixBackground are finalized by user.
+-   **Challenges**: Correctly interpreting user feedback regarding global CSS vs. Tailwind utilities. Ensuring Memory Bank updates append rather than overwrite.
+-   **Next Step**: Update remaining Memory Bank files and attempt completion.
+
+
+### Active Context Update - 2025-04-03 03:10:00
+-   **Current Focus**: Fix Dev Container permission error for `/home/node/.vscode-server` volume mount (Attempt 2).
+-   **Progress**: User reported the previous `postCreateCommand` fix was insufficient. Modified `Dockerfile` to add `RUN mkdir -p /home/node/.vscode-server && chown -R 1000:1000 /home/node/.vscode-server` to ensure directory exists with correct ownership during image build. Reverted the `postCreateCommand` in `.devcontainer/devcontainer.json` back to its original state (`cd platform && npm install`).
+-   **Challenges**: Initial fix using `postCreateCommand` did not resolve the timing issue of directory creation vs. VS Code Server access.
+-   **Next Step**: Update remaining Memory Bank files and attempt completion.
+
+
+
+
+### Active Context Update - 2025-04-03 07:22:00
+-   **Current Focus**: Resolve Puppeteer dependency error (missing libnss3.so).
+-   **Progress**: Identified the issue occurs within a Docker Dev Container. Modified `Dockerfile` to add `libnss3` to the `apt-get install` command list. Confirmed file modification success.
+-   **Challenges**: Initial attempts to install via `apt-get` in the running container failed due to `sudo` not found and then apt directory permissions. `apply_diff` tool failed parsing, switched to `search_and_replace`.
+-   **Next Step**: Update globalContext.md, then instruct user to rebuild the Dev Container.
+
+### Active Context Update - 2025-04-03 02:50:00
+-   **Current Focus**: Fix JSON error in `.devcontainer/devcontainer.json` related to persistence changes.
+-   **Progress**: Read the file. Initially misidentified the error as a missing comma. User feedback correctly identified the issue as an invalid `consistency` property on the workspace bind mount. Removed the `consistency` property and the preceding comma. Clarified that the *volume mount* for `/home/node/.vscode-server` handles the persistence of VS Code state (including RooCode history), while `consistency` was incorrectly applied.
+-   **Challenges**: Correctly interpreting the specific JSON error reported by the user's tools (`@problems`).
+-   **Next Step**: Update remaining Memory Bank files and attempt completion.
+
+
+
+### Active Context Update - 2025-04-03 02:45:00
+-   **Current Focus**: Update `.devcontainer/devcontainer.json` to add Roo Cline extension and persist VS Code server state.
+-   **Progress**: Read the file, added `rooveterinaryinc.roo-cline` to extensions, created `mounts` array with a named volume for `/home/node/.vscode-server` and the existing workspace bind mount, removed the old `workspaceMount` property, and wrote the updated file.
+-   **Challenges**: None.
+-   **Next Step**: Update remaining Memory Bank files and attempt completion.
+
+
+
+### Active Context Update - 2025-04-03 01:57:00
+-   **Current Focus**: Update `.devcontainer/devcontainer.json` structure.
+-   **Progress**: Moved `settings` and `extensions` under `customizations.vscode` as requested.
+-   **Challenges**: None.
+-   **Next Step**: Update Memory Bank and attempt completion.
+
+
+### Active Context Update - 2025-04-03 01:50:00
+-   **Current Focus**: Set up VS Code Dev Container environment.
+-   **Progress**: Created `Dockerfile` with Node.js 18, Puppeteer dependencies (including `libatspi2.0-0`, `libpango-1.0-0`), and project setup. Created `.devcontainer/devcontainer.json` referencing the Dockerfile, mounting the workspace, forwarding port 3000, adding extensions, and setting a `postCreateCommand` for dependency installation.
+-   **Challenges**: None.
+-   **Next Step**: Update globalContext.md and attempt completion.
+
+---
+
+---
+
+
+### Active Context Update - 2025-04-02 11:50:00
+-   **Current Focus**: Addressed final formatting issue on FAQ page using global CSS overrides.
+-   **Progress**: Added specific CSS rules to `globals.css` to apply padding within the `AccordionGroup` component, overriding potentially conflicting global styles for that specific context.
+-   **Challenges**: Understanding the root cause of Tailwind utility class failures and adapting to the user's successful global CSS workaround. Identified need to investigate Tailwind issue later.
+-   **Next Step**: Update remaining Memory Bank files, apply bold styling to FAQ answers, and attempt completion.
+
+---
+
+
 ### Active Context Update - 2025-04-02 07:27:00
 -   **Current Focus**: Applied final refinements to Matrix background based on user feedback.
 -   **Progress**: Increased vertical spacing multiplier for philosopher names in `MatrixBackground.tsx` to 2.5. Adjusted speed logic to use a very slow range (0.05-0.1) for binary rain under names, ensuring a noticeable difference.

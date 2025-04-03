@@ -1,7 +1,21 @@
 # Code Specific Memory
 
 
+### Implementation: Dev Container Configuration Update - 2025-04-03 02:45:00
+- **Approach**: Updated `.devcontainer/devcontainer.json` to add the Roo Cline extension (`rooveterinaryinc.roo-cline`) to the `customizations.vscode.extensions` array. Introduced the `mounts` property to consolidate volume and bind mounts. Added a named volume mount (`vscode-server-state-${localWorkspaceFolderBasename}`) targeting `/home/node/.vscode-server` to persist VS Code server state. Moved the existing workspace bind mount definition into the `mounts` array. Removed the deprecated standalone `workspaceMount` property.
+- **Key Files Modified/Created**: `.devcontainer/devcontainer.json`: Applied the described changes.
+- **Notes**: This configuration ensures the Roo Cline extension is available in the dev container and improves container rebuild times by persisting VS Code server state.
+
+
+
 ## Implementation Notes
+### Implementation: FAQ Formatting Refinement - 2025-04-02 11:58:00
+- **Approach**: Addressed poor formatting on the FAQ page by adding specific CSS rules to `globals.css` to control padding and font-weight within the `AccordionGroup` component, overriding global styles in that context. This respects the user's established workaround for Tailwind utility class issues.
+- **Key Files Modified/Created**:
+  - `platform/src/app/globals.css`: Added specific rules for `.bg-dark-base details > summary` and `.bg-dark-base details > div` to set padding and font-weight.
+- **Notes**: Acknowledged the underlying issue with Tailwind utilities not applying reliably and noted it as technical debt for later investigation.
+
+
 ### Implementation: UI Theme Overhaul Final Refinements (Matrix Spacing/Speed) - 2025-04-02 07:27:00
 - **Approach**: Addressed final user feedback on the Matrix background effect. Increased vertical spacing multiplier for philosopher names in `MatrixBackground.tsx` to 2.5. Adjusted speed logic to use a very slow range (0.05-0.1) for binary rain under names, ensuring a noticeable difference.
 - **Key Files Modified/Created**:

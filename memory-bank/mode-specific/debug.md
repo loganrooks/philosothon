@@ -3,6 +3,36 @@
 ## Issue History
 <!-- Append new issue details using the format below -->
 
+### Issue: DEVCONTAINER-JSON-001 - Invalid `consistency` property in `devcontainer.json` - [Status: Resolved] - [2025-04-03 02:52:00]
+- **Reported**: 2025-04-03 02:46:38 / **Severity**: Medium / **Symptoms**: User reported problems (`@problems` context variable) with `.devcontainer/devcontainer.json` after modifications to add Roo Cline extension and persist VS Code state (using `mounts` and removing `workspaceMount`). User specifically pointed out error related to `consistency` property.
+- **Investigation**: 
+  1. Read `.devcontainer/devcontainer.json`. (2025-04-03 02:47:56)
+  2. Initially misidentified issue as a missing comma. Attempted fix rejected by user. (2025-04-03 02:48:34)
+  3. User feedback clarified the error was `Property consistency is not allowed`. (2025-04-03 02:49:01)
+  4. Confirmed `consistency` is not a valid property for bind mounts in the `devcontainer.json` schema.
+  5. Clarified that the volume mount for `/home/node/.vscode-server` handles state persistence, not the bind mount's `consistency` property. (2025-04-03 02:50:13)
+  6. Wrote corrected file, removing the `consistency` property and associated comma. (2025-04-03 02:50:52)
+- **Root Cause**: Invalid `consistency` property added to the workspace bind mount definition in `devcontainer.json`, likely in an attempt to manage file persistence/performance, but violating the schema.
+- **Fix Applied**: Removed the `"consistency": "cached"` line and the trailing comma from the preceding line within the workspace bind mount definition in `.devcontainer/devcontainer.json`.
+- **Verification**: `write_to_file` operation confirmed successful by the system. (2025-04-03 02:50:52)
+- **Related Issues**: Related to previous dev container setup (DEVCONTAINER-SETUP-001) and state persistence goal (PERSISTENCE-001).
+
+
+
+### Issue: DEVCONTAINER-PERM-001 - Permission denied for `/home/node/.vscode-server` volume mount (Attempt 2) - [Status: Resolved] - [2025-04-03 03:11:00]
+- **Reported**: 2025-04-03 03:08:31 (Follow-up after initial fix failed) / **Severity**: Medium / **Symptoms**: User reported persistent `mkdir: cannot create directory '/home/node/.vscode-server/bin': Permission denied` error during container startup, even after adding `mkdir/chown` to `postCreateCommand`.
+- **Investigation**: 
+  1. Analyzed error log: The failure occurs during VS Code Server's internal setup (`mkdir -p '/home/node/.vscode-server/bin'`), indicating the `postCreateCommand` might run too late or concurrently.
+  2. Decided to move the directory creation and ownership change into the `Dockerfile` build process.
+  3. Added `RUN mkdir -p /home/node/.vscode-server && chown -R 1000:1000 /home/node/.vscode-server` to `Dockerfile`. (2025-04-03 03:09:42)
+  4. Reverted the previous change to `postCreateCommand` in `.devcontainer/devcontainer.json`. (2025-04-03 03:10:02)
+- **Root Cause**: The `postCreateCommand` executes after the container is created but potentially concurrently with or after VS Code Server attempts its initial setup within the mounted volume. Setting permissions during the Docker image build ensures they are correct *before* the container starts.
+- **Fix Applied**: Added `RUN mkdir -p /home/node/.vscode-server && chown -R 1000:1000 /home/node/.vscode-server` to the `Dockerfile`. Reverted `postCreateCommand` in `.devcontainer/devcontainer.json`.
+- **Verification**: `insert_content` and `apply_diff` operations confirmed successful by the system. Awaiting user confirmation after container rebuild.
+- **Related Issues**: DEVCONTAINER-PERM-001 (Attempt 1), DEVCONTAINER-SETUP-001, PERSISTENCE-001.
+
+
+
 ### Issue: DB-SCHEMA-001 / SSL-001 - Type errors & SSL cert errors after schema change - [Status: Resolved] - [2025-04-02 06:17:00]
 - **Reported**: 2025-04-02 06:07:45 / **Severity**: High / **Symptoms**: User reported schema changes (`themes`: `analytic_tradition`, `continental_tradition` to JSONB; `workshops`: `relevant_themes` to JSONB). Subsequent `npm run dev` resulted in `unable to get local issuer certificate` errors during data fetching.
 - **Investigation**: 

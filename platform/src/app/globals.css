@@ -21,3 +21,61 @@ body {
   color: var(--foreground);
   /* font-family will be handled by Tailwind base styles and config */
 }
+
+ul {
+  list-style: none;
+  padding-left: 2rem;
+  padding-right: 2rem;
+}
+
+li {
+  padding-left: 2rem;
+  padding-right: 2rem;
+}
+
+
+/* Add this to globals.css */
+h1, h2, h3, h4, h5, h6 {
+  padding-left: 2rem;
+  padding-right: 2rem;
+}
+
+blockquote {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+/* Your existing rule */
+p {
+  padding-left: 2rem;
+  padding-right: 2rem;
+}
+
+
+
+/* For A Brief History in Timeline */
+.timeline-heading {
+  padding-left: 0 !important; /* Override the global heading padding */
+}
+
+
+/* Specific padding for FAQ Accordion items */
+.bg-dark-base details > summary {
+  padding: 2rem !important; /* Override global and utility padding */
+}
+
+.bg-dark-base details > div {
+  padding: 2rem !important; /* Override global and utility padding */
+}
+
+/* Optional: Reset padding for paragraphs specifically inside the accordion answer, if needed */
+/* .bg-dark-base details > div p {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+} */
+
+/* Make FAQ answers bold */
+.bg-dark-base details > div {
+  font-weight: bold !important;
+}
+

@@ -12,10 +12,10 @@ const NavBar = () => {
   ];
 
   return (
-    <nav className="py-6">
-      <div className="container mx-auto px-4 flex justify-between items-center">
+    <nav className="py-4 border-b border-hacker-green"> {/* Vertical padding and border on nav */}
+      <div className="container mx-auto px-6 lg:px-12 flex justify-between items-center"> {/* Container, horizontal padding, flex */}
         {/* Logo/Brand */}
-        <Link href="/" className="text-xl font-bold font-mono text-hacker-green hover:brightness-125 transition">
+        <Link href="/" className="text-xl font-bold font-mono text-hacker-green hover:text-white transition">
           Philosothon UofT
         </Link>
 
@@ -25,7 +25,7 @@ const NavBar = () => {
             <li key={item.name}>
               <Link
                 href={item.href}
-                className="text-hacker-green hover:brightness-125 font-mono text-sm font-medium transition"
+                className="text-hacker-green hover:text-white font-mono text-sm font-medium transition"
               >
                 {item.name}
               </Link>

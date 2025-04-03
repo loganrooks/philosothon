@@ -8,7 +8,7 @@ interface WorkshopCardProps {
 const WorkshopCard: React.FC<WorkshopCardProps> = ({ title, description, facilitator, relevantThemes }) => {
   // TODO: Refine styling and add more details if necessary
   return (
-    <div className="border border-dark-green rounded-lg p-6 mb-6 bg-dark-base"> {/* Updated bg, border, padding */}
+    <div className="border border-dark-green rounded-lg p-8 mb-6 bg-dark-base"> {/* Increased padding */}
       <h3 className="text-xl font-semibold mb-2 text-hacker-green">{title}</h3> {/* Updated color */}
       {facilitator && <p className="text-sm text-light-text opacity-70 mb-2">Facilitator: {facilitator}</p>} {/* Updated color */}
       <p className="text-light-text mb-3">{description}</p> {/* Updated color */}

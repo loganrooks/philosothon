@@ -1,8 +1,6 @@
 import type { Config } from 'tailwindcss';
 import typography from '@tailwindcss/typography'; // Import the plugin
 
-// No need to import defaultTheme for basic extension
-
 const config: Config = {
   content: [
     './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
@@ -19,10 +17,8 @@ const config: Config = {
         'medium-gray': '#333333',
       },
       fontFamily: {
-        // Assuming 'var(--font-sans)' is defined elsewhere (e.g., layout.tsx)
-        // Provide a basic fallback stack. Tailwind merges this with its defaults.
-        sans: ['var(--font-sans)', 'sans-serif'],
-        // Define the 'philosopher' font family with a basic serif fallback.
+        sans: ['var(--font-inter)', 'Inter', 'sans-serif'],
+        mono: ['var(--font-jetbrains-mono)', 'JetBrains Mono', 'monospace'],
         philosopher: ['Philosopher', 'serif'],
       },
       backgroundImage: {

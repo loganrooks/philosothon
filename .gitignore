@@ -4,6 +4,7 @@ create_context_file.py
 .roomodes
 .context-ignore
 *system-prompt*
+.clinerules*
 # memory-bank/*.md
 
 # Environment files

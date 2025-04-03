@@ -19,6 +19,7 @@ __pycache__/
 venv/
 .venv/
 .roo/
+docs/philosophy/
 
 # You can also use glob patterns
 **/*.pyc
