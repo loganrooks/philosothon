@@ -234,6 +234,8 @@ Puppeteer was failing with a missing shared library error (`libnss3.so`) within 
 Added `libnss3` to the `apt-get install -y` command list within the `RUN` instruction in `Dockerfile`.
 # Progress
 
+
+[2025-04-03 18:26:00] - Temporarily removed entire admin section (`platform/src/app/admin`) and related components/links (`ThemeActions`, `FaqActions` edit link) to resolve persistent Vercel build errors related to dynamic routes and TypeScript `PageProps` constraints. Admin functionality needs to be revisited/re-implemented later.
 ## Completed Tasks
 ## Completed Tasks (Summary - Details in mode-specific/code.md)
 - Memory Bank Restructuring

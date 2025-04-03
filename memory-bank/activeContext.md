@@ -6,6 +6,14 @@ This file tracks the project's current status, including recent changes, current
 *
 
 ## Current Focus
+### Active Context Update - 2025-04-03 18:26:00
+- **Current Focus**: Resolve persistent Vercel build errors related to admin dynamic routes.
+- **Progress**: Deleted the entire `platform/src/app/admin` directory, removed associated Edit links from `FaqActions.tsx`, and deleted the obsolete `ThemeActions.tsx` component and its test file. Confirmed workshop/theme edit pages were already removed with the parent directory.
+- **Challenges**: Build failed repeatedly with a `PageProps` constraint error on dynamic admin edit pages (`faq/[id]/edit`, `themes/[id]/edit`) even after simplifying them to placeholders.
+- **Next Step**: Update remaining Memory Bank files (`globalContext.md`, `code.md`) and attempt completion.
+
+
+
 ### Active Context Update - 2025-04-03 16:46:00
 - **Current Focus**: Finalize Vercel deployment setup after fixing build errors and updating event date.
 - **Progress**: Fixed initial build errors (parsing, ESLint). Addressed subsequent ESLint warnings (`useCallback`/`useMemo` dependencies). Updated event start date in `Countdown.tsx` to April 26th, 2025.
