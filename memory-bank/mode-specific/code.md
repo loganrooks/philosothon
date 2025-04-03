@@ -93,6 +93,16 @@
 ## Technical Debt Log
 <!-- Append new or resolved tech debt items using the format below -->
 
+### Tech Debt: Persistent Vercel Build Error (PageProps Constraint) - [Status: Open] - [2025-04-03 18:26:00]
+- **Identified**: 2025-04-03
+- **Location**: `platform/src/app/admin/[entity]/[id]/edit/page.tsx` (multiple dynamic routes)
+- **Description**: Vercel build consistently fails with a TypeScript error: `Type '{ params: { id: string; }; }' does not satisfy the constraint 'PageProps'`. This occurred even after simplifying the page components significantly and attempting various type definition strategies.
+- **Impact**: Blocks Vercel deployment.
+- **Priority**: High (blocking deployment)
+- **Proposed solution**: Temporarily removed the entire `/admin` section (`platform/src/app/admin`) and related components/links to allow deployment. Root cause needs further investigation (potential Next.js/TypeScript/Vercel interaction issue with dynamic routes).
+- **Resolution Notes**: N/A / **Resolved Date**: N/A
+
+
 ## Dependencies Log
 <!-- Append new dependencies using the format below -->
 
