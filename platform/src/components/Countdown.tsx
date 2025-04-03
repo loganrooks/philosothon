@@ -1,6 +1,6 @@
 'use client'; // This component uses client-side hooks (useState, useEffect)
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 
 interface TimeLeft {
   days: number;
@@ -12,9 +12,10 @@ interface TimeLeft {
 const Countdown = () => {
   // Set the target date (adjust time if needed, e.g., 9:00 AM)
   // Note: Month is 0-indexed (0 = January, 3 = April)
-  const targetDate = new Date(2025, 3, 7, 9, 0, 0); // Set to April 7, 2025, 9:00 AM
+  // Wrap targetDate in useMemo to ensure it's stable across renders
+  const targetDate = useMemo(() => new Date(2025, 3, 7, 9, 0, 0), []); // Set to April 7, 2025, 9:00 AM
 
-  const calculateTimeLeft = (): TimeLeft | null => {
+  const calculateTimeLeft = useCallback((): TimeLeft | null => {
     const difference = +targetDate - +new Date();
     let timeLeft: TimeLeft | null = null;
 
@@ -28,7 +29,7 @@ const Countdown = () => {
     }
 
     return timeLeft;
-  };
+  }, [targetDate]); // Now depends on the memoized targetDate
 
   const [timeLeft, setTimeLeft] = useState<TimeLeft | null>(calculateTimeLeft());
 
@@ -44,7 +45,7 @@ const Countdown = () => {
 
     // Clear interval on component unmount
     return () => clearInterval(timer);
-  }, []); // Empty dependency array means this effect runs once on mount
+  }, [calculateTimeLeft]); // Add calculateTimeLeft to dependency array
 
   const formatTime = (time: number) => time.toString().padStart(2, '0');
 

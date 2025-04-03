@@ -22,7 +22,7 @@ export function parseThemeMarkdown(markdownContent: string, themeTitle: string):
   const nextThemeRegex = /^## /m;
   let endOfSectionIndex = markdownContent.length;
   const nextThemeMatch = markdownContent.substring(themeMatch.index + themeMatch[0].length).match(nextThemeRegex);
-  if (nextThemeMatch &amp;&amp; typeof nextThemeMatch.index !== 'undefined') {
+  if (nextThemeMatch && typeof nextThemeMatch.index !== 'undefined') {
     endOfSectionIndex = themeMatch.index + themeMatch[0].length + nextThemeMatch.index;
   }
 
@@ -39,13 +39,13 @@ export function parseThemeMarkdown(markdownContent: string, themeTitle: string):
       return list;
     }
 
-    let listStartIndex = startMatch.index + startMatch[0].length;
+    const listStartIndex = startMatch.index + startMatch[0].length;
 
     // Find the end of the list (next bold marker or end of section)
     let listEndIndex = content.length;
     const nextBoldMarkerRegex = /^\*\*.+:\*\*\s*$/m;
     const nextBoldMatch = content.substring(listStartIndex).match(nextBoldMarkerRegex);
-    if (nextBoldMatch &amp;&amp; typeof nextBoldMatch.index !== 'undefined') {
+    if (nextBoldMatch && typeof nextBoldMatch.index !== 'undefined') {
        // Check if an explicit endMarker was provided and if this match is it
        if (endMarker) {
          const endRegex = new RegExp(`^\\*\\*${endMarker}:\\*\\*\\s*$`, 'm');
@@ -56,7 +56,7 @@ export function parseThemeMarkdown(markdownContent: string, themeTitle: string):
          else {
             const searchAfterCurrent = listStartIndex + nextBoldMatch.index + nextBoldMatch[0].length;
             const subsequentBoldMatch = content.substring(searchAfterCurrent).match(nextBoldMarkerRegex);
-            if (subsequentBoldMatch &amp;&amp; typeof subsequentBoldMatch.index !== 'undefined') {
+            if (subsequentBoldMatch && typeof subsequentBoldMatch.index !== 'undefined') {
                 listEndIndex = searchAfterCurrent + subsequentBoldMatch.index;
             }
          }

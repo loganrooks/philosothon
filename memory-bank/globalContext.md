@@ -263,3 +263,4 @@ Added `libnss3` to the `apt-get install -y` command list within the `RUN` instru
 [2025-03-31 11:07:01] - Reviewed initial structure of `platform/src/app/admin/page.tsx`.
 [2025-04-02 07:27:00] - Completed UI theme overhaul (hacker style, fixed base styles, refined Matrix background spacing/speed, fixed NavBar, increased padding).
 [2025-04-02 11:58:00] - Added specific global CSS rules to fix FAQ padding and bold answers.
+[2025-04-03 16:28:00] - [DevOps Task] Vercel Deployment Setup [In Progress - Keys Obtained]

@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
 
 const MatrixBackground: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // List of philosopher names to embed
-  const philosophers = [
+  const philosophers = useMemo(() => [
     'socrates', 'plato', 'aristotle', 'descartes', 'kant', 'nietzsche',
     'wittgenstein', 'sartre', 'camus', 'foucault', 'derrida', 'heidegger',
     'arendt', 'de beauvoir', 'hypatia', 'confucius', 'lao tzu', 'avicenna',
@@ -14,7 +14,7 @@ const MatrixBackground: React.FC = () => {
     'popper', 'kuhn', 'rawls', 'nozick', 'singer', 'chalmers', 'dennett',
     'searle', 'nagel', 'parfit', 'anscombe', 'foot', 'midgley', 'nussbaum',
     'butler', 'zizek', 'badiou', 'agamben', 'ranciere', 'stiegler', 'latour'
-  ];
+  ], []); // Empty dependency array ensures this is created only once
 
   useEffect(() => {
     // Only run on client side
@@ -179,7 +179,7 @@ const MatrixBackground: React.FC = () => {
         window.removeEventListener('resize', handleResize);
       }
     };
-  }, []); // Empty dependency array ensures this runs only once on mount
+  }, [philosophers]); // Add philosophers to dependency array
 
   return (
     <canvas
