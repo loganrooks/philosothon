@@ -33,12 +33,12 @@ const ThemeCard: React.FC<ThemeCardProps> = ({
       <h3 className="text-xl font-semibold mb-2 text-hacker-green">{title}</h3> {/* Updated color */}
       <p className="text-light-text mb-4">{description}</p> {/* Updated color */}
 
-      {/* Added See More Details Link */}
+      {/* Added See More Details Link
       <div className="mt-2 mb-4">
         <Link href={`/themes/${id}`} className="text-hacker-green hover:underline text-sm">
           See More Details &rarr;
         </Link>
-      </div>
+      </div> */}
 
       {(analyticTradition || continentalTradition) && (
          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-t-dark-green pt-3 mt-3"> {/* Updated border color */}
