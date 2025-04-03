@@ -14,7 +14,7 @@ const Hero = () => {
       </p>
       <div className="flex flex-col sm:flex-row justify-center items-center space-y-4 sm:space-y-0 sm:space-x-6">
         <p className="text-lg font-semibold text-light-text"> {/* Updated color */}
-          April 7-8, 2025
+          April 26-27, 2025
         </p>
         <Link
           href="/register"

@@ -6,7 +6,7 @@ const ScheduleDisplay = () => {
       <h2 className="text-2xl font-semibold text-hacker-green mb-6 border-b border-dark-green pb-3 font-philosopher">Event Schedule</h2> {/* Updated color, margin, border, font */}
 
       <div className="mb-6">
-        <h3 className="text-xl font-semibold text-hacker-green opacity-90 mb-4">Monday, April 7, 2025</h3> {/* Updated color, margin */}
+        <h3 className="text-xl font-semibold text-hacker-green opacity-90 mb-4">Saturday, April 26, 2025</h3> {/* Updated color, margin */}
         <ul className="list-['>_'] list-inside space-y-3 text-light-text pl-4"> {/* Updated list style, spacing, color, added padding */}
           <li className="pl-2 pr-2"><span className="font-medium text-hacker-green opacity-70 mr-4">8:30 AM - 9:00 AM:</span> Sign-in and Welcome</li> {/* Updated color, added padding */}
           <li className="pl-2 pr-2"><span className="font-medium text-hacker-green opacity-70 mr-4">9:00 AM - 9:30 AM:</span> Opening Remarks & Theme Announcement</li> {/* Updated color, added padding */}

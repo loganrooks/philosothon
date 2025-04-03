@@ -14,7 +14,7 @@ The Philosothon adapts the hackathon format to philosophical inquiry. Participan
 
 ## **Detailed Schedule**
 
-**Monday, April 7, 2025:**
+**Saturday, April 26, 2025:**
 
 * 8:30AM-9:00AM: Sign-in and welcome
 * 9:00AM-9:30AM: Opening remarks and theme announcement

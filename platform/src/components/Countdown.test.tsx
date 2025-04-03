@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import Countdown from '@/components/Countdown';
 
 describe('Countdown Component', () => {
-  const targetDate = new Date(2025, 3, 7, 0, 0, 0); // April 7, 2025 00:00:00
+  const targetDate = new Date(2025, 3, 26, 9, 0, 0); // April 26, 2025 09:00:00 (Updated to match component)
 
   beforeEach(() => {
     // Use fake timers for controlling setInterval and Date

@@ -6,6 +6,14 @@ This file tracks the project's current status, including recent changes, current
 *
 
 ## Current Focus
+### Active Context Update - 2025-04-03 16:46:00
+- **Current Focus**: Finalize Vercel deployment setup after fixing build errors and updating event date.
+- **Progress**: Fixed initial build errors (parsing, ESLint). Addressed subsequent ESLint warnings (`useCallback`/`useMemo` dependencies). Updated event start date in `Countdown.tsx` to April 26th, 2025.
+- **Challenges**: Initial deployment failed due to build errors. Subsequent ESLint warnings required further optimization.
+ Updated event start date in `Countdown.tsx` and all other identified references in `platform/src` and `docs/event_info` to April 26-27, 2025.
+- **Next Step**: Awaiting user to commit and push changes to trigger Vercel deployment.
+
+
 ### Active Context Update - 2025-04-03 07:47:00
 -   **Current Focus**: Resolve Puppeteer MCP X server error using `xvfb`.
 -   **Progress**: Added `xvfb` package to `apt-get install` command in `Dockerfile` based on user-provided solution.

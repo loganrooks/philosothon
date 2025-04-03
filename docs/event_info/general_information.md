@@ -2,7 +2,7 @@
 
 ## **An Experimental Event at the University of Toronto**
 
-The Philosophy of Technology Group at the University of Toronto is hosting a groundbreaking event that brings the collaborative energy of hackathons to the world of philosophical inquiry. The **Philosothon** will take place on **April 7-8, 2025**, bringing together students for an intensive day of collaborative thinking on pressing questions at the intersection of philosophy and technology.
+The Philosophy of Technology Group at the University of Toronto is hosting a groundbreaking event that brings the collaborative energy of hackathons to the world of philosophical inquiry. The **Philosothon** will take place on **April 26-27, 2025**, bringing together students for an intensive day of collaborative thinking on pressing questions at the intersection of philosophy and technology.
 
 ## **What is a Philosothon?**
 
@@ -27,7 +27,7 @@ The event includes:
 
 ## **Event Details**
 
-**Dates:** April 7-8, 2025  
+**Dates:** April 26-27, 2025  
 **Location:** Bahen Atrium, University of Toronto  
 **Participants:** 15-30 University of Toronto philosophy students  
 **Format:** A collaborative philosophical exploration culminating in team presentations

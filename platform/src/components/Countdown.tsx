@@ -13,7 +13,7 @@ const Countdown = () => {
   // Set the target date (adjust time if needed, e.g., 9:00 AM)
   // Note: Month is 0-indexed (0 = January, 3 = April)
   // Wrap targetDate in useMemo to ensure it's stable across renders
-  const targetDate = useMemo(() => new Date(2025, 3, 7, 9, 0, 0), []); // Set to April 7, 2025, 9:00 AM
+  const targetDate = useMemo(() => new Date(2025, 3, 26, 9, 0, 0), []); // Set to April 26, 2025, 9:00 AM
 
   const calculateTimeLeft = useCallback((): TimeLeft | null => {
     const difference = +targetDate - +new Date();

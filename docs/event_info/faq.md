@@ -9,7 +9,7 @@ A Philosothon adapts the hackathon format for philosophical inquiry. Instead of 
 Not at all! We welcome students from any program with an interest in philosophy. The event is designed to be accessible to those with varying levels of philosophical background.
 
 ### How much time commitment is required?
-The event runs from 8:30AM to late evening on Monday, April 7th, and from 10:30AM to 2PM on Tuesday, April 8th. You should be prepared to dedicate most of Monday to the event.
+The event runs from 8:30AM to late evening on Saturday, April 26th, and from 10:30AM to 2PM on Sunday, April 27th. You should be prepared to dedicate most of Monday to the event.
 
 ## Team Formation
 
@@ -85,7 +85,7 @@ Dear Professor [Name],
 
 I hope this email finds you well. I'm writing to inform you about an educational opportunity I've been selected to participate in and to request a brief extension on [assignment name] due on [current due date].
 
-I've been invited to participate in the Philosophy of Technology Group's "Philosothon" on April 7-8, which is an intensive collaborative philosophy event at UofT where students work in teams to develop philosophical arguments on technology-related themes. The event includes workshops, structured discussions, and culminates in team presentations judged by philosophy graduate students and faculty.
+I've been invited to participate in the Philosophy of Technology Group's "Philosothon" on April 26-27, which is an intensive collaborative philosophy event at UofT where students work in teams to develop philosophical arguments on technology-related themes. The event includes workshops, structured discussions, and culminates in team presentations judged by philosophy graduate students and faculty.
 
 Participation in this event would significantly enhance my philosophical thinking skills and complements the work we've been doing in [course name], particularly regarding [mention relevant course topics that connect to philosophy of technology]. The skills I'll develop—collaborative philosophical inquiry, presenting complex arguments, and engaging with diverse philosophical perspectives—will directly benefit my academic development.
 

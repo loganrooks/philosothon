@@ -2,7 +2,7 @@
 
 Hey Philosophy Students!
 
-Ever wanted more chances to dive into extended philosophical discussions with your peers? Tired of philosophy being just you, alone with your books and papers? The **Philosophy of Technology Group** invites you to join our experimental **Philosothon** – a one-day intensive philosophical collaboration event happening **April 7-8, 2025**.
+Ever wanted more chances to dive into extended philosophical discussions with your peers? Tired of philosophy being just you, alone with your books and papers? The **Philosophy of Technology Group** invites you to join our experimental **Philosothon** – a one-day intensive philosophical collaboration event happening **April 26-27, 2025**.
 
 ## **What is a Philosothon?**
 
@@ -19,7 +19,7 @@ Think of it as a philosophy hackathon – but instead of coding, we're creating 
 
 ## **Event Details**
 
-**Monday, April 7:**
+**Saturday, April 26:**
 * 8:30AM: Sign-in and welcome
 * 9:00AM: Opening remarks and theme announcement
 * 12:00-1:00PM: Philosophy of Technology workshop and lunch

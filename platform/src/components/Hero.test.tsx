@@ -29,7 +29,7 @@ describe('Hero Component', () => {
 
    it('should render the event date', () => {
     render(<Hero />);
-    expect(screen.getByText(/April 7-8, 2025/i)).toBeInTheDocument();
+    expect(screen.getByText(/April 26-27, 2025/i)).toBeInTheDocument();
   });
 
   it('should render the "Register Now" link with the correct href', () => {
