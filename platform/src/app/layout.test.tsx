@@ -39,7 +39,7 @@ describe('RootLayout Component', () => {
     render(<RootLayout><TestChild /></RootLayout>);
     expect(document.body).toHaveClass('mock-inter-variable');
     expect(document.body).toHaveClass('mock-jetbrains-variable');
-    expect(document.body).toHaveClass('font-sans'); // Check default font class
+    expect(document.body).toHaveClass('font-mono'); // Check default font class (updated for hacker theme)
   });
 
   it('should render NavBar, Footer, and SupabaseProvider mocks', () => {

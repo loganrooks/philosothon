@@ -5,7 +5,8 @@ import ScheduleDisplay from "@/components/ScheduleDisplay";
 
 export default function Home() {
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-8"> {/* Added padding */}
+    // Removed redundant padding, handled by layout container
+    <div>
       {/* Hero Section with Event Overview */}
       <Hero />
 

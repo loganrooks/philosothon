@@ -3,19 +3,19 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import ThemesPage from '@/app/themes/page';
 import { createClient } from '@/lib/supabase/server';
 import type { SupabaseClient } from '@supabase/supabase-js'; // Import type for casting
-// import ThemeCard from '@/components/ThemeCard'; // No longer needed as component is mocked
+import ThemeCard from '@/components/ThemeCard'; // Import the actual component for mocking
 
 // Mock dependencies
 vi.mock('@/lib/supabase/server');
-const mockThemeCard = vi.fn(() => <div data-testid="mock-theme-card">Mock Theme Card</div>);
 vi.mock('@/components/ThemeCard', () => ({
-  default: mockThemeCard,
+  // Define the mock function directly inside the factory
+  default: vi.fn(() => <div data-testid="mock-theme-card">Mock Theme Card</div>),
 }));
 
-// Define mock theme data based on the interface in the component
+// Define mock theme data based on the interface in the component (using arrays for traditions)
 const mockThemes = [
-  { id: '1', created_at: '2023-01-01T00:00:00Z', title: 'AI Ethics', description: 'Exploring the moral implications of artificial intelligence.', analytic_tradition: 'Focus on logic and clarity.', continental_tradition: null, is_selected: false },
-  { id: '2', created_at: '2023-01-02T00:00:00Z', title: 'Consciousness', description: 'What is it like to be a bat?', analytic_tradition: null, continental_tradition: 'Phenomenological approaches.', is_selected: true },
+  { id: '1', created_at: '2023-01-01T00:00:00Z', title: 'AI Ethics', description: 'Exploring the moral implications of artificial intelligence.', analytic_tradition: ['Focus on logic', 'clarity'], continental_tradition: null, is_selected: false },
+  { id: '2', created_at: '2023-01-02T00:00:00Z', title: 'Consciousness', description: 'What is it like to be a bat?', analytic_tradition: null, continental_tradition: ['Phenomenology', 'Embodiment'], is_selected: true },
 ];
 
 describe('Themes Page Component', () => {
@@ -25,7 +25,7 @@ describe('Themes Page Component', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockThemeCard.mockClear(); // Clear calls to the component mock
+    vi.mocked(ThemeCard).mockClear(); // Clear calls using the imported component
 
     // Setup mock for the Supabase query chain
     mockOrder = vi.fn();
@@ -63,24 +63,26 @@ describe('Themes Page Component', () => {
     expect(screen.getAllByTestId('mock-theme-card')).toHaveLength(mockThemes.length);
 
     // Check props passed to the first card as an example
-    expect(mockThemeCard).toHaveBeenCalledWith(
+    expect(vi.mocked(ThemeCard)).toHaveBeenCalledWith(
       expect.objectContaining({
+        id: mockThemes[0].id, // Added ID check
         title: mockThemes[0].title,
         description: mockThemes[0].description,
-        analyticTradition: mockThemes[0].analytic_tradition,
-        continentalTradition: undefined, // Because it was null in mock data
+        analyticTradition: mockThemes[0].analytic_tradition, // Expect array
+        continentalTradition: undefined, // Correctly expects undefined for null
       }),
-      expect.anything()
+      undefined // Explicitly check for undefined second argument
     );
      // Check props passed to the second card
-    expect(mockThemeCard).toHaveBeenCalledWith(
+    expect(vi.mocked(ThemeCard)).toHaveBeenCalledWith(
       expect.objectContaining({
+        id: mockThemes[1].id, // Added ID check
         title: mockThemes[1].title,
         description: mockThemes[1].description,
-        analyticTradition: undefined, // Because it was null
-        continentalTradition: mockThemes[1].continental_tradition,
+        analyticTradition: undefined, // Correctly expects undefined for null
+        continentalTradition: mockThemes[1].continental_tradition, // Expect array
       }),
-      expect.anything()
+      undefined // Explicitly check for undefined second argument
     );
   });
 

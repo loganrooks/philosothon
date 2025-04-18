@@ -2,7 +2,8 @@ import Link from 'next/link';
 
 const Hero = () => {
   return (
-    <div className="bg-medium-gray p-16 rounded-lg text-center mb-16 border border-dark-green"> {/* Updated bg, padding, margin, border */}
+    // Added responsive padding
+    <div className="bg-medium-gray p-8 md:p-16 rounded-lg text-center mb-16 border border-dark-green">
       <h1 className="text-4xl md:text-5xl font-bold text-hacker-green mb-4 font-philosopher"> {/* Updated color, added font */}
         Philosothon: Where Philosophy Meets Hackathon Culture
       </h1>

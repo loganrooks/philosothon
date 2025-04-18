@@ -10,7 +10,7 @@ describe('InstructionBlock Component', () => {
 
   it('should render the instructional paragraphs', () => {
     render(<InstructionBlock />);
-    expect(screen.getByText(/Please fill out the form above completely/i)).toBeInTheDocument();
+    expect(screen.getByText(/Please fill out the form below completely/i)).toBeInTheDocument();
     expect(screen.getByText(/Team assignments and final theme selection/i)).toBeInTheDocument();
   });
 });

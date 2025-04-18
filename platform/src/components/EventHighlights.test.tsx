@@ -4,8 +4,8 @@ import EventHighlights from '@/components/EventHighlights';
 
 describe('EventHighlights Component', () => {
   // Replicate the internal data structure for testing purposes
+  // Updated mock data reflecting removal of Keynote
   const highlights = [
-    { id: 1, title: "Keynote Speaker", description: "Hear from a leading philosopher in technology ethics." },
     { id: 2, title: "Interactive Workshops", description: "Engage in hands-on sessions exploring AI and philosophy." },
     { id: 3, title: "Collaborative Challenge", description: "Work in teams to develop unique philosophical perspectives." },
   ];

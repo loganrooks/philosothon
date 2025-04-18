@@ -18,9 +18,6 @@ const jetbrainsMono = JetBrains_Mono({
   weight: ["400", "700"], // Specify weights if needed
 });
 
-// TODO: Add configuration for the "Philosopher" heading font if available/required.
-// This might involve downloading the font files and setting up @font-face in globals.css
-
 export const metadata: Metadata = {
   title: "Philosothon Event Platform",
   description: "University of Toronto Philosothon Event Website",
@@ -37,7 +34,7 @@ export default function RootLayout({
       {/* Apply font variables to the body */}
       <body
         className={`${inter.variable} ${jetbrainsMono.variable} font-mono antialiased bg-dark-base text-light-text`} // Use font-mono (JetBrains) by default, apply theme base colors
-        style={{ fontFamily: 'JetBrains Mono, monospace' }}
+        // Removed redundant inline style
 
         suppressHydrationWarning
       >
@@ -46,7 +43,8 @@ export default function RootLayout({
         <SupabaseProvider>
           <div className="flex flex-col min-h-screen">
             <NavBar />
-            <main className="flex-grow container mx-auto px-6 sm:px-12 md:px-16 lg:px-20 py-16"> {/* Significantly increased horizontal padding */}
+            {/* Simplified horizontal padding, kept vertical padding */}
+            <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-16">
               {/* Page content goes here */}
               {children}
             </main>
