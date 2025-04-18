@@ -7,8 +7,6 @@
     /* @apply font-philosopher; */ /* Temporarily commented out for debugging Task 13 */
   }
 }
-
-
 :root {
   /* Hacker Theme Base */
   --background: #0D0D0D; /* dark-base */

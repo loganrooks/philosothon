@@ -9,7 +9,7 @@ export default async function AddNewWorkshopPage() {
 
   return (
     <div>
-      <h1 className="mb-4 text-2xl font-semibold text-white">Add New Workshop</h1>
+      <h1 className="mb-4 text-2xl font-semibold text-white font-philosopher">Add New Workshop</h1>
       <WorkshopForm action={createWorkshop} /* themes={themes} */ />
     </div>
   );

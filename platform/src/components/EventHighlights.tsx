@@ -11,7 +11,7 @@ const EventHighlights = () => {
       <div className="grid md:grid-cols-3 gap-6">
         {highlights.map((highlight) => (
           <div key={highlight.id} className="bg-dark-base p-6 rounded-md border border-dark-green"> {/* Updated bg, padding, border */}
-            <h3 className="text-lg font-semibold text-hacker-green mb-2">{highlight.title}</h3> {/* Updated color */}
+            <h3 className="text-lg font-semibold text-hacker-green mb-2 font-philosopher">{highlight.title}</h3> {/* Updated color, added font */}
             <p className="text-light-text opacity-90 text-sm">{highlight.description}</p> {/* Updated color */}
           </div>
         ))}

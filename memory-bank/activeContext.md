@@ -1,3 +1,12 @@
+[2025-04-18 17:19:25] - TDD - Completed Task 28 (Run Regression Tests Post-Font Application) - Ran full test suite (`npm test`). Result: 204 passed, 3 skipped (known Countdown issues), 0 failed. Confirmed no new regressions were introduced by direct `font-philosopher` class application in Task 27.
+
+
+[2025-04-18 17:17:00] - Code - Completed Task 27 (Apply font-philosopher Class Directly) - Applied `font-philosopher` class directly to h1-h3 elements in various components/pages (EventHighlights, ScheduleDisplay, about, themes, workshops, faq, admin layout/pages) instead of using global `@apply`. Verified build and tests pass.
+
+[2025-04-18 17:09:23] - Debug - Completed Task 26 (Diagnose font-philosopher Build Error) - Verified font definition and loading are correct. Confirmed direct application (`className="font-philosopher"`) works. Isolated the failure to using `@apply font-philosopher;` within `globals.css`, which causes the 'Unknown utility class' build error. Root cause likely PostCSS order, @layer interaction, or Tailwind/PostCSS bug with @apply for custom font utilities via CSS variables in global scope. [See Debug Issue BUILD-FONT-001 2025-04-18 17:09:23]
+
+[2025-04-18 17:04:00] - DevOps - Merged Feature Branches (Task 26) - Successfully merged feature/admin-rebuild, feature/dynamic-themes, fix/build-dependencies, feature/public-styling, fix/testing, chore/documentation, chore/rag-script, chore/memory-bank, chore/config into main branch using --no-ff. Handled untracked file conflict during chore/memory-bank merge via git stash. Main branch is clean and up-to-date locally.
+
 [2025-04-18 16:27:57] - TDD - Completed Task 22 (Fix Auth Tests) - Fixed suite error ('No test found') in `platform/src/app/admin/auth.test.tsx` by adding a placeholder test to the 'Login Page' describe block, as the original tests were commented out due to difficulties testing async Server Components. All 8 tests in the file now pass.
 
 

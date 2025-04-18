@@ -2,6 +2,21 @@
 
 ## Issue History
 <!-- Append new issue details using the format below -->
+### Issue: BUILD-FONT-001 - `@apply font-philosopher` fails in `globals.css` - [Status: Analysis Complete] - [2025-04-18 17:09:23]
+- **Reported**: Implicitly via Task 12/13, explicitly investigated in Task 26 / **Severity**: Medium (Blocks global styling) / **Symptoms**: Build fails with `Error: Cannot apply unknown utility class: font-philosopher` when `@apply font-philosopher;` is used in `platform/src/app/globals.css`.
+- **Investigation (Task 26)**:
+  1. Verified font definition in `tailwind.config.ts` (key: `philosopher`, var: `--font-philosopher`). (2025-04-18 17:07:09)
+  2. Verified font loading via `next/font/google` and variable application in `layout.tsx`. (2025-04-18 17:07:17)
+  3. Verified no conflicting `@import` or `@font-face` in `globals.css`. (2025-04-18 17:07:25)
+  4. Tested direct application: Added `className="font-philosopher"` to `<h1>` in `page.tsx`. Build Succeeded. (2025-04-18 17:08:10)
+  5. Tested isolated global `@apply`: Added `.test-philosopher { @apply font-philosopher; }` to `globals.css` (`@layer components`). Build Failed with the error. (2025-04-18 17:09:03)
+- **Root Cause Analysis**: The issue is specific to using the `@apply` directive with the `font-philosopher` utility within the global `globals.css` file. Direct class application works, indicating the Tailwind configuration and font loading are correct. The failure likely stems from PostCSS processing order, interactions with `@layer` directives in `globals.css`, or a potential bug/limitation in Tailwind/PostCSS regarding `@apply` for custom font utilities defined via CSS variables in this global context.
+- **Fix Applied**: None (original problematic rule remains commented out, test rule removed).
+- **Verification**: Build succeeds without `@apply`, fails with `@apply` in `globals.css`.
+- **Next Steps Recommendation**: Avoid using `@apply font-philosopher;` in `globals.css`. Either apply the class directly (`className="font-philosopher"`) to relevant elements (e.g., headings in components or layout) or investigate deeper into Tailwind/PostCSS `@apply` behavior with CSS variable-defined utilities in global files.
+- **Related Issues**: BUILD-FONT-001 / BUILD-TS-001 (Task 13, where the `@apply` was first commented out).
+
+
 ### Issue: BUILD-TS-001 - `searchParams` type error (Task 16 Research) - [Status: Blocked] - [2025-04-18 15:52:30]
 - **Investigation (Task 16 - External Research)**:
   1. Searched GitHub issues/discussions for `next.js app router searchParams type error "Promise<any>" next 15.2.4 react 19`. (2025-04-18 15:51:51)
