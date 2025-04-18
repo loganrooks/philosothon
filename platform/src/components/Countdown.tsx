@@ -33,13 +33,9 @@ const Countdown = () => {
 
   const [timeLeft, setTimeLeft] = useState<TimeLeft | null>(calculateTimeLeft());
 
-  const [hasMounted, setHasMounted] = useState(false);
-
   useEffect(() => {
     // Update the countdown every second
     const timer = setInterval(() => {
-    setHasMounted(true);
-
       setTimeLeft(calculateTimeLeft());
     }, 1000);
 
@@ -52,9 +48,8 @@ const Countdown = () => {
   return (
     <div className="bg-medium-gray p-8 md:p-10 rounded-lg text-center mb-16 border border-dark-green"> {/* Updated bg, padding, margin, border */}
       <h2 className="text-2xl md:text-3xl font-semibold text-hacker-green mb-6 font-philosopher">Event Starts In:</h2> {/* Updated color, margin, font */}
-      {/* Hydration Fix: Only render the dynamic content after mounting */}
-      {hasMounted ? (
-        timeLeft ? (
+      {/* Render countdown or message directly */}
+      {timeLeft ? (
           <div className="grid grid-cols-4 gap-2 md:gap-4 max-w-md mx-auto">
             <div className="bg-dark-base p-3 md:p-4 rounded-lg border border-dark-green">
               <div data-testid="countdown-days" className="text-3xl md:text-4xl font-bold text-hacker-green">{formatTime(timeLeft.days)}</div>
@@ -75,12 +70,7 @@ const Countdown = () => {
           </div>
         ) : (
           <p className="text-xl text-hacker-green">The event has started!</p>
-        )
-      ) : (
-        // Render null or a placeholder during server render/initial client render
-        // to prevent hydration mismatch. A placeholder could be added here if needed.
-        null
-      )}
+        )}
     </div>
   );
 };
