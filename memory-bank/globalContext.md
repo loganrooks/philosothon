@@ -82,6 +82,18 @@ This file consolidates less frequently updated global project information, inclu
 # Decision Log
 
 ## Decision
+[2025-04-18 07:35:00] Use Single Edit Pages + Server Actions for Admin CRUD.
+
+## Rationale
+Avoids previous Vercel build errors associated with dynamic admin edit page routes (e.g., `/admin/themes/[id]/edit`). Server Actions simplify data mutation logic compared to separate API routes and align with modern Next.js App Router patterns. Edit pages will use query parameters (e.g., `/admin/themes/edit?id=...`) to fetch data.
+
+## Implementation Details
+Admin list pages link to `/admin/[content]/edit?id=...`. Edit pages (Server Components) fetch data based on query param. Forms (Client Components) use Server Actions defined in `actions.ts` files for create/update operations. Delete operations also use Server Actions triggered from list/edit pages.
+
+*
+
+
+## Decision
 [2025-03-30] Use Next.js as the frontend framework.
 
 ## Rationale

@@ -1,6 +1,8 @@
 # Active Context
 
 This file tracks the project's current status, including recent changes, current goals, and open questions.
+[2025-04-18 07:35:00] - SpecPseudo - Defined Admin Rebuild Spec - Completed specification and pseudocode for rebuilding the Admin section (Themes, Workshops, FAQs CRUD). Proposed routing strategy using single edit pages (e.g., /admin/themes/edit?id=...) and Server Actions to avoid previous dynamic route build issues. Defined components, data flow, and TDD anchors. Draft saved to admin_spec_draft.md.
+
 [2025-04-18 07:25:58] - Code - Applied 'Philosopher' Font (Task 5) - Added global CSS rule in globals.css (@layer base) to apply font-philosopher to h1-h6. Removed TODO from layout.tsx.
 
 [2025-04-18 07:22:02] - Code - Fixed Build Error (Task 5) - Installed `autoprefixer` dev dependency. Corrected `platform/postcss.config.js` to use `@tailwindcss/postcss`. Build succeeded, resolving the original error. New errors appeared during static generation (incorrect markdown path for `/proposal`, dynamic usage on `/workshops`).
