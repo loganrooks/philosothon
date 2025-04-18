@@ -4,6 +4,13 @@
 ## Intervention Log
 <!-- Append intervention details using the format below -->
 
+### [2025-04-18 19:43:57] FormEmbed Responsive Styling (Task 48) - Blocked
+- **Purpose**: Apply responsive styling (`max-w-4xl` container, `w-full` iframe) to `FormEmbed.tsx` and ensure tests pass.
+- **Files Modified**: `platform/src/components/FormEmbed.tsx` (Applied `max-w-4xl` to container div).
+- **Status**: Blocked
+- **Notes**: Applied the correct Tailwind class (`max-w-4xl`) to the container div. However, the tests in `FormEmbed.test.tsx` (updated in Task 47 to use `toHaveStyle`) failed. This confirms the previously identified limitation where JSDOM cannot reliably compute styles applied via Tailwind utility classes. Invoking Early Return Clause.
+
+
 ## Components Implemented
 ### [2025-04-18 17:17:00] Styling Update: Apply `font-philosopher` Directly (Task 27)
 - **Purpose**: Apply 'Philosopher' heading font directly via utility class to avoid build errors with global `@apply`.

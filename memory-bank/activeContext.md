@@ -1,3 +1,30 @@
+[2025-04-18 19:48:51] - TDD - Completed Task 50 (Run Regression Tests After Form Embed Revert) - Ran full test suite (`npm test` in `platform`). Result: 206 passed, 3 skipped (known Countdown issues). Confirmed no new regressions were introduced by Task 49 revert. Test count difference (206 vs 207 in Task 45) attributed to change in `FormEmbed.test.tsx` (now has 3 tests instead of 4). [Related to Task 49 - 2025-04-18 19:46:06]
+
+
+[2025-04-18 19:46:06] - TDD - Completed Task 49 (Revert Form Embed Tests to toHaveClass) - Reverted tests in `platform/src/components/FormEmbed.test.tsx` from `toHaveStyle` back to `toHaveClass` for container (`max-w-4xl`, `mx-auto`, `w-full`) and iframe (`w-full`) due to JSDOM limitations. Ran tests (`npm test -- FormEmbed.test.tsx`). Confirmed all 3 tests now pass against Task 48 code. [Related to Task 48 - 2025-04-18 19:43:57]
+
+
+[2025-04-18 19:43:57] - Code - Task 48 Blocked (Implement Responsive Form Embed - Green Phase) - Applied `max-w-4xl` class to container div in `platform/src/components/FormEmbed.tsx`. Ran tests (`npm test -- FormEmbed.test.tsx`). Tests failed due to `toHaveStyle` limitations with Tailwind/JSDOM, despite correct classes being applied. Invoking Early Return Clause. [Related to Task 47 - 2025-04-18 19:41:08]
+
+
+[2025-04-18 19:41:08] - TDD - Completed Task 47 (Red Phase: Update/Verify Failing Responsive Form Embed Tests) - Updated 3 tests in `platform/src/components/FormEmbed.test.tsx` to use `toHaveStyle` for computed styles (container max-width: 56rem, container margin: auto, iframe width: 100%) based on Task 42 spec. Ran tests (`npm test -- FormEmbed.test.tsx`). Confirmed the 3 updated tests fail as expected, verifying the current component lacks the correct computed responsive styles. [Related to Task 43 - 2025-04-18 19:23:56]
+
+
+[2025-04-18 19:30:30] - TDD - Completed Task 45 (Run Regression Tests Post-Form Embed) - Ran full test suite (`npm test` in `platform`). Result: 207 passed, 3 skipped (known Countdown issues). Confirmed no new regressions were introduced by Task 44 changes. [Related to Task 44 - 2025-04-18 19:27:53]
+
+
+[2025-04-18 19:27:53] - Code - Completed Task 44 (Green Phase: Responsive Form Embed) - Applied responsive Tailwind classes (`w-full max-w-2xl mx-auto` to container, `w-full` to iframe, removed fixed width) to `platform/src/components/FormEmbed.tsx`. Fixed initial syntax error from diff application. Updated failing tests in `FormEmbed.test.tsx` to use `toHaveClass` instead of `toHaveStyle` due to JSDOM limitations. Ran tests (`npm test -- FormEmbed.test.tsx`) and confirmed all 4 tests now pass. [Related to Task 43 - 2025-04-18 19:23:56]
+
+
+[2025-04-18 19:23:56] - TDD - Completed Task 43 (Red Phase: Failing Responsive Form Embed Tests) - Added 3 tests to `FormEmbed.test.tsx` for container max-width, centering (margin), and iframe width based on Task 42 spec. Ran tests (`npm test -- FormEmbed.test.tsx`). Confirmed new tests fail as expected, verifying the current component lacks responsive styles. Original iframe render test still passes.
+
+
+[2025-04-18 19:20:37] - SpecPseudo - Specified Responsive Form Embed (Task 42) - Defined requirements for responsive Google Form iframe: container (w-full, max-w-2xl, mx-auto), iframe (w-full, fixed height from Google). Recommended fixed height + page scroll for mobile. Provided pseudocode/JSX for FormEmbed.tsx with Tailwind classes and TDD anchors. Confirmed Early Return Clause not triggered.
+
+
+[2025-04-18 19:18:08] - DevOps - Completed Task 41 (Clean `main` Branch) - Identified unstaged changes from Tasks 39/40 (`FormEmbed.tsx`, MB files). Created branch `fix/failed-form-embed-attempt`, staged and committed changes there. Checked out `main` and verified it is clean.
+
+
 [2025-04-18 18:57:59] - DevOps - Merged Tailwind Fix Branch - Stashed unexpected modification to `memory-bank/mode-specific/sparc.md` on `main`. Merged `fix/tailwind-integration` into `main` using `--no-ff` to incorporate changes from Tasks 30-37. `main` branch is now clean (excluding the stash).
 
 [2025-04-18 18:41:49] - TDD - Completed Task 37 (Run Regression Tests Post-Tailwind Fix) - Ran full test suite (`npm test` in `platform`). Result: 204 passed, 3 skipped (known Countdown issues), 0 failed. Confirmed no new regressions were introduced by Tailwind config changes in Task 36. [Related to Task 36 - 2025-04-18 18:38:41]

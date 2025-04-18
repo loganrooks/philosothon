@@ -37,6 +37,55 @@
 
 
 ## Test Execution Results
+### Test Execution: Regression Run Post-Form Embed Revert (Task 50) - [2025-04-18 19:48:51]
+- **Trigger**: Manual (Post-Code Change - Task 49, Reverted tests to `toHaveClass`)
+- **Outcome**: PASS (with known exceptions) / **Summary**: 206 tests passed, 0 failed, 3 skipped
+- **Failed Tests**: None
+- **Skipped Tests**:
+    - `src/components/Countdown.test.tsx` (3 tests): Known issue (timers/async - Task 20).
+- **Notes**: Confirmed no new regressions were introduced by Task 49 revert. Test suite stable. Total passed count (206) differs from Task 45 (207) due to `FormEmbed.test.tsx` now having 3 tests instead of 4.
+
+
+
+### Test Execution: Responsive Form Embed (Task 49 - `toHaveClass` Verification) - [2025-04-18 19:46:06]
+- **Trigger**: Manual (Post-Code Change - Task 49, Reverted tests to `toHaveClass`)
+- **Outcome**: PASS / **Summary**: 3 tests passed
+- **Failed Tests**: None
+- **Notes**: Confirmed tests in `FormEmbed.test.tsx` pass after reverting assertions to `toHaveClass` against the code updated in Task 48. This resolves the previous testing blockage caused by JSDOM limitations with `toHaveStyle`.
+
+
+
+### Test Execution: Responsive Form Embed (Task 47 - Red Phase) - [2025-04-18 19:41:08]
+- **Trigger**: Manual (Post-Code Change - Task 47, Updated tests to use `toHaveStyle`)
+- **Outcome**: FAIL / **Summary**: 1 test passed, 3 failed
+- **Failed Tests**:
+    - `should have max-width styling for the container`: Expected `max-width: 56rem`, received nothing.
+    - `should have auto margin styling for centering the container`: Expected `margin-left: auto; margin-right: auto;`, received nothing.
+    - `should have 100% width styling for the iframe`: Expected `width: 100%`, received nothing.
+- **Notes**: Confirmed the 3 updated tests using `toHaveStyle` fail as expected against the current non-responsive component. The original test for iframe rendering still passes. This completes the Red phase.
+
+
+
+### Test Execution: Responsive Form Embed (Task 43 - Red Phase) - [2025-04-18 19:23:56]
+### Test Execution: Regression Run Post-Form Embed (Task 45) - [2025-04-18 19:30:30]
+- **Trigger**: Manual (Post-Code Change by 'code' mode - Task 44, Responsive Form Embed)
+- **Outcome**: PASS (with known exceptions) / **Summary**: 207 tests passed, 3 skipped
+- **Skipped Tests**:
+    - `src/components/Countdown.test.tsx` (3 tests): Known issue (timers/async - Task 20).
+- **Failed Tests**: None
+- **Notes**: Confirmed that the responsive form embed changes (Task 44) did not introduce any new regressions. Test suite remains stable with known skipped tests.
+
+
+- **Trigger**: Manual (Post-Code Change - Task 43, Added responsive tests)
+- **Outcome**: FAIL / **Summary**: 1 test passed, 3 failed
+- **Failed Tests**:
+    - `should have max-width styling for the container`: Expected `max-width: 48rem`, received nothing.
+    - `should have auto margin styling for centering the container`: Expected `margin-left: auto`, received nothing.
+    - `should have 100% width styling for the iframe`: Expected `width: 100%`, received nothing.
+- **Notes**: Confirmed the 3 new tests for responsive styling fail as expected against the current non-responsive component. The original test for iframe rendering still passes.
+
+
+
 ### Test Execution: Regression Run Post-Tailwind Fix (Task 37) - [2025-04-18 18:41:49]
 - **Trigger**: Manual (Post-Code Change by 'code' mode - Task 36, Tailwind v4 Config Fix)
 - **Outcome**: PASS (with known exceptions) / **Summary**: 204 tests passed, 3 skipped
@@ -161,6 +210,30 @@
 - **Notes**: Failures in Countdown seem related to testing `useEffect` with `setInterval` and fake timers. Other failures related to styling/content changes were fixed.
 
 ## TDD Cycles Log
+### TDD Cycle: Responsive Form Embed (Task 49 - Test Fix) - [2025-04-18 19:46:06]
+- **Red**: N/A (Previous failures in Task 47 were due to `toHaveStyle` limitations in JSDOM, not incorrect code).
+- **Green**: Reverted 3 tests in `platform/src/components/FormEmbed.test.tsx` from using `toHaveStyle` back to `toHaveClass` to check for container (`max-w-4xl`, `mx-auto`, `w-full`) and iframe (`w-full`) classes. Ran tests (`npm test -- FormEmbed.test.tsx`) and confirmed they pass. Test File: `platform/src/components/FormEmbed.test.tsx`
+- **Refactor**: N/A.
+- **Outcome**: Tests now correctly verify the presence of Tailwind classes applied in Task 48 and pass, resolving the testing blockage.
+
+
+
+### TDD Cycle: Responsive Form Embed (Task 47 - Style Check) - [2025-04-18 19:41:08]
+- **Red**: Updated 3 tests in `platform/src/components/FormEmbed.test.tsx` to use `toHaveStyle` instead of `toHaveClass` for container `max-width` (`56rem`), container centering (`margin-left/right: auto`), and iframe `width` (`100%`). Confirmed these tests fail. Test File: `platform/src/components/FormEmbed.test.tsx`
+- **Green**: (Pending - Requires implementation in `FormEmbed.tsx`)
+- **Refactor**: (Pending)
+- **Outcome**: Red phase complete. Tests correctly check computed styles and fail as expected, ready for implementation.
+
+
+
+### TDD Cycle: Responsive Form Embed (Task 43) - [2025-04-18 19:23:56]
+- **Red**: Added 3 failing tests to `platform/src/components/FormEmbed.test.tsx` to verify container `max-width` (`48rem`), container centering (`margin-left/right: auto`), and iframe `width` (`100%`) based on Task 42 spec. Test File: `platform/src/components/FormEmbed.test.tsx`
+- **Green**: (Pending - Requires implementation in `FormEmbed.tsx`)
+- **Refactor**: (Pending)
+- **Outcome**: Red phase complete. Tests fail as expected, ready for implementation.
+
+
+
 ### TDD Cycle: Fix Countdown Tests (Task 19) - [2025-04-18 16:17:31]
 - **Red**: Identified 3 failing tests in `Countdown.test.tsx` related to async updates/timers.
 - **Green Attempt 1**: Added `async`/`await waitFor` around assertions. Result: Tests timed out.
