@@ -29,34 +29,32 @@ const ThemeCard: React.FC<ThemeCardProps> = ({
 
 
   return (
-    <div className="border border-dark-green rounded-lg p-8 mb-6 bg-dark-base"> {/* Increased padding */}
-      <h3 className="text-xl font-semibold mb-2 text-hacker-green">{title}</h3> {/* Updated color */}
-      <p className="text-light-text mb-4">{description}</p> {/* Updated color */}
+    // Wrap the entire card structure in a Link
+    <Link href={`/themes/${id}`} className="block mb-6 group"> {/* Added group for hover effects */}
+      <div className="border border-dark-green rounded-lg p-8 bg-dark-base group-hover:border-hacker-green transition-colors duration-200"> {/* Apply styling here, use group-hover */}
+        <h3 className="text-xl font-semibold mb-2 text-hacker-green">{title}</h3> {/* Updated color */}
+        <p className="text-light-text mb-4">{description}</p> {/* Updated color */}
 
-      Added See More Details Link
-      <div className="mt-2 mb-4">
-        <Link href={`/themes/${id}`} className="text-hacker-green hover:underline text-sm">
-          
-        </Link>
+        {/* Removed the separate empty Link div from previous attempts */}
+
+        {(analyticTradition || continentalTradition) && (
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-t-dark-green pt-3 mt-3"> {/* Updated border color */}
+             {analyticTradition && (
+               <div>
+                 <h4 className="font-medium text-sm text-hacker-green opacity-80 mb-1">Analytic Tradition</h4> {/* Updated color */}
+                 {renderList(analyticTradition)}
+               </div>
+             )}
+             {continentalTradition && (
+               <div>
+                 <h4 className="font-medium text-sm text-hacker-green opacity-80 mb-1">Continental Tradition</h4> {/* Updated color */}
+                 {renderList(continentalTradition)}
+               </div>
+             )}
+           </div>
+        )}
       </div>
-
-      {(analyticTradition || continentalTradition) && (
-         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-t-dark-green pt-3 mt-3"> {/* Updated border color */}
-           {analyticTradition && (
-             <div>
-               <h4 className="font-medium text-sm text-hacker-green opacity-80 mb-1">Analytic Tradition</h4> {/* Updated color */}
-               {renderList(analyticTradition)}
-             </div>
-           )}
-           {continentalTradition && (
-             <div>
-               <h4 className="font-medium text-sm text-hacker-green opacity-80 mb-1">Continental Tradition</h4> {/* Updated color */}
-               {renderList(continentalTradition)}
-             </div>
-           )}
-         </div>
-      )}
-    </div>
+    </Link> // Close the Link wrapper
   );
 };
 
