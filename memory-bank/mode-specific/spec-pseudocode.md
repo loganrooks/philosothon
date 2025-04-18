@@ -1,6 +1,14 @@
 # Specification Writer Specific Memory
 
 ## Functional Requirements
+### Feature: Admin Section Rebuild (CRUD for Themes, Workshops, FAQs)
+- Added: [2025-04-18 07:35:00]
+- Description: Rebuild the admin section (/admin) to allow authenticated users (via Supabase Magic Link) to perform Create, Read, Update, and Delete operations on Themes, Workshops, and FAQ items stored in the Supabase database.
+- Acceptance criteria: 1. Login via Magic Link works. 2. /admin routes are protected. 3. List views display data correctly. 4. Add forms create new items. 5. Edit forms update existing items. 6. Delete actions remove items (with confirmation). 7. Routing uses single edit pages + Server Actions.
+- Dependencies: Supabase DB (themes, workshops, faq_items tables), @supabase/ssr, Next.js App Router, React.
+- Status: Specified
+
+
 <!-- Append new requirements using the format below -->
 ### Feature: RAG Markdown Optimization Script
 - Added: 2025-04-17 22:57:00
@@ -32,6 +40,19 @@
 - Status: Draft
 
 ## System Constraints
+### Constraint: Admin Edit Page Data Fetching
+- Added: [2025-04-18 07:35:00]
+- Description: Single edit pages (e.g., /admin/themes/edit) rely on a query parameter (`?id=...`) passed from the list view. The page component must correctly parse this ID and fetch the corresponding data.
+- Impact: Incorrect ID parsing or missing parameter will prevent editing. Requires careful linking from list views and robust handling in the edit page component.
+- Mitigation strategy: Ensure list views generate correct links. Edit page Server Component should validate the ID and handle cases where data isn't found (e.g., redirect, show error).
+
+### Constraint: Server Action State Management
+- Added: [2025-04-18 07:35:00]
+- Description: Client components using Server Actions rely on mechanisms like `useFormState` to receive feedback (validation errors, success/failure status).
+- Impact: Without proper state handling, users won't get feedback on form submissions.
+- Mitigation strategy: Consistently use `useFormState` in forms calling Server Actions. Ensure Server Actions return clear status/error objects.
+
+
 <!-- Append new constraints using the format below -->
 ### Constraint: RAG Optimizer - References Identifier
 - Added: 2025-04-17 22:57:00
@@ -58,6 +79,25 @@
 - Mitigation strategy: Implement robust markdown parsing (`parseThemeMarkdown`). Add `suggested_readings` column to `themes` table.
 
 ## Edge Cases
+### Edge Case: Admin Edit - Invalid/Missing ID
+- Identified: [2025-04-18 07:35:00]
+- Scenario: User navigates directly to an edit URL (e.g., /admin/themes/edit) without an ID, or with an ID that doesn't exist in the database.
+- Expected behavior: The edit page Server Component should detect the missing/invalid ID, handle the error gracefully (e.g., redirect to the list view, show a 'Not Found' message).
+- Testing approach: Manual navigation test. Unit test the edit page's data fetching logic with invalid/missing IDs.
+
+### Edge Case: Admin Delete - Race Condition/Stale Data
+- Identified: [2025-04-18 07:35:00]
+- Scenario: Two admins attempt to delete the same item simultaneously, or an admin tries to delete an item that was just modified.
+- Expected behavior: The database operation should handle this (e.g., first delete succeeds, second fails). The UI should reflect the final state after revalidation.
+- Testing approach: Difficult to automate reliably. Manual testing consideration. Ensure `revalidatePath` is used correctly.
+
+### Edge Case: Admin Form Submission - Network Error
+- Identified: [2025-04-18 07:35:00]
+- Scenario: Network connection is lost while submitting a form via a Server Action.
+- Expected behavior: The Server Action won't complete. The client form should ideally handle this (e.g., maintain input state, allow retry). `useFormState` might show a pending state indefinitely.
+- Testing approach: Simulate network interruption in browser dev tools during manual testing.
+
+
 <!-- Append new edge cases using the format below -->
 ### Edge Case: RAG Optimizer - Directory Not Found
 - Identified: 2025-04-17 22:57:00
@@ -108,6 +148,207 @@
 - Testing approach: Ensure DB has themes with null/empty readings. Unit test component rendering logic. Manual test.
 
 ## Pseudocode Library
+### Pseudocode: Admin Authentication - `signInWithOtp`, `signOut`, Route Protection
+- Created: [2025-04-18 07:35:00]
+- Updated: [2025-04-18 07:35:00]
+```pseudocode
+// src/app/admin/auth/actions.ts
+'use server';
+import { createServerClient } from '@/lib/supabase/server'; // Assumed utility
+import { redirect } from 'next/navigation';
+import { headers } from 'next/headers';
+
+ASYNC FUNCTION signInWithOtp(previousState, formData) {
+  origin = headers().get('origin'); // Get base URL for redirect
+  email = formData.get('email');
+
+  // Basic validation
+  IF (!email || typeof email !== 'string' || !email.includes('@')) {
+    RETURN { error: 'Invalid email address provided.' };
+  }
+
+  supabase = createServerClient();
+  { data, error } = AWAIT supabase.auth.signInWithOtp({
+    email: email,
+    options: {
+      // shouldCreateUser: false, // Optional: prevent creating new users
+      emailRedirectTo: `${origin}/api/auth/callback`, // Supabase callback URL
+    },
+  });
+
+  IF (error) {
+    console.error('OTP Sign In Error:', error);
+    RETURN { error: `Could not authenticate user: ${error.message}` };
+  }
+
+  RETURN { success: true, message: 'Check your email for the magic link!' };
+}
+
+ASYNC FUNCTION signOut() {
+  supabase = createServerClient();
+  AWAIT supabase.auth.signOut();
+  redirect('/admin/login');
+}
+
+// src/app/admin/layout.tsx (Conceptual)
+import { createServerClient } from '@/lib/supabase/server';
+import { redirect } from 'next/navigation';
+// ... other imports (NavBar, LogoutButton etc)
+
+ASYNC FUNCTION AdminLayout({ children }) {
+  supabase = createServerClient();
+  { data: { user } } = AWAIT supabase.auth.getUser();
+
+  IF (!user) {
+    redirect('/admin/login');
+  }
+
+  RETURN (
+    <div className="admin-layout">
+      <AdminSidebar /> // Contains navigation and LogoutButton
+      <main>{children}</main>
+    </div>
+  );
+}
+```
+#### TDD Anchors:
+- Test `signInWithOtp` validation.
+- Test `signInWithOtp` Supabase call success/error.
+- Test `signOut` Supabase call and redirect.
+- Test `AdminLayout` redirect when no user.
+- Test `AdminLayout` renders children when user exists.
+
+### Pseudocode: Admin CRUD Server Actions (Example: Themes) - `src/app/admin/themes/actions.ts`
+- Created: [2025-04-18 07:35:00]
+- Updated: [2025-04-18 07:35:00]
+```pseudocode
+// src/app/admin/themes/actions.ts
+'use server';
+import { createServerClient } from '@/lib/supabase/server';
+import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
+import { z } from 'zod'; // Example using Zod for validation
+
+// Define schema for validation
+const ThemeSchema = z.object({
+  title: z.string().min(1, 'Title is required'),
+  description: z.string().min(1, 'Description is required'),
+  analytic_tradition: z.string().optional(),
+  continental_tradition: z.string().optional(),
+});
+
+// --- Create Action --- (Used with useFormState)
+ASYNC FUNCTION createTheme(previousState, formData) {
+  // Validate form data
+  validatedFields = ThemeSchema.safeParse({
+    title: formData.get('title'),
+    description: formData.get('description'),
+    analytic_tradition: formData.get('analytic_tradition'),
+    continental_tradition: formData.get('continental_tradition'),
+  });
+
+  IF (!validatedFields.success) {
+    RETURN {
+      errors: validatedFields.error.flatten().fieldErrors,
+      message: 'Validation failed. Please check the fields.',
+    };
+  }
+
+  // Prepare data for Supabase
+  themeData = validatedFields.data;
+
+  TRY {
+    supabase = createServerClient();
+    { error } = AWAIT supabase.from('themes').insert(themeData);
+
+    IF (error) throw error;
+
+    // Revalidate cache and redirect on success
+    revalidatePath('/admin/themes');
+    // No need to return state on success if redirecting immediately
+    // RETURN { message: 'Theme created successfully.', success: true };
+  } CATCH (e) {
+    console.error('Create Theme Error:', e);
+    RETURN { message: `Database Error: Failed to create theme. ${e.message}` };
+  }
+
+  // Redirect after successful insert (outside try-catch)
+  redirect('/admin/themes');
+}
+
+// --- Update Action --- (Used with useFormState)
+ASYNC FUNCTION updateTheme(id, previousState, formData) {
+  IF (!id) RETURN { message: 'Error: Missing theme ID.' };
+
+  validatedFields = ThemeSchema.safeParse({
+    title: formData.get('title'),
+    description: formData.get('description'),
+    analytic_tradition: formData.get('analytic_tradition'),
+    continental_tradition: formData.get('continental_tradition'),
+  });
+
+  IF (!validatedFields.success) {
+    RETURN {
+      errors: validatedFields.error.flatten().fieldErrors,
+      message: 'Validation failed. Please check the fields.',
+    };
+  }
+
+  themeData = validatedFields.data;
+
+  TRY {
+    supabase = createServerClient();
+    { error } = AWAIT supabase.from('themes').update(themeData).eq('id', id);
+
+    IF (error) throw error;
+
+    revalidatePath('/admin/themes');
+    revalidatePath(`/admin/themes/edit?id=${id}`); // Revalidate edit page too
+    // RETURN { message: 'Theme updated successfully.', success: true };
+  } CATCH (e) {
+    console.error('Update Theme Error:', e);
+    RETURN { message: `Database Error: Failed to update theme. ${e.message}` };
+  }
+
+  redirect('/admin/themes');
+}
+
+// --- Delete Action --- (Called directly, not usually with useFormState)
+ASYNC FUNCTION deleteTheme(id) {
+  IF (!id) throw new Error('Missing theme ID for deletion.');
+
+  TRY {
+    supabase = createServerClient();
+    { error } = AWAIT supabase.from('themes').delete().eq('id', id);
+
+    IF (error) throw error;
+
+    revalidatePath('/admin/themes');
+    RETURN { success: true, message: 'Theme deleted.' }; // Return status for client feedback
+
+  } CATCH (e) {
+    console.error('Delete Theme Error:', e);
+    // Re-throw or return error structure
+    throw new Error(`Database Error: Failed to delete theme. ${e.message}`);
+    // OR: return { success: false, message: `Database Error: Failed to delete theme. ${e.message}` };
+  }
+}
+
+// Similar actions for Workshops and FAQs would follow this pattern
+// adapting the schema and table names.
+```
+#### TDD Anchors:
+- Test `createTheme` validation (Zod schema).
+- Test `createTheme` success path (Supabase insert call, revalidate, redirect).
+- Test `createTheme` DB error handling.
+- Test `updateTheme` validation.
+- Test `updateTheme` success path (Supabase update call, revalidate, redirect).
+- Test `updateTheme` DB error handling.
+- Test `deleteTheme` success path (Supabase delete call, revalidate).
+- Test `deleteTheme` DB error handling.
+- Test `deleteTheme` missing ID handling.
+
+
 <!-- Append new pseudocode blocks using the format below -->
 ### Pseudocode: RAG Markdown Optimizer Script - rag_markdown_optimizer.py
 - Created: 2025-04-17 22:57:00
