@@ -12,25 +12,17 @@ describe('FormEmbed Component', () => {
   });
 
 
-  it('should have max-width styling for the container', () => {
+  it('should have responsive classes on the container', () => {
     const { container } = render(<FormEmbed />);
-    // Assuming the container div is the first child
-    const containerDiv = container.firstChild as HTMLElement; // Cast for style check
-    // Check computed style based on spec (max-w-4xl = 56rem)
-    expect(containerDiv).toHaveStyle({ 'max-width': '56rem' });
+    const containerDiv = container.firstChild as HTMLElement;
+    // Check for Tailwind classes based on Task 48 implementation (max-w-4xl, mx-auto, w-full)
+    expect(containerDiv).toHaveClass('max-w-4xl', 'mx-auto', 'w-full');
   });
 
-  it('should have auto margin styling for centering the container', () => {
-    const { container } = render(<FormEmbed />);
-    const containerDiv = container.firstChild as HTMLElement; // Cast for style check
-    // Check computed style based on spec (mx-auto)
-    expect(containerDiv).toHaveStyle({ 'margin-left': 'auto', 'margin-right': 'auto' });
-  });
-
-  it('should have 100% width styling for the iframe', () => {
+  it('should have width class on the iframe', () => {
     const { container } = render(<FormEmbed />);
     const iframe = container.querySelector('iframe');
-    // Check computed style based on spec (w-full)
-    expect(iframe).toHaveStyle({ width: '100%' });
+    // Check for Tailwind class based on Task 48 implementation (w-full)
+    expect(iframe).toHaveClass('w-full');
   });
 });

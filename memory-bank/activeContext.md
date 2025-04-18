@@ -1,3 +1,9 @@
+[2025-04-18 19:48:51] - TDD - Completed Task 50 (Run Regression Tests After Form Embed Revert) - Ran full test suite (`npm test` in `platform`). Result: 206 passed, 3 skipped (known Countdown issues). Confirmed no new regressions were introduced by Task 49 revert. Test count difference (206 vs 207 in Task 45) attributed to change in `FormEmbed.test.tsx` (now has 3 tests instead of 4). [Related to Task 49 - 2025-04-18 19:46:06]
+
+
+[2025-04-18 19:46:06] - TDD - Completed Task 49 (Revert Form Embed Tests to toHaveClass) - Reverted tests in `platform/src/components/FormEmbed.test.tsx` from `toHaveStyle` back to `toHaveClass` for container (`max-w-4xl`, `mx-auto`, `w-full`) and iframe (`w-full`) due to JSDOM limitations. Ran tests (`npm test -- FormEmbed.test.tsx`). Confirmed all 3 tests now pass against Task 48 code. [Related to Task 48 - 2025-04-18 19:43:57]
+
+
 [2025-04-18 19:43:57] - Code - Task 48 Blocked (Implement Responsive Form Embed - Green Phase) - Applied `max-w-4xl` class to container div in `platform/src/components/FormEmbed.tsx`. Ran tests (`npm test -- FormEmbed.test.tsx`). Tests failed due to `toHaveStyle` limitations with Tailwind/JSDOM, despite correct classes being applied. Invoking Early Return Clause. [Related to Task 47 - 2025-04-18 19:41:08]
 
 
