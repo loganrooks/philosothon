@@ -92,9 +92,10 @@ describe('Supabase Middleware Utility (middleware.ts)', () => {
     expect(mockGetUser).toHaveBeenCalledTimes(1);
   });
 
-  it('should return a NextResponse object', async () => {
+  it('should return an object containing the NextResponse', async () => {
     const result = await updateSession(mockRequest);
-    expect(result).toBe(mockResponse); // Initially returns the mocked response
+    expect(result.response).toBe(mockResponse); // Check the response property
+    expect(result).toHaveProperty('user'); // Also check that the user property exists
   });
 
   it('cookie "get" handler should call request.cookies.get', async () => {
