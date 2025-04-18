@@ -79,7 +79,20 @@ This file consolidates less frequently updated global project information, inclu
 
 *   **[2025-04-17] RAG Markdown Optimizer:** Python script (`scripts/rag_markdown_optimizer.py`) developed to process Markdown files in a directory, simplifying inline citations `(Author, [Year](URL "Citation"))` to `(Author, Year)` and footnote links `[Footnote N](#...)` to `[Footnote N]` to optimize content for Retrieval-Augmented Generation (RAG) systems, while preserving the final "References" section. Includes logging and command-line interface.
 
+*   **[2025-04-18] Admin CRUD Pattern:** Implemented using Server Components for list/edit page shells, Client Components for forms (`useFormState`), and Server Actions (`actions.ts`) for data mutation (create, update, delete). Edit pages use query parameters (`?id=...`) instead of dynamic route segments to avoid previous build issues.
+
 # Decision Log
+*
+
+## Decision
+[2025-04-18 15:28:00] Adopt GitHub Flow as the Git Workflow.
+
+## Rationale
+Provides simplicity, aligns with Vercel deployment triggers, isolates features, facilitates review via PRs, and integrates well with SPARC mode development cycles (commit after test). Suitable for small teams and iterative development.
+
+## Implementation Details
+Use `main` for production, feature branches for development (created from `main`). Commit tested code atomically with conventional messages. Use PRs for review/merging to `main`. Vercel deploys from `main`. Documented in `docs/git_workflow.md`.
+
 
 ## Decision
 [2025-04-18 07:35:00] Use Single Edit Pages + Server Actions for Admin CRUD.
@@ -252,6 +265,13 @@ Puppeteer was failing with a missing shared library error (`libnss3.so`) within 
 ## Implementation Details
 Added `libnss3` to the `apt-get install -y` command list within the `RUN` instruction in `Dockerfile`.
 # Progress
+[2025-04-18 16:00:00] - [Code Task] Completed Dependency Downgrade (Task 17) [Completed] - Downgraded Next.js, React, TS to resolve build error BUILD-TS-001. Fixed related config/path issues. Build successful.
+
+[2025-04-18 15:28:00] - [DevOps Task] Defined Git Workflow (Task 11) [Completed] - Documented GitHub Flow in `docs/git_workflow.md`.
+
+[2025-04-18 15:10:00] - Completed Dynamic Theme Pages (Task 9): Added dynamic route `/themes/[id]` for individual theme details. Updated theme list page cards to link to these dynamic pages.
+
+[2025-04-18 07:51:00] - Completed Admin Section Rebuild (Task 7): Implemented authentication (Magic Link), layout, and CRUD operations (Themes, Workshops, FAQs) using Server Actions and query parameters for edit routes, following `docs/admin_rebuild_spec.md`.
 [2025-04-18 07:26:14] - Applied 'Philosopher' font globally to headings (h1-h6) via globals.css.
 
 [2025-04-18 06:54:01] - Integrated Google Form embed into `FormEmbed.tsx` component.

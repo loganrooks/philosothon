@@ -1,5 +1,55 @@
-/# Code Specific Memory
+# Code Specific Memory
+<!-- Entries below should be added reverse chronologically (newest first) -->
 
+## Intervention Log
+<!-- Append intervention details using the format below -->
+
+## Components Implemented
+
+### [2025-04-18 15:10:00] Dynamic Theme Detail Pages (Task 9)
+- **Purpose**: Create individual pages for each theme, accessible via a dynamic route, displaying detailed information fetched from Supabase.
+- **Files**:
+    - `platform/src/app/themes/[id]/page.tsx`: Created new dynamic route page. Fetches theme data based on `id` param using server client, handles `notFound`, renders theme details.
+    - `platform/src/components/ThemeCard.tsx`: Updated to wrap the card content in a `<Link>` pointing to `/themes/[id]`.
+- **Status**: Implemented
+- **Dependencies**: None added.
+- **API Surface**: None added.
+- **Tests**: None added for this feature yet.
+
+
+### [2025-04-18 07:51:00] Admin Section Rebuild (Task 7)
+- **Purpose**: Restore Admin CRUD functionality for Themes, Workshops, and FAQs, with Magic Link authentication, following `docs/admin_rebuild_spec.md`. Uses Server Actions and query parameters for edit routes.
+- **Files**:
+    - `platform/src/middleware.ts` (Updated for route protection)
+    - `platform/src/lib/supabase/middleware.ts` (Modified to return user)
+    - `platform/src/app/admin/layout.tsx` (Layout with nav, logout)
+    - `platform/src/app/admin/page.tsx` (Basic dashboard - links only for now)
+    - `platform/src/app/admin/login/page.tsx` (Login page UI)
+    - `platform/src/app/admin/login/components/LoginForm.tsx` (Login form client component)
+    - `platform/src/app/admin/auth/actions.ts` (`signInWithOtp`, `signOut` server actions)
+    - `platform/src/app/admin/components/LogoutButton.tsx`
+    - `platform/src/app/admin/themes/page.tsx`
+    - `platform/src/app/admin/themes/new/page.tsx`
+    - `platform/src/app/admin/themes/edit/page.tsx`
+    - `platform/src/app/admin/themes/actions.ts`
+    - `platform/src/app/admin/themes/components/ThemeForm.tsx`
+    - `platform/src/app/admin/themes/components/ThemeActions.tsx`
+    - `platform/src/app/admin/workshops/page.tsx`
+    - `platform/src/app/admin/workshops/new/page.tsx`
+    - `platform/src/app/admin/workshops/edit/page.tsx`
+    - `platform/src/app/admin/workshops/actions.ts`
+    - `platform/src/app/admin/workshops/components/WorkshopForm.tsx`
+    - `platform/src/app/admin/workshops/components/WorkshopActions.tsx`
+    - `platform/src/app/admin/faq/page.tsx`
+    - `platform/src/app/admin/faq/new/page.tsx`
+    - `platform/src/app/admin/faq/edit/page.tsx`
+    - `platform/src/app/admin/faq/actions.ts`
+    - `platform/src/app/admin/faq/components/FaqForm.tsx`
+    - `platform/src/app/admin/faq/components/FaqActions.tsx`
+- **Status**: Implemented
+- **Dependencies**: `zod` (added)
+- **API Surface**: New Server Actions for auth and CRUD operations.
+- **Tests**: TDD anchors defined in spec, tests not yet implemented.
 
 ### Implementation: Apply 'Philosopher' Font Globally (Task 5) - 2025-04-18 07:26:24
 - **Approach**: Verified 'Philosopher' font import in `globals.css` and configuration (`font-philosopher`) in `tailwind.config.ts`. Added a CSS rule within `@layer base` in `globals.css` to apply `font-philosopher` to all heading elements (`h1, h2, h3, h4, h5, h6`). Removed the corresponding TODO comment from `layout.tsx`.
@@ -157,6 +207,13 @@
 
 
 ## Dependencies Log
+### Dependency: Package Downgrade for Build Fix - 2025-04-18 16:00:00
+- **Version**: next@^14.2.0, react@^18.3.0, react-dom@^18.3.0, typescript@^5.4.0, eslint@^8.0.0, @types/react@^18, @types/react-dom@^18, eslint-config-next@^14.2.0
+- **Purpose**: Resolve persistent TypeScript build error (BUILD-TS-001) related to searchParams type incompatibility in Next.js 15 / React 19.
+- **Used by**: Entire `platform` project.
+- **Config notes**: Required renaming `next.config.ts` to `next.config.mjs` and removing TS type import. Resolved `eslint` peer dependency conflict.
+
+
 <!-- Append new dependencies using the format below -->
 ### Dependency: react-markdown - 2025-04-18 05:52:00
 - **Version**: ^9.0.1 (Check `package-lock.json` for exact)
