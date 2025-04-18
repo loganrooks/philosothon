@@ -4,6 +4,13 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-philosopher;
+  }
+}
+
+
 :root {
   /* Hacker Theme Base */
   --background: #0D0D0D; /* dark-base */
@@ -24,63 +31,51 @@ body {
 
 ul {
   list-style: none;
-  padding-left: 2rem;
-  padding-right: 2rem;
+  /* Removed global padding */
 }
 
 li {
-  padding-left: 2rem;
-  padding-right: 2rem;
+  /* Removed global padding */
 }
 
 
-/* Add this to globals.css */
-h1, h2, h3, h4, h5, h6 {
+/* Removed global padding from headings */
+/* h1, h2, h3, h4, h5, h6 {
   padding-left: 2rem;
   padding-right: 2rem;
-}
+} */
 
 blockquote {
+  /* Consider using prose plugin or specific component styling */
   padding-left: 1rem;
   padding-right: 1rem;
 }
 
-/* Your existing rule */
-p {
+/* Removed global padding from paragraphs */
+/* p {
   padding-left: 2rem;
   padding-right: 2rem;
-}
-
-
-
-/* For A Brief History in Timeline */
-.timeline-heading {
-  padding-left: 0 !important; /* Override the global heading padding */
-}
-
-
-/* Specific padding for FAQ Accordion items */
-.bg-dark-base details > summary {
-  padding: 2rem !important; /* Override global and utility padding */
-}
-
-.bg-dark-base details > div {
-  padding: 2rem !important; /* Override global and utility padding */
-}
-
-/* Optional: Reset padding for paragraphs specifically inside the accordion answer, if needed */
-/* .bg-dark-base details > div p {
-  padding-left: 0 !important;
-  padding-right: 0 !important;
 } */
 
-/* Make FAQ answers bold */
-.bg-dark-base details > div {
-  font-weight: bold !important;
-}
 
-Link {
-  color: var(--foreground);
-  text-decoration: none;
-  padding: 2rem !important; /* Override global and utility padding */
-}
+
+/* Removed timeline override - handle padding via component utilities */
+/* .timeline-heading {
+  padding-left: 0 !important;
+} */
+
+
+/* Removed specific FAQ overrides - handle padding/font via component utilities */
+/* .bg-dark-base details > summary {
+  padding: 2rem !important;
+} */
+
+/* .bg-dark-base details > div {
+  padding: 2rem !important;
+} */
+
+/* Removed specific FAQ overrides - handle padding/font via component utilities */
+/* .bg-dark-base details > div {
+  font-weight: bold !important;
+} */
+
