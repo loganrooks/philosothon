@@ -37,6 +37,17 @@
 
 
 ## Test Execution Results
+### Test Execution: Responsive Form Embed (Task 47 - Red Phase) - [2025-04-18 19:41:08]
+- **Trigger**: Manual (Post-Code Change - Task 47, Updated tests to use `toHaveStyle`)
+- **Outcome**: FAIL / **Summary**: 1 test passed, 3 failed
+- **Failed Tests**:
+    - `should have max-width styling for the container`: Expected `max-width: 56rem`, received nothing.
+    - `should have auto margin styling for centering the container`: Expected `margin-left: auto; margin-right: auto;`, received nothing.
+    - `should have 100% width styling for the iframe`: Expected `width: 100%`, received nothing.
+- **Notes**: Confirmed the 3 updated tests using `toHaveStyle` fail as expected against the current non-responsive component. The original test for iframe rendering still passes. This completes the Red phase.
+
+
+
 ### Test Execution: Responsive Form Embed (Task 43 - Red Phase) - [2025-04-18 19:23:56]
 ### Test Execution: Regression Run Post-Form Embed (Task 45) - [2025-04-18 19:30:30]
 - **Trigger**: Manual (Post-Code Change by 'code' mode - Task 44, Responsive Form Embed)
@@ -181,6 +192,14 @@
 - **Notes**: Failures in Countdown seem related to testing `useEffect` with `setInterval` and fake timers. Other failures related to styling/content changes were fixed.
 
 ## TDD Cycles Log
+### TDD Cycle: Responsive Form Embed (Task 47 - Style Check) - [2025-04-18 19:41:08]
+- **Red**: Updated 3 tests in `platform/src/components/FormEmbed.test.tsx` to use `toHaveStyle` instead of `toHaveClass` for container `max-width` (`56rem`), container centering (`margin-left/right: auto`), and iframe `width` (`100%`). Confirmed these tests fail. Test File: `platform/src/components/FormEmbed.test.tsx`
+- **Green**: (Pending - Requires implementation in `FormEmbed.tsx`)
+- **Refactor**: (Pending)
+- **Outcome**: Red phase complete. Tests correctly check computed styles and fail as expected, ready for implementation.
+
+
+
 ### TDD Cycle: Responsive Form Embed (Task 43) - [2025-04-18 19:23:56]
 - **Red**: Added 3 failing tests to `platform/src/components/FormEmbed.test.tsx` to verify container `max-width` (`48rem`), container centering (`margin-left/right: auto`), and iframe `width` (`100%`) based on Task 42 spec. Test File: `platform/src/components/FormEmbed.test.tsx`
 - **Green**: (Pending - Requires implementation in `FormEmbed.tsx`)

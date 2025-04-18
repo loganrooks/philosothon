@@ -1,5 +1,6 @@
 import { render } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
+import '@testing-library/jest-dom'; // Ensure toHaveStyle is available
 import FormEmbed from '@/components/FormEmbed';
 
 describe('FormEmbed Component', () => {
@@ -11,22 +12,25 @@ describe('FormEmbed Component', () => {
   });
 
 
-  it('should have max-width class for the container', () => {
+  it('should have max-width styling for the container', () => {
     const { container } = render(<FormEmbed />);
     // Assuming the container div is the first child
-    const containerDiv = container.firstChild;
-    expect(containerDiv).toHaveClass('max-w-2xl'); // Check for Tailwind class
+    const containerDiv = container.firstChild as HTMLElement; // Cast for style check
+    // Check computed style based on spec (max-w-4xl = 56rem)
+    expect(containerDiv).toHaveStyle({ 'max-width': '56rem' });
   });
 
-  it('should have auto margin class for centering the container', () => {
+  it('should have auto margin styling for centering the container', () => {
     const { container } = render(<FormEmbed />);
-    const containerDiv = container.firstChild;
-    expect(containerDiv).toHaveClass('mx-auto'); // Check for Tailwind class (covers left and right)
+    const containerDiv = container.firstChild as HTMLElement; // Cast for style check
+    // Check computed style based on spec (mx-auto)
+    expect(containerDiv).toHaveStyle({ 'margin-left': 'auto', 'margin-right': 'auto' });
   });
 
-  it('should have 100% width class for the iframe', () => {
+  it('should have 100% width styling for the iframe', () => {
     const { container } = render(<FormEmbed />);
     const iframe = container.querySelector('iframe');
-    expect(iframe).toHaveClass('w-full'); // Check for Tailwind class
+    // Check computed style based on spec (w-full)
+    expect(iframe).toHaveStyle({ width: '100%' });
   });
 });

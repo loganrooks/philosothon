@@ -76,3 +76,17 @@
 - **Rationale**: Critical failure to maintain clean `main` branch and adhere to workflow. Must correct state before proceeding.
 - **Outcome**: Intervention logged. Next step is delegating Git cleanup task (Task 38).
 - **Follow-up**: SPARC requires significant improvement in enforcing Git workflow adherence before *any* task delegation involving code changes. Stricter self-checks needed.
+### [2025-04-18 19:32:00] Intervention: Failed Feature Implementation (Task 44 - Form Embed) & Insufficient Testing
+- **Trigger**: User feedback indicating Task 44 (Form Embed Responsiveness) failed visually despite passing tests (Task 45).
+- **Context**: `code` mode implemented responsive classes, `tdd` mode updated tests which passed, but visual outcome was incorrect. Tests were insufficient to capture visual requirement. SPARC incorrectly prompted user to merge.
+- **Action Taken**: Halted merge suggestion. Logged intervention. Will delegate task to revert/reset the `feature/form-embed-responsive` branch. Will then re-initiate TDD cycle with focus on better test specification/implementation for visual responsiveness.
+- **Rationale**: Correct failed implementation using proper TDD with more robust testing. Address SPARC's failure to ensure tests adequately cover requirements.
+- **Outcome**: Intervention logged. Next step is Git rollback/reset.
+- **Follow-up**: Emphasize need for tests that better reflect visual/responsive requirements in future TDD cycles.
+### [2025-04-18 19:34:00] Intervention: Workflow Adjustment - Continue on Feature Branch
+- **Trigger**: User decision after SPARC proposed resetting `feature/form-embed-responsive` (Task 46).
+- **Context**: Task 44 on `feature/form-embed-responsive` failed visual verification. SPARC proposed resetting the branch. User opted to continue development on the existing branch instead.
+- **Action Taken**: Cancelled Task 46 (Reset Branch). Logged intervention. Will proceed with debugging/re-implementing the form embed responsiveness on the current `feature/form-embed-responsive` branch.
+- **Rationale**: Follow user direction to iterate on the existing branch.
+- **Outcome**: Intervention logged. Next step is re-attempting the form embed fix.
+- **Follow-up**: Ensure subsequent tasks operate on the correct branch (`feature/form-embed-responsive`).

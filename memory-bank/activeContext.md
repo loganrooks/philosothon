@@ -1,3 +1,6 @@
+[2025-04-18 19:41:08] - TDD - Completed Task 47 (Red Phase: Update/Verify Failing Responsive Form Embed Tests) - Updated 3 tests in `platform/src/components/FormEmbed.test.tsx` to use `toHaveStyle` for computed styles (container max-width: 56rem, container margin: auto, iframe width: 100%) based on Task 42 spec. Ran tests (`npm test -- FormEmbed.test.tsx`). Confirmed the 3 updated tests fail as expected, verifying the current component lacks the correct computed responsive styles. [Related to Task 43 - 2025-04-18 19:23:56]
+
+
 [2025-04-18 19:30:30] - TDD - Completed Task 45 (Run Regression Tests Post-Form Embed) - Ran full test suite (`npm test` in `platform`). Result: 207 passed, 3 skipped (known Countdown issues). Confirmed no new regressions were introduced by Task 44 changes. [Related to Task 44 - 2025-04-18 19:27:53]
 
 
