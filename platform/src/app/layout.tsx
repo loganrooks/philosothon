@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono, Philosopher } from "next/font/google";
 import NavBar from "@/components/NavBar"; // Assuming components live in src/components
 import Footer from "@/components/Footer"; // Assuming components live in src/components
 import SupabaseProvider from "@/components/SupabaseProvider";
@@ -18,6 +18,13 @@ const jetbrainsMono = JetBrains_Mono({
   weight: ["400", "700"], // Specify weights if needed
 });
 
+
+const philosopher = Philosopher({
+  subsets: ["latin"],
+  variable: "--font-philosopher", // CSS variable for Philosopher
+  weight: ["400", "700"], // Specify weights
+});
+
 export const metadata: Metadata = {
   title: "Philosothon Event Platform",
   description: "University of Toronto Philosothon Event Website",
@@ -33,7 +40,7 @@ export default function RootLayout({
     <html lang="en">
       {/* Apply font variables to the body */}
       <body
-        className={`${inter.variable} ${jetbrainsMono.variable} font-mono antialiased bg-dark-base text-light-text`} // Use font-mono (JetBrains) by default, apply theme base colors
+        className={`${inter.variable} ${jetbrainsMono.variable} ${philosopher.variable} font-mono antialiased bg-dark-base text-light-text`} // Use font-mono (JetBrains) by default, apply theme base colors
         // Removed redundant inline style
 
         suppressHydrationWarning
