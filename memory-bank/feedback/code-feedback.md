@@ -1,5 +1,12 @@
 # Code Mode Feedback Log
 
+### Feedback: `toHaveStyle` Fails with Tailwind/JSDOM (Task 48) - 2025-04-18 19:43:00
+- **Source**: Test Output (Task 48)
+- **Issue**: Tests in `FormEmbed.test.tsx` using `toHaveStyle` failed to verify computed styles (`max-width`, `margin`, `width`) even after applying the correct Tailwind classes (`max-w-4xl`, `mx-auto`, `w-full`) to `FormEmbed.tsx`.
+- **Analysis**: Confirms the limitation observed in Task 44. JSDOM does not reliably compute styles applied via Tailwind utility classes, making `toHaveStyle` unsuitable for this purpose in the current test environment.
+- **Action**: Invoking Early Return Clause for Task 48. Recommend reverting tests to use `toHaveClass` or exploring integration testing for computed style verification.
+
+
 ### Feedback: Persistent Build Error - Unknown Utility Class `font-philosopher` - 2025-04-18 15:37:00
 - **Source**: Build Output (Task 12)
 - **Issue**: Build fails consistently with `Error: Cannot apply unknown utility class: font-philosopher` originating from `@apply font-philosopher;` in `globals.css`.
