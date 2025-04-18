@@ -1,3 +1,6 @@
+[2025-04-18 19:30:30] - TDD - Completed Task 45 (Run Regression Tests Post-Form Embed) - Ran full test suite (`npm test` in `platform`). Result: 207 passed, 3 skipped (known Countdown issues). Confirmed no new regressions were introduced by Task 44 changes. [Related to Task 44 - 2025-04-18 19:27:53]
+
+
 [2025-04-18 19:27:53] - Code - Completed Task 44 (Green Phase: Responsive Form Embed) - Applied responsive Tailwind classes (`w-full max-w-2xl mx-auto` to container, `w-full` to iframe, removed fixed width) to `platform/src/components/FormEmbed.tsx`. Fixed initial syntax error from diff application. Updated failing tests in `FormEmbed.test.tsx` to use `toHaveClass` instead of `toHaveStyle` due to JSDOM limitations. Ran tests (`npm test -- FormEmbed.test.tsx`) and confirmed all 4 tests now pass. [Related to Task 43 - 2025-04-18 19:23:56]
 
 
