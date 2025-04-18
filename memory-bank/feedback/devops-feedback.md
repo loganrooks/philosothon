@@ -34,3 +34,9 @@ This file logs feedback received specifically for the DevOps mode, including iss
 - **Context**: Workspace diagnostics provided by user.
 - **Action Taken**: Wrapped `targetDate` initialization in `useMemo` in `Countdown.tsx`.
 - **Learning**: Dependencies of memoized callbacks (`useCallback`) must also be stable; use `useMemo` for objects/arrays depended upon by `useCallback`.
+## Feedback Entry - 2025-04-18 18:15:00
+- **Source**: User Verification
+- **Issue/Suggestion**: Clean build process (Task 32) did not resolve the suspected Tailwind Preflight application issue. Default browser styles (fonts, margins) are still present after `rm -rf .next`, `rm -rf node_modules`, `npm install`, `npm run dev`.
+- **Context**: Task 32 aimed to fix potential build cache/processing problems preventing Tailwind's base style reset.
+- **Action Taken**: Executed clean build steps successfully, but the visual issue persists. Invoking Early Return Clause for Task 32.
+- **Learning**: The root cause of the Tailwind Preflight issue is likely not related to build cache or dependency installation state. Further debugging is required, potentially focusing on CSS import order, `@layer` directives, or conflicts within `globals.css` or `layout.tsx`.
