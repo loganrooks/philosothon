@@ -2,6 +2,92 @@
 
 ## Issue History
 <!-- Append new issue details using the format below -->
+### Issue: VISUAL-PREFLIGHT-001 - Tailwind Preflight Not Applied (Task 34 Inspection) - [Status: Analysis Complete] - [2025-04-18 18:31:00]
+- **Investigation (Task 34)**:
+  1. User provided content of compiled `layout.css` file from browser DevTools. (2025-04-18 18:31:25)
+### Issue: VISUAL-PREFLIGHT-001 - Missing Tailwind Preflight Styles - [Status: Open] - [2025-04-18 18:33:25]
+- **Reported**: 2025-04-18 17:50:00 (approx, inferred from Task 34) / **Severity**: High / **Symptoms**: Base HTML element styles (margins, fonts, etc.) are missing, indicating `@tailwind base` (Preflight) is not being applied.
+- **Investigation**:
+  1. Verified `globals.css` is imported in `layout.tsx` (Task 34). 
+  2. Checked compiled CSS output (`.next/static/css/...`) - confirmed Preflight styles are absent (Task 34).
+  3. Checked dependency versions (`platform/package.json`): `tailwindcss: ^4`, `autoprefixer: ^10.4.21`, `@tailwindcss/postcss: ^4`, `next: ^14.2.0` (PostCSS 8.x bundled). (Task 35 - 2025-04-18 18:33:25)
+  4. Consulted Tailwind CSS v4 Upgrade Guide (`fetch_url`). (Task 35 - 2025-04-18 18:33:25)
+  5. Checked `platform/src/app/globals.css` import syntax. (Task 35 - 2025-04-18 18:33:25)
+- **Root Cause Hypothesis**: Initially suspected build process or config issue (Task 34). **Updated Hypothesis (2025-04-18 18:33:25):** Two specific compatibility issues identified based on Tailwind v4 docs:
+    1.  **Redundant Autoprefixer:** `autoprefixer` plugin in `postcss.config.js` conflicts with Tailwind v4's built-in prefixing via `@tailwindcss/postcss`.
+    2.  **Incorrect Import Syntax:** `globals.css` uses old `@tailwind base/components/utilities;` directives instead of the required `@import "tailwindcss";` for v4.
+- **Fix Applied**: None yet.
+- **Verification**: None yet.
+- **Related Issues**: Task 17 (Next.js downgrade), Task 34 (Preflight investigation start).
+
+  2. Analyzed `layout.css`: Contains `next/font` rules and Tailwind utility classes, but **lacks the standard Tailwind Preflight base style resets** (e.g., `*, ::before, ::after { box-sizing: border-box; ... }`, `p { margin: 0; }`, `h1 { font-size: inherit; }`, etc.). The `@layer base` contains only root/body variables and custom rules, not Preflight.
+- **Root Cause Analysis**: Confirmed the `@tailwind base` directive in `globals.css` is not being processed correctly during the build. The issue is *not* CSS overrides, but a failure in the build pipeline (Tailwind/PostCSS/Next.js interaction).
+- **Fix Applied**: None.
+- **Verification**: Analysis of compiled CSS confirms absence of Preflight rules.
+- **Next Steps Recommendation**: Investigate potential dependency version incompatibilities (`tailwindcss`, `postcss`, `autoprefixer`, `next`) as the primary suspect, given that configuration files appear correct and a clean build was ineffective. Check `package.json` versions and search for known issues.
+- **Related Issues**: VISUAL-PREFLIGHT-001 (Tasks 31, 33), VISUAL-FONT-SPACING-001 (Task 30).
+
+
+### Issue: VISUAL-PREFLIGHT-001 - Tailwind Preflight Not Applied (Task 33 Follow-up) - [Status: Blocked] - [2025-04-18 18:25:12]
+- **Investigation (Task 33)**:
+  1. Re-verified `globals.css`: Directives correct, outside layers. Temporarily commented out custom `body`, `ul`, `li`, `blockquote` rules. Result: No change, Preflight still not applied. (2025-04-18 18:17:07 - 18:20:19)
+  2. Re-verified `layout.tsx` import: Moved `import "./globals.css";` to the top of the file. Result: No change, Preflight still not applied. (2025-04-18 18:20:43 - 18:21:49)
+  3. Simplified `tailwind.config.ts`: Temporarily commented out the entire `theme.extend` block. Result: No change, Preflight still not applied. (2025-04-18 18:21:56 - 18:23:31)
+  4. Browser Cache Check: User performed hard refresh and cache clear. Result: No change, Preflight still not applied. (2025-04-18 18:23:46 - 18:25:12)
+- **Root Cause Analysis**: The issue persists despite verifying/simplifying core configuration files (`globals.css`, `layout.tsx`, `tailwind.config.ts`) and clearing caches. The root cause is likely deeper within the build toolchain (Next.js, PostCSS, Tailwind interaction), a subtle dependency conflict, or an environment-specific issue not immediately apparent from the configuration.
+- **Fix Applied**: None. Reverted temporary changes made during investigation.
+- **Verification**: N/A.
+- **Next Steps Recommendation**: 
+    1. **Minimal Reproduction:** Create a minimal Next.js + Tailwind project with only the essential setup from this project (`globals.css` directives, basic `layout.tsx`, minimal `tailwind.config.ts`) to see if Preflight works there. If it does, gradually add back configuration/components from this project until it breaks.
+    2. **Inspect Compiled CSS:** Check the browser's DevTools (Sources or Network tab) to find the actual compiled CSS file being served. Inspect its contents to see if the Preflight base styles are present at all. If they are missing, it confirms a build process issue.
+    3. **Dependency Check:** Double-check versions of `tailwindcss`, `postcss`, `autoprefixer`, and `next`. Consider potential incompatibilities or known issues with the specific versions used.
+    4. **External Research:** Search for known issues related to Tailwind Preflight not applying in Next.js App Router environments with the specific dependency versions used.
+- **Related Issues**: VISUAL-PREFLIGHT-001 (Task 31), VISUAL-FONT-SPACING-001 (Task 30).
+
+
+### Issue: VISUAL-PREFLIGHT-001 - Tailwind Preflight/Utilities Not Applied Visually - [Status: Analysis Complete] - [2025-04-18 17:56:00]
+- **Reported**: 2025-04-18 17:54:59 (Task 31) / **Severity**: High / **Symptoms**: Default browser styles (margins, Times New Roman font) visible despite seemingly correct Tailwind setup (`font-philosopher`, utility classes). Builds pass.
+- **Investigation (Task 31)**:
+  1. Verified `@tailwind` directives in `globals.css`: Present, correct order/spelling. (2025-04-18 17:55:38)
+  2. Verified `globals.css` import in `layout.tsx`: Present, correct location/syntax. (2025-04-18 17:55:45)
+  3. Verified `content` paths in `tailwind.config.ts`: Appear correct and comprehensive for App Router. (2025-04-18 17:55:53)
+  4. Verified plugins in `postcss.config.js`: `@tailwindcss/postcss` and `autoprefixer` correctly configured. (2025-04-18 17:56:00)
+  5. Re-checked `globals.css` and `layout.tsx` for overrides: No obvious conflicting rules found.
+  6. Conceptual DevTools Analysis: Symptoms strongly suggest Preflight (base style reset) is not being applied, allowing browser defaults to take precedence.
+- **Root Cause Analysis**: Configuration files appear correct. The issue likely lies within the CSS build/processing pipeline (e.g., caching, silent build error, dependency interaction) preventing `@tailwind base` from being processed effectively.
+- **Fix Applied**: None.
+- **Verification**: N/A.
+- **Next Steps Recommendation**: 
+    1. Perform a clean build (delete `.next`, `node_modules`, reinstall, restart dev server).
+    2. If needed, try explicit `tailwindcss` plugin name in `postcss.config.js` (and clean build).
+    3. If needed, verify dependency versions (`tailwindcss`, `postcss`, `autoprefixer`).
+    4. If needed, test with minimal `globals.css` (only `@tailwind` directives) and clean build.
+- **Related Issues**: VISUAL-FONT-SPACING-001 (Task 30), BUILD-FONT-001 (Task 26).
+
+
+### Issue: VISUAL-FONT-SPACING-001 - Incorrect Font/Spacing Rendering - [Status: Analysis Complete] - [2025-04-18 17:40:00]
+- **Reported**: 2025-04-18 17:36:53 (Task 30) / **Severity**: Medium / **Symptoms**: User reports visual discrepancies in font rendering ('Philosopher' on headings, monospace fonts elsewhere) and general spacing/layout, despite build passing and direct font classes being applied.
+- **Investigation (Task 30)**:
+  1. Verified font setup in `layout.tsx`: Correct `next/font/google` usage for Inter, Philosopher, JetBrains Mono; CSS variables applied to `body`; `font-mono` set as default on `body`. (2025-04-18 17:38:43)
+  2. Verified `tailwind.config.ts`: `fontFamily` correctly maps `sans`, `mono`, `philosopher` to CSS variables. (2025-04-18 17:39:02)
+  3. Verified `globals.css`: Tailwind directives correct; problematic `@apply font-philosopher` commented out; most global padding/overrides removed. No obvious conflicts found. (2025-04-18 17:39:16)
+  4. Inspected `page.tsx`: Acts as container, delegates to components. (2025-04-18 17:39:31)
+  5. Inspected `Hero.tsx`: Correctly applies `font-philosopher` to `h1`; paragraphs inherit default `font-mono`; spacing utilities (`p-*`, `mb-*`) used correctly. (2025-04-18 17:39:41)
+  6. Inspected `NavBar.tsx`: Explicitly applies `font-mono` to logo and links; spacing utilities (`py-*`, `px-*`, `space-*`) used correctly. (2025-04-18 17:39:58)
+- **Root Cause Analysis**: The code-level configuration and application of fonts (Philosopher, JetBrains Mono via `font-mono`) and Tailwind spacing utilities appear correct and free of obvious conflicts. The visual discrepancies are likely due to:
+    a) **Browser Rendering:** Issues with how the specific browser renders the 'Philosopher' or 'JetBrains Mono' fonts.
+    b) **Font Loading:** Subtle issues with `next/font/google` delivery or application, despite correct configuration.
+    c) **Subjectivity/Context:** Perceived spacing issues might stem from the combination of layout/component spacing or differ from user expectations. The monospace issue might be that JetBrains Mono renders correctly but isn't the *preferred* monospace font.
+- **Fix Applied**: None.
+- **Verification**: N/A.
+- **Next Steps Recommendation**: 
+    1. **DevTools Check:** Ask user to inspect problematic elements (headings, paragraphs, spaced elements) using browser DevTools to confirm applied `font-family` and computed `padding`/`margin` values. This isolates CSS application vs. rendering issues.
+    2. **Clarify Monospace:** Ask user to specify the *expected* monospace font if JetBrains Mono is not it.
+    3. **Targeted Adjustments:** Based on DevTools findings and specific user feedback on *where* spacing is wrong, adjust Tailwind utilities in relevant components/layout.
+    4. **Experiment (Optional):** Try alternative font loading (e.g., `@import` in `globals.css`) if DevTools confirm CSS is applied but rendering is still wrong.
+- **Related Issues**: Task 27 (Direct font application), Task 1 (Initial spacing fixes).
+
+
 ### Issue: BUILD-FONT-001 - `@apply font-philosopher` fails in `globals.css` - [Status: Analysis Complete] - [2025-04-18 17:09:23]
 - **Reported**: Implicitly via Task 12/13, explicitly investigated in Task 26 / **Severity**: Medium (Blocks global styling) / **Symptoms**: Build fails with `Error: Cannot apply unknown utility class: font-philosopher` when `@apply font-philosopher;` is used in `platform/src/app/globals.css`.
 - **Investigation (Task 26)**:

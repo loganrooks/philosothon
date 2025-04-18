@@ -1,3 +1,22 @@
+[2025-04-18 18:41:49] - TDD - Completed Task 37 (Run Regression Tests Post-Tailwind Fix) - Ran full test suite (`npm test` in `platform`). Result: 204 passed, 3 skipped (known Countdown issues), 0 failed. Confirmed no new regressions were introduced by Tailwind config changes in Task 36. [Related to Task 36 - 2025-04-18 18:38:41]
+
+
+[2025-04-18 18:38:41] - Code - Completed Task 36 (Tailwind v4 Fixes) - Applied recommended configuration changes: removed `autoprefixer` from `postcss.config.js` and replaced `@tailwind` directives with `@import "tailwindcss";` in `globals.css`. Performed clean build (`rm -rf .next`, `npm install`) and restarted dev server (`npm run dev`) successfully. Awaiting user verification for Preflight style application (VISUAL-PREFLIGHT-001). [Related to Issue: VISUAL-PREFLIGHT-001 - 2025-04-18 18:33:25]
+
+[2025-04-18 18:33:25] - Debug - Finding - Identified two compatibility issues causing missing Preflight styles (VISUAL-PREFLIGHT-001): 1) Redundant `autoprefixer` in postcss.config.js. 2) Incorrect `@tailwind` directives in globals.css for Tailwind v4. [Related to Issue: VISUAL-PREFLIGHT-001 - 2025-04-18 18:33:25]
+
+[2025-04-18 18:14:50] - DevOps - Clean Build Verification (Task 32) - User confirmed that the clean build did *not* resolve the Tailwind Preflight issue. Default browser styles remain visible. Proceeding with Early Return Clause.
+
+
+[2025-04-18 18:13:34] - DevOps - Completed Clean Build (Task 32) - Executed `rm -rf .next`, `rm -rf node_modules`, `npm install`, and `npm run dev` in `platform` directory to attempt resolution of Tailwind Preflight issues. Dev server started successfully. Awaiting user verification.
+
+
+[2025-04-18 17:56:32] - Debug - Completed Analysis for Task 31 (Tailwind Preflight/Utility Issue) - Verified all relevant config files (`globals.css`, `layout.tsx`, `tailwind.config.ts`, `postcss.config.js`) appear correct. Concluded the issue likely stems from the CSS build/processing pipeline preventing Preflight application. Recommended clean build and further isolation steps. Updated debug.md.
+
+
+[2025-04-18 17:40:00] - Debug - Analyzing Task 30 (Visual Font/Spacing) - Verified font setup (layout, tailwind, globals). Inspected Hero/NavBar components. Setup seems correct; suspect rendering/subjectivity.
+
+
 [2025-04-18 17:30:26] - DevOps - Pull Request #1 ('fix/direct-font-application') merged into 'main' by user on GitHub.
 
 

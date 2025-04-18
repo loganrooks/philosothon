@@ -1,10 +1,10 @@
+import "./globals.css";
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono, Philosopher } from "next/font/google";
 import NavBar from "@/components/NavBar"; // Assuming components live in src/components
 import Footer from "@/components/Footer"; // Assuming components live in src/components
 import SupabaseProvider from "@/components/SupabaseProvider";
 import ClientWrapper from "@/components/ClientWrapper";
-import "./globals.css";
 
 // Configure fonts
 const inter = Inter({

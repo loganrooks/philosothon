@@ -266,7 +266,12 @@ Puppeteer was failing with a missing shared library error (`libnss3.so`) within 
 Added `libnss3` to the `apt-get install -y` command list within the `RUN` instruction in `Dockerfile`.
 [2025-04-18 17:04:00] - [DevOps Task] Merged Feature Branches (Task 26) [Completed] - Merged all completed feature/fix/chore branches from Task 25 into main.
 
+[2025-04-18 17:40:00] - [Debug Task] Investigated Visual Rendering (Task 30) [Analysis Complete] - Font/spacing setup (Philosopher, JetBrains Mono) verified in layout, config, globals, Hero, NavBar. Code seems correct. Identified potential browser rendering or subjective spacing issues as likely cause. Proposed DevTools verification and targeted adjustments/experiments.
+
+
 # Progress
+[2025-04-18 18:38:41] - [Code Task] Applied Tailwind v4 Fixes (Task 36) [Completed] - Updated `postcss.config.js` (removed autoprefixer) and `globals.css` (used `@import "tailwindcss";`) based on v4 requirements. Performed clean build and restarted dev server.
+
 [2025-04-18 17:30:26] - [DevOps Task] Cleaned main Branch (Task 29) [Completed] - Isolated Task 27 changes onto 'fix/direct-font-application', created PR #1, and user merged it into 'main'.
 
 [2025-04-18 17:17:00] - [Code Task] Completed Font Application (Task 27) [Completed] - Applied `font-philosopher` utility class directly to heading elements in relevant components/pages, resolving the build error from Task 26. Build and tests verified.
