@@ -69,3 +69,10 @@
 - **Rationale**: Critical to maintain a clean `main` branch and adhere strictly to the defined Git workflow (`docs/git_workflow.md`).
 - **Outcome**: Intervention logged. Next step is delegating Git cleanup task (Task 29).
 - **Follow-up**: SPARC *must* verify branch status or instruct branch creation *before every* code modification task delegation. Implement stricter self-checks.
+### [2025-04-18 18:54:00] Intervention: Git Workflow Violation (Unstaged Debug Changes on Main)
+- **Trigger**: User provided `git status` output showing unstaged changes on `main` after SPARC incorrectly assumed `main` was clean post-Task 29.
+- **Context**: SPARC failed *again* to ensure work (Tasks 30-37, Tailwind debugging) happened on a feature branch (`debug/tailwind-integration` was suggested but apparently not used/enforced). Changes were made directly on `main`.
+- **Action Taken**: Halted proposed Navbar task. Logged intervention. Will delegate task to clean `main` branch *again* by committing unstaged debug changes to a new branch.
+- **Rationale**: Critical failure to maintain clean `main` branch and adhere to workflow. Must correct state before proceeding.
+- **Outcome**: Intervention logged. Next step is delegating Git cleanup task (Task 38).
+- **Follow-up**: SPARC requires significant improvement in enforcing Git workflow adherence before *any* task delegation involving code changes. Stricter self-checks needed.

@@ -34,6 +34,12 @@ This file logs feedback received specifically for the DevOps mode, including iss
 - **Context**: Workspace diagnostics provided by user.
 - **Action Taken**: Wrapped `targetDate` initialization in `useMemo` in `Countdown.tsx`.
 - **Learning**: Dependencies of memoized callbacks (`useCallback`) must also be stable; use `useMemo` for objects/arrays depended upon by `useCallback`.
+## Feedback Entry - 2025-04-18 18:56:51
+- **Source**: Tool (`execute_command` - git status)
+- **Issue/Suggestion**: Task 38 (Clean `main` Branch) failed. After creating `fix/tailwind-integration`, committing specified changes, and checking out `main`, `git status` shows `memory-bank/mode-specific/sparc.md` is still modified and unstaged. The `main` branch is not clean as expected.
+- **Context**: Task 38 aimed to move all unstaged changes from `main` to a new branch. The `sparc.md` file was not part of the originally listed unstaged files intended to be moved.
+- **Action Taken**: Invoking Early Return Clause for Task 38. Halting further actions.
+- **Learning**: Need to ensure the initial `git status` accurately reflects *all* unstaged changes before attempting to move them. Unforeseen modifications can disrupt the process.
 ## Feedback Entry - 2025-04-18 18:15:00
 - **Source**: User Verification
 - **Issue/Suggestion**: Clean build process (Task 32) did not resolve the suspected Tailwind Preflight application issue. Default browser styles (fonts, margins) are still present after `rm -rf .next`, `rm -rf node_modules`, `npm install`, `npm run dev`.
