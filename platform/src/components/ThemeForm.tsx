@@ -1,8 +1,8 @@
 'use client';
 
 import React from 'react';
-// Import useActionState from react instead of react-dom
-import { useActionState } from 'react';
+// Import useFormState from react-dom
+import { useFormState } from 'react-dom';
 // Server actions (addTheme, updateTheme) will be passed as props
 
 // Define Theme type (consider moving to a shared types file)
@@ -16,26 +16,28 @@ interface Theme {
 }
 
 // Define initial state for useActionState
-const initialState: { success: boolean, message: string | undefined } = { // Use undefined for message
-  success: true,
-  message: undefined,
+// Define initial state for useFormState - adjust if action returns different state
+const initialState: { success: boolean, message: string | null, errors?: Record<string, string[]> } = {
+  success: false, // Default to false until action succeeds
+  message: null,
+  errors: {},
 };
 
 // Define props for the form
 interface ThemeFormProps {
   initialData?: Theme;
   // Action now expects the original server action signature, compatible with useActionState and corrected state type
-  action: (prevState: typeof initialState, formData: FormData) => Promise<{ success: boolean, message: string | undefined }>;
+  action: (prevState: typeof initialState, formData: FormData) => Promise<typeof initialState>; // Action should return the same state shape
 }
 
 export default function ThemeForm({ initialData, action }: ThemeFormProps) {
-  // Use useActionState to manage form state and action return values
-  const [state, dispatch] = useActionState(action, initialState);
+  // Use useFormState to manage form state and action return values
+  const [state, formAction] = useFormState(action, initialState);
   // TODO: Implement form state management (e.g., useState or react-hook-form)
   // TODO: Implement form submission logic (calling onSubmit prop)
 
   return (
-    <form action={dispatch} className="space-y-6"> {/* Use the dispatch function from useActionState */}
+    <form action={formAction} className="space-y-6"> {/* Use the formAction function from useFormState */}
       {/* Hidden input for ID when editing */}
       {initialData?.id && <input type="hidden" name="id" value={initialData.id} />}
 

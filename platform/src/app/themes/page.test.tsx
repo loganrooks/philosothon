@@ -71,7 +71,7 @@ describe('Themes Page Component', () => {
         analyticTradition: mockThemes[0].analytic_tradition, // Expect array
         continentalTradition: undefined, // Correctly expects undefined for null
       }),
-      undefined // Explicitly check for undefined second argument
+      {} // Check for empty object as second argument (React 18 behavior)
     );
      // Check props passed to the second card
     expect(vi.mocked(ThemeCard)).toHaveBeenCalledWith(
@@ -82,7 +82,7 @@ describe('Themes Page Component', () => {
         analyticTradition: undefined, // Correctly expects undefined for null
         continentalTradition: mockThemes[1].continental_tradition, // Expect array
       }),
-      undefined // Explicitly check for undefined second argument
+      {} // Check for empty object as second argument (React 18 behavior)
     );
   });
 

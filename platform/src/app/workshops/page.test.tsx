@@ -64,13 +64,13 @@ describe('WorkshopsPage (Server Component Test)', () => {
       description: mockWorkshopsData[0].description,
       facilitator: mockWorkshopsData[0].facilitator,
       relevantThemes: undefined, // Because mockWorkshopsData[0].relevant_themes is null
-    }), undefined); // Added undefined for second arg
+    }), {}); // Check for empty object as second argument (React 18 behavior)
     expect(MockedWorkshopCard).toHaveBeenCalledWith(expect.objectContaining({
       title: mockWorkshopsData[1].title,
       description: mockWorkshopsData[1].description,
       facilitator: mockWorkshopsData[1].facilitator,
       relevantThemes: undefined, // Because mockWorkshopsData[1].relevant_themes is null
-    }), undefined); // Added undefined for second arg
+    }), {}); // Check for empty object as second argument (React 18 behavior)
   });
 
   it('should render an error message if data fetching fails', async () => {

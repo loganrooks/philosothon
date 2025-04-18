@@ -10,7 +10,7 @@ import ReactMarkdown from 'react-markdown';
 async function getMarkdownContent(): Promise<string> {
   try {
     // Construct the correct path relative to the current working directory
-    const filePath = path.join(process.cwd(), 'markdown', 'proposal_to_students.md');
+    const filePath = path.join(process.cwd(), '../markdown', 'proposal_to_students.md');
     const fileContents = await fs.readFile(filePath, 'utf8');
     return fileContents;
   } catch (error) {
