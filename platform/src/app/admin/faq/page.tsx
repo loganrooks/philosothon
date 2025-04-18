@@ -38,7 +38,7 @@ export default async function AdminFaqPage() {
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-white">Manage FAQ</h1>
+        <h1 className="text-2xl font-semibold text-white font-philosopher">Manage FAQ</h1>
         <Link
           href="/admin/faq/new"
           className="rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700"

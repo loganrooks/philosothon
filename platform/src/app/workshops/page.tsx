@@ -24,7 +24,7 @@ export default async function WorkshopsPage() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-6 text-gray-900 border-b pb-2">Event Workshops</h1>
+      <h1 className="text-3xl font-bold mb-6 text-hacker-green border-b pb-2 font-philosopher">Event Workshops</h1>
 
       {/* Optional Tag Filter */}
       {/* <TagFilter /> */}

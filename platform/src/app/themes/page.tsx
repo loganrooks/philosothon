@@ -41,7 +41,7 @@ export default async function ThemesPage() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-6 text-gray-900 border-b pb-2">Event Themes</h1>
+      <h1 className="text-3xl font-bold mb-6 text-hacker-green border-b pb-2 font-philosopher">Event Themes</h1>
 
       {/* Optional Filter Controls */}
       {/* <FilterControls /> */}

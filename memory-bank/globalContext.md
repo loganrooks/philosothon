@@ -264,7 +264,11 @@ Puppeteer was failing with a missing shared library error (`libnss3.so`) within 
 
 ## Implementation Details
 Added `libnss3` to the `apt-get install -y` command list within the `RUN` instruction in `Dockerfile`.
+[2025-04-18 17:04:00] - [DevOps Task] Merged Feature Branches (Task 26) [Completed] - Merged all completed feature/fix/chore branches from Task 25 into main.
+
 # Progress
+[2025-04-18 17:17:00] - [Code Task] Completed Font Application (Task 27) [Completed] - Applied `font-philosopher` utility class directly to heading elements in relevant components/pages, resolving the build error from Task 26. Build and tests verified.
+
 [2025-04-18 16:00:00] - [Code Task] Completed Dependency Downgrade (Task 17) [Completed] - Downgraded Next.js, React, TS to resolve build error BUILD-TS-001. Fixed related config/path issues. Build successful.
 
 [2025-04-18 15:28:00] - [DevOps Task] Defined Git Workflow (Task 11) [Completed] - Documented GitHub Flow in `docs/git_workflow.md`.

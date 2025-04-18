@@ -5,6 +5,29 @@
 <!-- Append intervention details using the format below -->
 
 ## Components Implemented
+### [2025-04-18 17:17:00] Styling Update: Apply `font-philosopher` Directly (Task 27)
+- **Purpose**: Apply 'Philosopher' heading font directly via utility class to avoid build errors with global `@apply`.
+- **Files Modified**:
+    - `platform/src/components/EventHighlights.tsx` (h3)
+    - `platform/src/components/ScheduleDisplay.tsx` (h3 x2)
+    - `platform/src/app/about/page.tsx` (h1, updated color)
+    - `platform/src/app/themes/page.tsx` (h1, updated color)
+    - `platform/src/app/workshops/page.tsx` (h1, updated color)
+    - `platform/src/app/faq/page.tsx` (h1, updated color)
+    - `platform/src/app/admin/layout.tsx` (h2)
+    - `platform/src/app/admin/themes/page.tsx` (h1)
+    - `platform/src/app/admin/themes/new/page.tsx` (h1)
+    - `platform/src/app/admin/themes/edit/page.tsx` (h1)
+    - `platform/src/app/admin/workshops/page.tsx` (h1)
+    - `platform/src/app/admin/workshops/new/page.tsx` (h1)
+    - `platform/src/app/admin/workshops/edit/page.tsx` (h1)
+    - `platform/src/app/admin/faq/page.tsx` (h1)
+    - `platform/src/app/admin/faq/new/page.tsx` (h1)
+    - `platform/src/app/admin/faq/edit/page.tsx` (h1)
+- **Status**: Implemented & Verified (Build/Test Pass)
+- **Notes**: This approach avoids the PostCSS/Tailwind build issue encountered with `@apply` in `globals.css`. Also updated heading text color in public pages for consistency.
+
+
 
 ### [2025-04-18 15:10:00] Dynamic Theme Detail Pages (Task 9)
 - **Purpose**: Create individual pages for each theme, accessible via a dynamic route, displaying detailed information fetched from Supabase.

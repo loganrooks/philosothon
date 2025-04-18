@@ -39,7 +39,7 @@ export default async function EditWorkshopPage({ searchParams }: EditWorkshopPag
 
   return (
     <div>
-      <h1 className="mb-4 text-2xl font-semibold text-white">Edit Workshop</h1>
+      <h1 className="mb-4 text-2xl font-semibold text-white font-philosopher">Edit Workshop</h1>
       <WorkshopForm
         action={updateWorkshop}
         initialData={workshopData}

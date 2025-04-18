@@ -36,7 +36,7 @@ export default async function EditThemePage({ searchParams }: EditThemePageProps
 
   return (
     <div>
-      <h1 className="mb-4 text-2xl font-semibold text-white">Edit Theme</h1>
+      <h1 className="mb-4 text-2xl font-semibold text-white font-philosopher">Edit Theme</h1>
       {/* Pass initialData and the updateTheme action */}
       <ThemeForm action={updateTheme} initialData={themeData} />
     </div>

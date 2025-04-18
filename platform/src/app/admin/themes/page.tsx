@@ -40,7 +40,7 @@ export default async function AdminThemesPage() {
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-white">Manage Themes</h1>
+        <h1 className="text-2xl font-semibold text-white font-philosopher">Manage Themes</h1>
         <Link
           href="/admin/themes/new"
           className="rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700"

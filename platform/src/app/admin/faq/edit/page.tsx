@@ -37,7 +37,7 @@ export default async function EditFaqPage({ searchParams }: EditFaqPageProps) {
 
   return (
     <div>
-      <h1 className="mb-4 text-2xl font-semibold text-white">Edit FAQ Item</h1>
+      <h1 className="mb-4 text-2xl font-semibold text-white font-philosopher">Edit FAQ Item</h1>
       {/* <p>ID: {id ?? 'N/A'}</p> */} {/* Remove placeholder ID display */}
       <FaqForm action={updateFaqItem} initialData={faqItemData} />
     </div>
