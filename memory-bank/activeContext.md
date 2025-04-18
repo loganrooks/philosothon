@@ -1,9 +1,33 @@
 # Active Context
 
 This file tracks the project's current status, including recent changes, current goals, and open questions.
+[2025-04-18 07:25:58] - Code - Applied 'Philosopher' Font (Task 5) - Added global CSS rule in globals.css (@layer base) to apply font-philosopher to h1-h6. Removed TODO from layout.tsx.
+
+[2025-04-18 07:22:02] - Code - Fixed Build Error (Task 5) - Installed `autoprefixer` dev dependency. Corrected `platform/postcss.config.js` to use `@tailwindcss/postcss`. Build succeeded, resolving the original error. New errors appeared during static generation (incorrect markdown path for `/proposal`, dynamic usage on `/workshops`).
+[2025-04-18 07:08:32] - TDD - Regression Test Run (Post Form Embed Update) - Ran `npm test` after `code` mode updated `FormEmbed.tsx`. Initial run failed (104 passed, 4 failed) due to outdated test expecting placeholder text. Updated `FormEmbed.test.tsx` to check for iframe presence and attributes using `container.querySelector`. Final run passed with known exceptions (105 passed, 3 failed in `Countdown.test.tsx`). No new regressions found.
+[2025-04-18 06:53:46] - Code - Completed Form Embed (Task 3) - Replaced placeholder in `platform/src/components/FormEmbed.tsx` with Google Form iframe. Corrected JSX attributes (`frameBorder`, `marginHeight`, `marginWidth`) and fixed resulting TypeScript errors (string vs number). Added basic responsive container styling.
+[2025-04-18 05:58:47] - TDD - Regression Test Run (Post NavBar Update) - Ran `npm test` after `code` mode added 'Student Proposal' link to NavBar. Result: 105 passed, 3 failed. Failures are known issues in `Countdown.test.tsx`. No new regressions found. NavBar tests passed.
+[2025-04-18 05:53:00] - Code - Created Proposal Page (Task 2) - Created `/proposal` route (`platform/src/app/proposal/page.tsx`) using `ContentBlock` and `react-markdown` to display `markdown/proposal_to_students.md`. Added `react-markdown` dependency. Updated `NavBar.tsx` with the new link.
+[2025-04-18 05:49:00] - TDD - Fixed Regression Tests - Ran test suite after styling changes (Task 1). Fixed failing tests in layout.test.tsx, EventHighlights.test.tsx, InstructionBlock.test.tsx, ThemeCard.test.tsx, faq/page.test.tsx, themes/page.test.tsx, workshops/page.test.tsx. Encountered persistent issues with fake timers/async updates in Countdown.test.tsx; skipped further fixes for this component.
+[2025-04-18 05:08:00] - Code - Completed Styling Fixes - Investigated and fixed core styling issues: Corrected postcss.config.js, removed conflicting global CSS padding, updated layout padding, implemented responsive NavBar, adjusted component padding (ContentBlock, Hero).
+
+[2025-04-18 01:02:00] - HolisticReview - Completed Review - Reviewed workspace against specs and logs. Identified admin section removal, incomplete public page features (filters/search, form embed), and memory bank inaccuracies. Preparing summary report.
 2025-03-30 18:57:30 - Log of updates made.
 
 *
+[2025-04-17 23:24:00] - Code - Fetched Philosophy Articles - Fetched content for 5 philosophy articles using fetcher MCP tool and prompted user to save each one.
+[2025-04-17 23:29:00] - Code - Debugged RAG Optimizer - Analyzed log and example file (`KarkiKaisa...`). Identified issues: failed 'References' detection (used '## Notes') and citation regex failure due to newlines in title attribute. Updated script regex and patterns.
+
+
+
+[2025-04-17 23:01:00] - Code - Implemented RAG Markdown Optimizer - Created `scripts/rag_markdown_optimizer.py` based on specifications in `spec-pseudocode.md`. Script processes Markdown files to simplify citations and footnotes for RAG.
+
+### Active Context Update - 2025-04-17 22:57:00
+- **Current Focus**: Define specifications and pseudocode for a Python script to optimize Markdown files for RAG.
+- **Progress**: Defined functional requirements, system constraints, edge cases, and wrote detailed pseudocode with TDD anchors for the script.
+- **Challenges**: None.
+- **Next Step**: Update globalContext.md and spec-pseudocode.md with the new specifications.
+
 
 ## Current Focus
 ### Active Context Update - 2025-04-03 18:26:00

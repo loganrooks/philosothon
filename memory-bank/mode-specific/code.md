@@ -1,11 +1,64 @@
-# Code Specific Memory
+/# Code Specific Memory
+
+
+### Implementation: Apply 'Philosopher' Font Globally (Task 5) - 2025-04-18 07:26:24
+- **Approach**: Verified 'Philosopher' font import in `globals.css` and configuration (`font-philosopher`) in `tailwind.config.ts`. Added a CSS rule within `@layer base` in `globals.css` to apply `font-philosopher` to all heading elements (`h1, h2, h3, h4, h5, h6`). Removed the corresponding TODO comment from `layout.tsx`.
+- **Key Files Modified/Created**:
+  - `platform/src/app/globals.css`: Added `@layer base` rule for headings.
+  - `platform/src/app/layout.tsx`: Removed TODO comment.
+- **Notes**: Applied font globally as preferred. This ensures consistent heading styling across the site.
+
+
+### Implementation: Google Form Embed Integration (Task 3) - 2025-04-18 06:54:14
+- **Approach**: Replaced the placeholder div in `platform/src/components/FormEmbed.tsx` with the provided Google Form `<iframe>` code. Converted HTML attributes (`frameborder`, `marginheight`, `marginwidth`) to JSX syntax (`frameBorder`, `marginHeight`, `marginWidth`). Fixed resulting TypeScript errors by changing string values (`"0"`) to numeric expressions (`{0}`). Added a container div with basic responsive styling (`max-w-full`, `overflow-hidden`, `p-4`) and centered the iframe (`mx-auto`, `style={{ maxWidth: '100%' }}`).
+- **Key Files Modified/Created**:
+  - `platform/src/components/FormEmbed.tsx`: Updated component content.
+- **Notes**: The component now embeds the specified Google Form. The iframe retains its original height and width, but the container and inline style prevent overflow on smaller screens.
+### Implementation: Proposal Page (Task 2) - 2025-04-18 05:53:00
+- **Approach**: Created a new route `platform/src/app/proposal/page.tsx`. Used `fs` to read `markdown/proposal_to_students.md`. Installed `react-markdown`. Used `ContentBlock` component, passing the Markdown content wrapped in `<ReactMarkdown>` as children and providing a title. Added a link to `/proposal` in `NavBar.tsx`'s `navItems` array.
+- **Key Files Modified/Created**:
+  - `platform/src/app/proposal/page.tsx`: Created new page component.
+  - `platform/src/components/NavBar.tsx`: Added navigation link.
+  - `platform/package.json`: Added `react-markdown` dependency.
+- **Notes**: Implemented the page using existing `ContentBlock` and `react-markdown` for rendering. Assumes `@tailwindcss/typography` (already installed) handles styling via `prose` class in `ContentBlock`.
+### Implementation: Core Styling & Responsiveness Fixes - 2025-04-18 05:08:00
+- **Approach**: Investigated Tailwind CSS configuration, global styles, layout, and key components based on user task. Corrected `postcss.config.js`. Removed conflicting global padding rules from `globals.css`. Simplified padding and removed redundant styles in `layout.tsx`. Implemented a responsive mobile menu pattern in `NavBar.tsx`. Adjusted padding and font sizes in `ContentBlock.tsx` and `Hero.tsx` for better responsiveness. Removed redundant padding in `page.tsx`.
+- **Key Files Modified/Created**:
+  - `platform/postcss.config.js`: Corrected plugin configuration.
+  - `platform/src/app/globals.css`: Removed conflicting global padding rules.
+  - `platform/src/app/layout.tsx`: Simplified container padding, removed redundant inline style.
+  - `platform/src/components/NavBar.tsx`: Added mobile menu, adjusted padding.
+  - `platform/src/components/ContentBlock.tsx`: Added responsive padding and title font size.
+  - `platform/src/app/page.tsx`: Removed redundant padding.
+  - `platform/src/components/Hero.tsx`: Added responsive padding.
+- **Notes**: Addressed fundamental styling conflicts and improved responsiveness across core layout and components. Encountered and resolved several JSX syntax errors caused by `apply_diff` tool, switching to `write_to_file` for complex component updates.
+
+
+### Implementation: Fetch Philosophy Articles - 2025-04-17 23:24:00
+- **Approach**: Used the `fetcher` MCP tool (`fetch_url`) sequentially to retrieve content for 5 specified philosophy articles from SpringerLink. After each successful fetch, used `ask_followup_question` to prompt the user to save the content to a Markdown file and confirm readiness for the next article.
+- **Key Files Modified/Created**: None (User manually saved files based on fetched content).
+- **Notes**: Completed fetching for all 5 articles as requested. Articles fetched: Ryberg (Criminal Justice/AI), Rodilosso (Filter Bubbles), Lavazza/Vilaça (Human Extinction/AI), de Fine Licht (GenAI/Higher Ed), Balcerak Jackson (Immersive Experience/VR).
 
 
 ### Implementation: Dev Container Configuration Update - 2025-04-03 02:45:00
+### Implementation: RAG Markdown Optimizer Script Debugging - 2025-04-17 23:29:00
+- **Approach**: Investigated user report of script failure. Analyzed log file (`rag_optimizer_20250417_232628.log`) and example Markdown (`docs/philosophy/phil_and_tech_journal/KarkiKaisa_DigitalDistractionAttentionRegulationAndInequality.md`). Found that the script failed to detect the 'References' section (which was titled '## Notes') and the citation regex (`CITATION_PATTERN`) failed due to newline characters within the link title attribute (`"..."`). Updated `scripts/rag_markdown_optimizer.py` by adding a pattern for `## Notes` to `REFERENCE_SECTION_PATTERNS` and modifying `CITATION_PATTERN` to `re.compile(r"\(([^,]+),\s*\[(\d{4})\]\([^)]+\s+\"([\s\S]+?)\"\)\)")` to correctly handle multiline titles.
+- **Key Files Modified/Created**:
+  - `scripts/rag_markdown_optimizer.py`: Updated regex patterns.
+- **Notes**: The script should now correctly identify the end of the main content in files using `## Notes` and successfully simplify citations even with multiline titles.
+
+
 - **Approach**: Updated `.devcontainer/devcontainer.json` to add the Roo Cline extension (`rooveterinaryinc.roo-cline`) to the `customizations.vscode.extensions` array. Introduced the `mounts` property to consolidate volume and bind mounts. Added a named volume mount (`vscode-server-state-${localWorkspaceFolderBasename}`) targeting `/home/node/.vscode-server` to persist VS Code server state. Moved the existing workspace bind mount definition into the `mounts` array. Removed the deprecated standalone `workspaceMount` property.
 - **Key Files Modified/Created**: `.devcontainer/devcontainer.json`: Applied the described changes.
 - **Notes**: This configuration ensures the Roo Cline extension is available in the dev container and improves container rebuild times by persisting VS Code server state.
 
+
+
+### Implementation: RAG Markdown Optimizer Script - 2025-04-17 23:01:00
+- **Approach**: Implemented the Python script `scripts/rag_markdown_optimizer.py` based on the pseudocode and requirements defined in `memory-bank/mode-specific/spec-pseudocode.md`. The script uses `argparse` for command-line arguments (directory path), `os.walk` to find `.md` files, `re` for pattern matching and substitution (citations, footnotes), `logging` for detailed output to console and a timestamped file, and standard file I/O. It processes content before a detected "References" section and modifies files in-place.
+- **Key Files Modified/Created**:
+  - `scripts/rag_markdown_optimizer.py`: Created the script.
+- **Notes**: Implemented core logic as specified, including handling for different reference section patterns, file I/O errors, and summary reporting. Added check to avoid rewriting files if no changes were made.
 
 
 ## Implementation Notes
@@ -105,6 +158,11 @@
 
 ## Dependencies Log
 <!-- Append new dependencies using the format below -->
+### Dependency: react-markdown - 2025-04-18 05:52:00
+- **Version**: ^9.0.1 (Check `package-lock.json` for exact)
+- **Purpose**: Parses Markdown string into React components.
+- **Used by**: `platform/src/app/proposal/page.tsx`
+- **Config notes**: None.
 
 ### Dependency: @tailwindcss/typography - 2025-04-02 06:48:00
 - **Version**: ^0.5.13 (Based on typical latest version, check `package-lock.json` for exact)

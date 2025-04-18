@@ -72,6 +72,13 @@ This file consolidates less frequently updated global project information, inclu
 
 
 *   **[2025-04-03] Dev Container Volume Permissions (Dockerfile Fix):** Added `RUN mkdir -p /home/node/.vscode-server && chown -R 1000:1000 /home/node/.vscode-server` to the `Dockerfile` to ensure the directory exists with correct ownership *during* the image build, resolving permission errors encountered during container startup when using a volume mount. Reverted the previous `postCreateCommand` fix in `devcontainer.json`.
+
+## Tooling
+
+*   **[2025-04-17] RAG Markdown Optimizer:** Python script developed to process Markdown files in a directory, simplifying inline citations and footnote links to optimize content for Retrieval-Augmented Generation (RAG) systems, while preserving the final "References" section.
+
+*   **[2025-04-17] RAG Markdown Optimizer:** Python script (`scripts/rag_markdown_optimizer.py`) developed to process Markdown files in a directory, simplifying inline citations `(Author, [Year](URL "Citation"))` to `(Author, Year)` and footnote links `[Footnote N](#...)` to `[Footnote N]` to optimize content for Retrieval-Augmented Generation (RAG) systems, while preserving the final "References" section. Includes logging and command-line interface.
+
 # Decision Log
 
 ## Decision
@@ -233,7 +240,18 @@ Puppeteer was failing with a missing shared library error (`libnss3.so`) within 
 ## Implementation Details
 Added `libnss3` to the `apt-get install -y` command list within the `RUN` instruction in `Dockerfile`.
 # Progress
+[2025-04-18 07:26:14] - Applied 'Philosopher' font globally to headings (h1-h6) via globals.css.
 
+[2025-04-18 06:54:01] - Integrated Google Form embed into `FormEmbed.tsx` component.
+[2025-04-18 05:53:00] - Added 'Proposal to Students' page (`/proposal`) displaying Markdown content.
+[2025-04-18 01:03:00] - Holistic Review completed. Verified codebase against specs and logs. Confirmed admin section removal, public page implementations (SSG/ISR, Countdown), UI theme changes, RAG script, SSL fix, and Dev Container setup align with logs. Noted discrepancies: missing admin section vs. MVP spec, incomplete public page features (filters/search, form embed), and inaccurate 'Completed Tasks' list in this file (now corrected).
+[2025-04-17 23:29:00] - Debugged and updated `scripts/rag_markdown_optimizer.py` to handle newlines in citation titles and recognize '## Notes' as a reference section marker.
+
+
+
+[2025-04-17 23:24:00] - Fetched content for 5 philosophy articles from Philosophy & Technology journal.
+
+[2025-04-17 23:01:00] - Implemented Python script `scripts/rag_markdown_optimizer.py` for optimizing Markdown files for RAG.
 
 [2025-04-03 18:26:00] - Temporarily removed entire admin section (`platform/src/app/admin`) and related components/links (`ThemeActions`, `FaqActions` edit link) to resolve persistent Vercel build errors related to dynamic routes and TypeScript `PageProps` constraints. Admin functionality needs to be revisited/re-implemented later.
 ## Completed Tasks
@@ -241,11 +259,7 @@ Added `libnss3` to the `apt-get install -y` command list within the `RUN` instru
 - Memory Bank Restructuring
 - Initial Project Setup (Next.js, Supabase, Vercel)
 - Basic Layout & Public Page Placeholders
-- Admin UI Structure & Navigation
-- Admin CRUD Implementation (Themes, Workshops, FAQ)
-- Admin Registration View & Filtering
-- Unit Tests for Theme Add/Update Actions
-- Admin Authentication Flow (Magic Link)
+- Admin Section Removed (Due to build errors, deviates from MVP spec)
 
 - DB Schema Adaptation (JSONB arrays) & SSL Fix
 
