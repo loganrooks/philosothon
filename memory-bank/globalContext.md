@@ -82,6 +82,18 @@ This file consolidates less frequently updated global project information, inclu
 *   **[2025-04-18] Admin CRUD Pattern:** Implemented using Server Components for list/edit page shells, Client Components for forms (`useFormState`), and Server Actions (`actions.ts`) for data mutation (create, update, delete). Edit pages use query parameters (`?id=...`) instead of dynamic route segments to avoid previous build issues.
 
 # Decision Log
+## Decision
+[2025-04-18 19:20:37] Use Fixed Height + Container Width Control for Google Form Embed.
+
+## Rationale
+Simplest and most reliable method for embedding a third-party iframe with a fixed, large height (`FormEmbed.tsx`). Avoids UX issues of aspect-ratio scaling (content too small) and complexity/fragility of JS height manipulation for cross-domain iframes. Standard vertical page scrolling is acceptable for long content on mobile.
+
+## Implementation Details
+Wrap iframe in a `div` with `w-full`, `max-w-2xl`, `mx-auto`. Iframe uses `w-full` and retains its fixed `height` attribute provided by Google. Remove fixed `width` attribute from iframe.
+
+*
+
+
 *
 
 ## Decision

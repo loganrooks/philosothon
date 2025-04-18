@@ -1,5 +1,13 @@
 # Specification Writer Specific Memory
 
+### Feature: Responsive Google Form Embed
+- Added: [2025-04-18 19:20:37]
+- Description: Ensure the embedded Google Form (`FormEmbed.tsx`) displays correctly across various screen sizes.
+- Acceptance criteria: 1. Iframe width scales with its container (100%). 2. Container is centered (`mx-auto`). 3. Container has a max-width (`max-w-2xl`). 4. Fixed iframe height is maintained, allowing vertical page scrolling on smaller screens. 5. No horizontal scrolling *of the page* is introduced by the embed itself (iframe content might scroll internally).
+- Dependencies: `platform/src/components/FormEmbed.tsx`, Tailwind CSS.
+- Status: Specified
+
+
 ## Functional Requirements
 ### Feature: Admin Section Rebuild (CRUD for Themes, Workshops, FAQs)
 - Added: [2025-04-18 07:35:00]
@@ -39,6 +47,13 @@
 - Dependencies: `ThemeCard.tsx` component, `theme.id` property.
 - Status: Draft
 
+### Constraint: Google Form Iframe Height
+- Added: [2025-04-18 19:20:37]
+- Description: The embedded Google Form iframe has a large, fixed height determined by Google. This height cannot be reliably controlled or dynamically adjusted from the parent page due to cross-origin restrictions.
+- Impact: The embedding page must accommodate this fixed height, typically resulting in vertical scrolling. CSS aspect-ratio techniques are not suitable.
+- Mitigation strategy: Use a container with appropriate width constraints (`w-full`, `max-w-2xl`, `mx-auto`) and allow the natural vertical scrolling of the page or a designated scrollable parent element.
+
+
 ## System Constraints
 ### Constraint: Admin Edit Page Data Fetching
 - Added: [2025-04-18 07:35:00]
@@ -77,6 +92,19 @@
 - Description: Theme detail pages require data from both the database (title, description, suggested readings) and a static markdown file (`theme_descriptions.md` for philosopher lists).
 - Impact: Requires combining data sources in `getStaticProps`. Parsing logic for markdown is needed. Suggested readings must be added to the DB.
 - Mitigation strategy: Implement robust markdown parsing (`parseThemeMarkdown`). Add `suggested_readings` column to `themes` table.
+
+### Edge Case: Form Embed - Loading Failure
+- Identified: [2025-04-18 19:20:37]
+- Scenario: The Google Form URL is invalid, network issues prevent loading, or Google Forms service is down.
+- Expected behavior: The iframe shows a browser-specific error or the "Loading..." fallback text. The container still renders correctly centered and width-constrained.
+- Testing approach: Manual test with invalid URL. Simulate network error in dev tools.
+
+### Edge Case: Form Embed - Very Small Screens
+- Identified: [2025-04-18 19:20:37]
+- Scenario: Screen width is significantly smaller than the form's inherent minimum usable width (though the iframe itself scales down).
+- Expected behavior: The iframe content might require horizontal scrolling *within the iframe itself* (handled by Google Forms), while the page scrolls vertically. The container respects `max-w-2xl` but shrinks below that on small screens due to `w-full`.
+- Testing approach: Manual testing on various small device emulators/physical devices.
+
 
 ## Edge Cases
 ### Edge Case: Admin Edit - Invalid/Missing ID
@@ -146,6 +174,55 @@
 - Scenario: `suggested_readings` column in DB is NULL or an empty array for a specific theme.
 - Expected behavior: The "Suggested Readings" section is not rendered on the page. No errors occur.
 - Testing approach: Ensure DB has themes with null/empty readings. Unit test component rendering logic. Manual test.
+
+### Pseudocode: FormEmbed Component - Responsive Styling
+- Created: [2025-04-18 19:20:37]
+- Updated: [2025-04-18 19:20:37]
+```typescript
+// platform/src/components/FormEmbed.tsx
+// (Conceptual Pseudocode/JSX Structure)
+
+import React from 'react';
+
+const FormEmbed = () => {
+  // Replace with the actual Google Form URL
+  const formUrl = "YOUR_GOOGLE_FORM_EMBED_URL";
+  // Replace with the actual height provided by Google Forms embed code
+  const formHeight = "3000"; // Example height, use the real value
+
+  return (
+    // Container Div: Controls width and centering
+    <div className="w-full max-w-2xl mx-auto">
+      {/* TDD: Test that container div has max-width computed style (e.g., 672px for max-w-2xl). */}
+      {/* TDD: Test that container div has margin-left/right: auto computed style. */}
+
+      {/* Iframe: Takes full width of container, maintains fixed height */}
+      <iframe
+        src={formUrl}
+        // width="100%" // Can be set to 100% or removed entirely, as container controls width
+        height={formHeight} // Keep the fixed height from Google
+        frameBorder="0"
+        marginHeight={0} // Use numbers or strings as appropriate for JSX
+        marginWidth={0}
+        className="w-full" // Ensure iframe tries to fill container width
+        title="Google Form Embed"
+      >
+        Loading…
+        {/* TDD: Test that iframe has width: 100% computed style. */}
+        {/* TDD (Optional/Difficult): Test iframe height/scrolling behavior at small viewport width. */}
+      </iframe>
+    </div>
+  );
+};
+
+export default FormEmbed;
+```
+#### TDD Anchors:
+- Test that iframe has width: 100% computed style.
+- Test that container div has max-width computed style (e.g., 672px for max-w-2xl).
+- Test that container div has margin-left/right: auto computed style.
+- Test (Optional/Difficult): iframe height/scrolling behavior at small viewport width.
+
 
 ## Pseudocode Library
 ### Pseudocode: Admin Authentication - `signInWithOtp`, `signOut`, Route Protection
