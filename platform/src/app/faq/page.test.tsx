@@ -79,7 +79,7 @@ describe('FAQ Page Component (Server Component Test)', () => {
           { question: 'Q2', answer: 'A2' },
         ],
       }),
-      undefined // Explicitly check for undefined second argument
+      {} // Check for empty object as second argument (React 18 behavior)
     );
   });
 

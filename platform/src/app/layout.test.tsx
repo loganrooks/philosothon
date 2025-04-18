@@ -21,6 +21,7 @@ vi.mock('@/components/SupabaseProvider', () => ({
 vi.mock('next/font/google', () => ({
   Inter: () => ({ className: 'mock-inter-class', variable: 'mock-inter-variable' }),
   JetBrains_Mono: () => ({ className: 'mock-jetbrains-class', variable: 'mock-jetbrains-variable' }),
+  Philosopher: () => ({ className: 'mock-philosopher-class', variable: 'mock-philosopher-variable' }), // Add mock for Philosopher
 }));
 
 describe('RootLayout Component', () => {
@@ -36,10 +37,13 @@ describe('RootLayout Component', () => {
   });
 
   it('should apply font variables to the body', () => {
-    render(<RootLayout><TestChild /></RootLayout>);
-    expect(document.body).toHaveClass('mock-inter-variable');
-    expect(document.body).toHaveClass('mock-jetbrains-variable');
-    expect(document.body).toHaveClass('font-mono'); // Check default font class (updated for hacker theme)
+    const { container } = render(<RootLayout><TestChild /></RootLayout>);
+    // Query for the body element rendered by the component, not the global document.body
+    const bodyElement = container.querySelector('body');
+    expect(bodyElement).toHaveClass('mock-inter-variable'); // Inter font variable
+    expect(bodyElement).toHaveClass('mock-jetbrains-variable'); // JetBrains Mono font variable
+    expect(bodyElement).toHaveClass('mock-philosopher-variable'); // Philosopher font variable
+    expect(bodyElement).toHaveClass('font-mono'); // Check default font class (updated for hacker theme)
   });
 
   it('should render NavBar, Footer, and SupabaseProvider mocks', () => {
