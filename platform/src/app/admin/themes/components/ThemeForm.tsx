@@ -2,7 +2,7 @@
 'use client';
 
 import { useFormState, useFormStatus } from 'react-dom';
-import type { Theme } from '../page'; // Assuming Theme type is defined in page.tsx for now
+import type { Theme } from '@/lib/data/themes'; // Corrected import path
 import type { ThemeFormState } from '../actions'; // Assuming state type is defined in actions.ts
 
 // TODO: Move Theme interface to a shared types file
@@ -26,7 +26,8 @@ function SubmitButton({ isEditing }: { isEditing: boolean }) {
       type="submit"
       aria-disabled={pending}
       disabled={pending}
-      className="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+      // Apply style guide: bg-hacker-green, text-black, no rounded, hacker-green focus
+      className="bg-hacker-green px-4 py-2 text-black hover:bg-dark-green focus:outline-none focus:ring-2 focus:ring-hacker-green focus:ring-offset-2 focus:ring-offset-black disabled:opacity-50"
     >
       {pending ? (isEditing ? 'Updating...' : 'Creating...') : (isEditing ? 'Update Theme' : 'Create Theme')}
     </button>
@@ -38,12 +39,15 @@ export function ThemeForm({ action, initialData }: ThemeFormProps) {
   const isEditing = !!initialData;
 
   return (
-    <form action={formAction} className="space-y-4 bg-gray-800 p-6 shadow">
-      {/* Hidden input for ID when editing */}
-      {initialData?.id && <input type="hidden" name="id" value={initialData.id} />}
+    // Apply style guide: translucent background
+    <form action={formAction} className="space-y-4 bg-black/75 p-6 shadow">
+      {/* Hidden input for ID when editing - Ensure initialData exists */}
+      {isEditing && initialData?.id && <input type="hidden" name="id" value={initialData.id} />}
 
+      {/* Title */}
       <div>
-        <label htmlFor="title" className="block text-sm font-medium text-gray-300">
+        {/* Apply style guide: text-light-text */}
+        <label htmlFor="title" className="block text-sm font-medium text-light-text">
           Title <span className="text-red-500">*</span>
         </label>
         <input
@@ -52,7 +56,8 @@ export function ThemeForm({ action, initialData }: ThemeFormProps) {
           type="text"
           required
           defaultValue={initialData?.title ?? ''}
-          className="mt-1 block w-full border-gray-600 bg-gray-700 px-3 py-2 text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+          // Apply style guide: bg-dark-base, border-medium-gray, hacker-green focus, no rounded
+          className="mt-1 block w-full border border-medium-gray bg-dark-base px-3 py-2 text-light-text shadow-sm focus:border-hacker-green focus:ring-hacker-green sm:text-sm"
           aria-describedby="title-error"
         />
         {state.errors?.title && (
@@ -62,8 +67,10 @@ export function ThemeForm({ action, initialData }: ThemeFormProps) {
         )}
       </div>
 
+      {/* Description */}
       <div>
-        <label htmlFor="description" className="block text-sm font-medium text-gray-300">
+        {/* Apply style guide: text-light-text */}
+        <label htmlFor="description" className="block text-sm font-medium text-light-text">
           Description
         </label>
         <textarea
@@ -71,7 +78,8 @@ export function ThemeForm({ action, initialData }: ThemeFormProps) {
           name="description"
           rows={4}
           defaultValue={initialData?.description ?? ''}
-          className="mt-1 block w-full border-gray-600 bg-gray-700 px-3 py-2 text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+          // Apply style guide: bg-dark-base, border-medium-gray, hacker-green focus, no rounded
+          className="mt-1 block w-full border border-medium-gray bg-dark-base px-3 py-2 text-light-text shadow-sm focus:border-hacker-green focus:ring-hacker-green sm:text-sm"
           aria-describedby="description-error"
         ></textarea>
          {state.errors?.description && (
@@ -81,17 +89,46 @@ export function ThemeForm({ action, initialData }: ThemeFormProps) {
         )}
       </div>
 
-       {/* TODO: Consider a better input for JSONB arrays (e.g., tag input) */}
+      {/* ADDED: Expanded Description Field */}
       <div>
-        <label htmlFor="analytic_tradition" className="block text-sm font-medium text-gray-300">
+        {/* Apply style guide: text-light-text */}
+        <label htmlFor="description_expanded" className="block text-sm font-medium text-light-text">
+          Expanded Description (Markdown)
+        </label>
+        <textarea
+          id="description_expanded"
+          name="description_expanded"
+          rows={10} // Make it taller for Markdown
+          defaultValue={initialData?.description_expanded ?? ''}
+          // Apply style guide: bg-dark-base, border-medium-gray, hacker-green focus, no rounded, font-mono
+          className="mt-1 block w-full border border-medium-gray bg-dark-base px-3 py-2 font-mono text-sm text-light-text shadow-sm focus:border-hacker-green focus:ring-hacker-green"
+          aria-describedby="description_expanded-error"
+        ></textarea>
+         {state.errors?.description_expanded && (
+          <p id="description_expanded-error" className="mt-1 text-sm text-red-400">
+            {/* Assuming error key matches */}
+            {state.errors.description_expanded}
+          </p>
+        )}
+      </div>
+      {/* END ADDED */}
+
+
+       {/* TODO: Consider a better input for JSONB arrays (e.g., tag input) */}
+      {/* Analytic Tradition */}
+      <div>
+        {/* Apply style guide: text-light-text */}
+        <label htmlFor="analytic_tradition" className="block text-sm font-medium text-light-text">
           Analytic Tradition (JSON Array)
         </label>
         <textarea
           id="analytic_tradition"
           name="analytic_tradition"
           rows={3}
+          // Ensure initialData and the property exist before stringifying
           defaultValue={initialData?.analytic_tradition ? JSON.stringify(initialData.analytic_tradition, null, 2) : '[]'}
-          className="mt-1 block w-full border-gray-600 bg-gray-700 px-3 py-2 font-mono text-sm text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+          // Apply style guide: bg-dark-base, border-medium-gray, hacker-green focus, no rounded, font-mono
+          className="mt-1 block w-full border border-medium-gray bg-dark-base px-3 py-2 font-mono text-sm text-light-text shadow-sm focus:border-hacker-green focus:ring-hacker-green"
           placeholder='["Keyword1", "Keyword2"]'
           aria-describedby="analytic_tradition-error"
         ></textarea>
@@ -102,16 +139,20 @@ export function ThemeForm({ action, initialData }: ThemeFormProps) {
         )}
       </div>
 
+      {/* Continental Tradition */}
       <div>
-        <label htmlFor="continental_tradition" className="block text-sm font-medium text-gray-300">
+        {/* Apply style guide: text-light-text */}
+        <label htmlFor="continental_tradition" className="block text-sm font-medium text-light-text">
           Continental Tradition (JSON Array)
         </label>
         <textarea
           id="continental_tradition"
           name="continental_tradition"
           rows={3}
+          // Ensure initialData and the property exist before stringifying
           defaultValue={initialData?.continental_tradition ? JSON.stringify(initialData.continental_tradition, null, 2) : '[]'}
-          className="mt-1 block w-full border-gray-600 bg-gray-700 px-3 py-2 font-mono text-sm text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+          // Apply style guide: bg-dark-base, border-medium-gray, hacker-green focus, no rounded, font-mono
+          className="mt-1 block w-full border border-medium-gray bg-dark-base px-3 py-2 font-mono text-sm text-light-text shadow-sm focus:border-hacker-green focus:ring-hacker-green"
           placeholder='["KeywordA", "KeywordB"]'
           aria-describedby="continental_tradition-error"
         ></textarea>
@@ -123,6 +164,7 @@ export function ThemeForm({ action, initialData }: ThemeFormProps) {
       </div>
 
 
+      {/* Form Actions & Messages */}
       <div className="flex items-center justify-end space-x-3">
          {state.message && !state.success && (
            <p aria-live="polite" className="text-sm text-red-500">

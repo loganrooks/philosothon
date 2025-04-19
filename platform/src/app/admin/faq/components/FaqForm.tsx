@@ -2,7 +2,7 @@
 'use client';
 
 import { useFormState, useFormStatus } from 'react-dom';
-import type { FaqItem } from '../page'; // Assuming FaqItem type is exported from page.tsx
+import type { FaqItem } from '@/lib/data/faq'; // Import type from DAL
 import type { FaqFormState } from '../actions'; // Assuming state type is defined in actions.ts
 
 // TODO: Move FaqItem interface to a shared types file
@@ -78,25 +78,6 @@ export function FaqForm({ action, initialData }: FaqFormProps) {
          {state.errors?.answer && (
           <p id="answer-error" className="mt-1 text-sm text-red-400">
              {Array.isArray(state.errors.answer) ? state.errors.answer[0] : state.errors.answer}
-          </p>
-        )}
-      </div>
-
-       <div>
-        <label htmlFor="category" className="block text-sm font-medium text-gray-300">
-          Category
-        </label>
-        <input
-          id="category"
-          name="category"
-          type="text"
-          defaultValue={initialData?.category ?? ''}
-          className="mt-1 block w-full border-gray-600 bg-gray-700 px-3 py-2 text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-          aria-describedby="category-error"
-        />
-        {state.errors?.category && (
-          <p id="category-error" className="mt-1 text-sm text-red-400">
-            {Array.isArray(state.errors.category) ? state.errors.category[0] : state.errors.category}
           </p>
         )}
       </div>

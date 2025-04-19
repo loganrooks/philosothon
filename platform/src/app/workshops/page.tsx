@@ -7,20 +7,15 @@ import { fetchWorkshops, type Workshop } from '@/lib/data/workshops';
 export const revalidate = 21600;
 
 export default async function WorkshopsPage() {
-  let workshopList: Workshop[] = [];
-  let fetchError: string | null = null;
+  // Call the DAL function and destructure the result
+  const { workshops: workshopList, error: fetchErrorData } = await fetchWorkshops();
 
-  try {
-    // Call the extracted data fetching function
-    workshopList = await fetchWorkshops();
-  } catch (error) {
-    // Log the error on the server
-    console.error('UI error loading workshops:', error);
-    // Set a user-friendly error message
-    fetchError = 'Could not load workshop information at this time. Please try again later.';
-    // More specific messages could be set based on error type if needed
-    // fetchError = error instanceof Error ? error.message : 'An unknown error occurred.';
-  }
+  // Handle potential error from the DAL function
+  const fetchError = fetchErrorData ? 'Could not load workshop information at this time. Please try again later.' : null;
+  // Note: fetchWorkshops already logs the specific error
+
+  // Use an empty array if workshops is null (e.g., due to error)
+  const workshops = workshopList ?? [];
 
   return (
     <div>
@@ -39,16 +34,16 @@ export default async function WorkshopsPage() {
         {fetchError && <p className="text-red-500">{fetchError}</p>}
 
         {/* Display message if no error but list is empty */}
-        {!fetchError && workshopList.length === 0 && <p>No workshops available at the moment.</p>}
+        {!fetchError && workshops.length === 0 && <p>No workshops available at the moment.</p>}
 
         {/* Display workshop cards if no error and list is not empty */}
-        {!fetchError && workshopList.length > 0 && workshopList.map((workshop) => (
+        {!fetchError && workshops.length > 0 && workshops.map((workshop) => (
           <WorkshopCard
             key={workshop.id}
             title={workshop.title}
-            description={workshop.description}
-            facilitator={workshop.facilitator ?? undefined} // Pass undefined if null
-            relevantThemes={workshop.relevant_themes ?? undefined} // Pass relevant themes
+            description={workshop.description ?? ''} // Pass empty string if null
+            speaker={workshop.speaker ?? undefined} // Changed from facilitator
+            relatedThemes={workshop.related_themes ?? undefined} // Changed from relevant_themes
           />
         ))}
       </div>

@@ -1,6 +1,16 @@
 # Code Specific Memory
 <!-- Entries below should be added reverse chronologically (newest first) -->
 
+
+## Documentation / Standards
+
+### [2025-04-19 11:05:48] Style Guide Created
+- **Purpose**: Formalize the visual style for the minimalist hacker aesthetic.
+- **Files**: `docs/style_guide.md` (Created)
+- **Status**: Implemented
+- **Notes**: Defines color palette (emphasizing `light-text`, restricting green text), typography (JetBrains Mono default, Philosopher headings), spacing, border style (no rounded corners), and common component examples (buttons, forms, cards, timeline) using Tailwind. Specifies `MatrixBackground` as the default background. Addresses inconsistencies like dark gray usage in forms. Refined based on feedback regarding text color usage over Matrix/translucent backgrounds.
+
+
 ### [2025-04-19 01:50:05] Component Update: Admin Dashboard Page (Task 75)
 - **Purpose**: Create the missing dashboard page to resolve `/admin` 404 errors.
 - **Files**: `platform/src/app/admin/page.tsx` (Created)

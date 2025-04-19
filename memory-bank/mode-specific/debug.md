@@ -1,6 +1,22 @@
 # Debug Specific Memory
 
 ## Issue History
+### Issue: RLS-TEST-TIMEOUT-001 - Vitest timeouts mocking Supabase client for RLS tests - [Status: Blocked] - [2025-04-19 05:43:47]
+- **Reported**: 2025-04-19 05:35:17 (Task Context) / **Severity**: High / **Symptoms**: Tests in `platform/src/lib/supabase/rls.test.ts` consistently time out when awaiting Supabase client query chains ending in an implicit `.then()` (e.g., `await client.from(...).select()`, `await client.from(...).update().eq()`). Tests using `.single()` complete quickly.
+- **Investigation**:
+  1. Verified correct branch (`feat/architecture-v2`).
+  2. Examined `rls.test.ts`: Uses `vi.mock('@/lib/supabase/server')` with a complex `mockImplementation` in `beforeEach` attempting to mock the client and its method chain (`from`, `select`, `update`, `eq`, `then`, `single`).
+  3. Ran tests: Confirmed timeouts specifically for `.then()` chains (5s+). `.single()` chains failed fast with assertion errors (expected for Red phase or due to mock issues).
+  4. Attempt 1 (Simplify Mock): Refactored `mockImplementation` to return a simpler object where `from()` directly returned an object with final methods (`then`, `single`). Result: `.then()` tests still timed out.
+  5. Attempt 2 (Remove Async): Removed `async` keyword from `mockImplementation`. Result: `.then()` tests still timed out.
+  6. Attempt 3 (Structured Mock): Refactored `mockImplementation` to use separate objects for `tableQueryExecutor` and `filteredQueryExecutor` to better mimic chain structure. Result: `.then()` tests still timed out.
+  7. Attempt 4 (Isolate Mock): Modified one failing test (`Admin should be able to select any profile`) to directly mock `.then()` on the query instance within the test, bypassing the `beforeEach` mock. Result: Test still timed out.
+- **Root Cause Hypothesis**: The core issue lies in the difficulty of accurately mocking the asynchronous promise resolution of the Supabase client's complex method chains, specifically when `.then()` is implicitly called by `await`, within the Vitest/JSDOM environment. The exact interaction causing the promise to hang is unclear after multiple attempts.
+- **Fix Applied**: Reverted test file to its state before Attempt 4 (isolated mock). The complex mock in `beforeEach` remains, but is known to be faulty for `.then()` chains.
+- **Verification**: Test runs consistently show timeouts for `.then()` chains.
+- **Related Issues**: Task (Debug RLS Test Timeouts).
+
+
 ### Issue: AUTH-MIDDLEWARE-001 - 404 Errors on /auth/callback and /admin - [Status: Analysis Complete] - [2025-04-19 01:15:43]
 - **Reported**: 2025-04-19 01:14:52 (Task 72) / **Severity**: High / **Symptoms**: User experiences 404 on `/auth/callback` after magic link click, and subsequent 404s when trying to access `/admin` routes.
 - **Investigation**:

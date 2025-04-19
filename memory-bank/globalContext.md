@@ -1,4 +1,4 @@
-hc# Global Context
+# Global Context
 
 This file consolidates less frequently updated global project information, including product goals, architectural patterns, key decisions, and overall progress.
 
@@ -33,6 +33,12 @@ This file consolidates less frequently updated global project information, inclu
 
 # System Patterns
 
+
+*   **[2025-04-19 00:00:00] Style Guide:** Defined and refined a formal style guide (`docs/style_guide.md`) for the minimalist hacker aesthetic. Covers color palette (emphasizing `light-text` over Matrix/translucent backgrounds, restricting green text), typography, spacing, borders, common component styles (buttons, forms, cards, timeline), and specifies the `MatrixBackground` component as the default background, all using Tailwind CSS where applicable.
+
+
+*   **[2025-04-19 00:00:00] Data Access Layer (DAL):** Introduced a DAL (`platform/src/lib/data/`) to abstract direct Supabase client interactions (data fetching, auth calls) from Server Components, Server Actions, and Middleware. Improves testability by allowing mocks of specific DAL functions instead of the complex Supabase client. Applied to themes, workshops, faq, profiles, auth.
+
 ## Coding Patterns
 
 -   **Framework:** Next.js (App Router) with TypeScript.
@@ -66,19 +72,19 @@ This file consolidates less frequently updated global project information, inclu
 *   **JSONB Handling:** Supabase JSONB columns mapped to `string[] | null` in TypeScript interfaces. Components updated to render arrays.
 
 
-*   **[2025-04-03] Development Environment:** VS Code Dev Containers used to provide a consistent, isolated environment with all necessary dependencies (Node.js, Puppeteer system libs) pre-installed via Dockerfile. Resolves host-container dependency conflicts (e.g., shared library issues in WSL).
+*   **[2025-04-03 00:00:00] Development Environment:** VS Code Dev Containers used to provide a consistent, isolated environment with all necessary dependencies (Node.js, Puppeteer system libs) pre-installed via Dockerfile. Resolves host-container dependency conflicts (e.g., shared library issues in WSL).
 
-*   **[2025-04-03] Dev Container Configuration:** Updated `.devcontainer/devcontainer.json` to use the `customizations.vscode` structure for `settings` and `extensions` to conform to the latest specification and resolve schema warnings.
-
-
-*   **[2025-04-03] Dev Container State Persistence:** Use the `mounts` property in `devcontainer.json` to define both workspace mounts and named volumes. A named volume (`vscode-server-state-${localWorkspaceFolderBasename}`) is used to persist VS Code server state (`/home/node/.vscode-server`) across container rebuilds, improving startup time and preserving UI state.
+*   **[2025-04-03 00:00:00] Dev Container Configuration:** Updated `.devcontainer/devcontainer.json` to use the `customizations.vscode` structure for `settings` and `extensions` to conform to the latest specification and resolve schema warnings.
 
 
-*   **[2025-04-03] Dev Container Persistence Clarification:** Corrected a JSON error in `.devcontainer/devcontainer.json` by removing an invalid `consistency: 'cached'` property from the workspace bind mount. Re-emphasized that persistence of VS Code state (including extension data like RooCode history) is handled correctly by the *volume mount* targeting `/home/node/.vscode-server`, not properties of the bind mount.
+*   **[2025-04-03 00:00:00] Dev Container State Persistence:** Use the `mounts` property in `devcontainer.json` to define both workspace mounts and named volumes. A named volume (`vscode-server-state-${localWorkspaceFolderBasename}`) is used to persist VS Code server state (`/home/node/.vscode-server`) across container rebuilds, improving startup time and preserving UI state.
+
+
+*   **[2025-04-03 00:00:00] Dev Container Persistence Clarification:** Corrected a JSON error in `.devcontainer/devcontainer.json` by removing an invalid `consistency: 'cached'` property from the workspace bind mount. Re-emphasized that persistence of VS Code state (including extension data like RooCode history) is handled correctly by the *volume mount* targeting `/home/node/.vscode-server`, not properties of the bind mount.
 
 
 
-*   **[2025-04-03] Dev Container Volume Permissions (Dockerfile Fix):** Added `RUN mkdir -p /home/node/.vscode-server && chown -R 1000:1000 /home/node/.vscode-server` to the `Dockerfile` to ensure the directory exists with correct ownership *during* the image build, resolving permission errors encountered during container startup when using a volume mount. Reverted the previous `postCreateCommand` fix in `devcontainer.json`.
+*   **[2025-04-03 00:00:00] Dev Container Volume Permissions (Dockerfile Fix):** Added `RUN mkdir -p /home/node/.vscode-server && chown -R 1000:1000 /home/node/.vscode-server` to the `Dockerfile` to ensure the directory exists with correct ownership *during* the image build, resolving permission errors encountered during container startup when using a volume mount. Reverted the previous `postCreateCommand` fix in `devcontainer.json`.
 
 ## Tooling
 
@@ -89,8 +95,6 @@ This file consolidates less frequently updated global project information, inclu
 *   **[2025-04-18] Admin CRUD Pattern:** Implemented using Server Components for list/edit page shells, Client Components for forms (`useFormState`), and Server Actions (`actions.ts`) for data mutation (create, update, delete). Edit pages use query parameters (`?id=...`) instead of dynamic route segments to avoid previous build issues.
 
 # Decision Log
-## Decision
-## Decision
 [2025-04-19 04:37:30] Adopt Supabase Profiles Table + Middleware/RLS for RBAC.
 
 ## Rationale
@@ -99,7 +103,6 @@ Leverages existing Supabase Auth/DB, centralizes role management (`profiles` tab
 ## Implementation Details
 Add `role` enum column to `profiles` table. Implement middleware checks for protected routes. Define RLS policies on relevant tables (submissions, teams, profiles) based on user role.
 
-*
 
 ## Decision
 [2025-04-19 04:37:30] Implement Built-in Registration Form with Extended Supabase Schema.
@@ -110,7 +113,6 @@ Replaces Google Forms, keeps data within the platform, enables direct use for te
 ## Implementation Details
 Extend `registrations` table or create `registration_details` with new fields (JSONB/arrays/enums as appropriate). Build multi-step form in Next.js using Server Actions.
 
-*
 
 ## Decision
 [2025-04-19 04:37:30] Use Supabase Tables for Core Event Info & Expanded Theme Content.
@@ -121,7 +123,6 @@ Confirms spec recommendations (3.3.1 Option A, 3.3.2 Option C). Provides dynamic
 ## Implementation Details
 Create `event_details`, `schedule_items` tables. Add `description_expanded` column to `themes` table. Update admin CRUD and frontend pages accordingly.
 
-*
 
 ## Decision
 [2025-04-19 04:37:30] Use External Platform (Discord/Slack) via Edge Functions for V2 Team Communication.
@@ -132,7 +133,6 @@ Fastest implementation, leverages robust existing platforms, aligns with spec re
 ## Implementation Details
 Supabase Edge Function triggered on team finalization calls Discord/Slack API (via webhook/bot token) to create channels/groups and invite members.
 
-*
 
 ## Decision
 [2025-04-19 04:37:30] Implement Gamification via Dedicated MCP Server + Vector DB + Supabase State.
@@ -143,7 +143,6 @@ Isolates complex logic (AI agent, personalization, state management). Allows spe
 ## Implementation Details
 Create MCP server (Node/Python) for AI interaction/state. Use Supabase `pgvector` or dedicated vector DB (Pinecone/Weaviate) for philosophical texts. Store user progress in Supabase (`user_puzzle_progress`). Use Edge Functions for notifications. Track user activity via middleware/client events.
 
-*
 
 ## Decision
 [2025-04-19 04:37:30] Use Supabase Storage + RLS for Submission Portal.
@@ -154,7 +153,6 @@ Leverages integrated Supabase features for storage and fine-grained access contr
 ## Implementation Details
 Create Supabase Storage bucket (`submissions`). Implement RLS policies on bucket/metadata table (`submissions`) based on user roles (Team Member, Judge, Admin). Build UI in `/submit` and `/judge` sections. Use Edge Function for email receipts.
 
-*
 
 
 [2025-04-18 19:20:37] Use Fixed Height + Container Width Control for Google Form Embed.
@@ -165,10 +163,8 @@ Simplest and most reliable method for embedding a third-party iframe with a fixe
 ## Implementation Details
 Wrap iframe in a `div` with `w-full`, `max-w-2xl`, `mx-auto`. Iframe uses `w-full` and retains its fixed `height` attribute provided by Google. Remove fixed `width` attribute from iframe.
 
-*
 
 
-*
 
 ## Decision
 [2025-04-18 15:28:00] Adopt GitHub Flow as the Git Workflow.
@@ -189,7 +185,6 @@ Avoids previous Vercel build errors associated with dynamic admin edit page rout
 ## Implementation Details
 Admin list pages link to `/admin/[content]/edit?id=...`. Edit pages (Server Components) fetch data based on query param. Forms (Client Components) use Server Actions defined in `actions.ts` files for create/update operations. Delete operations also use Server Actions triggered from list/edit pages.
 
-*
 
 
 ## Decision
@@ -201,7 +196,6 @@ Leverages SSR/SSG for SEO and performance, API routes for backend needs, file-ba
 ## Implementation Details
 Initialize with `create-next-app`, use App Router, SSG/ISR/SSR as appropriate per page, Tailwind CSS for styling.
 
-*
 
 ## Decision
 [2025-03-30] Use Tailwind CSS as the UI framework.
@@ -212,7 +206,6 @@ Utility-first approach speeds development, highly customizable, optimized CSS ou
 ## Implementation Details
 Configure via `tailwind.config.js` with project design system, apply utility classes directly in JSX, create reusable components for complex elements.
 
-*
 
 ## Decision
 [2025-03-30] Use Google Forms (embedded) for MVP registration.
@@ -223,7 +216,6 @@ Zero development time for form handling, supports complex questions, free, famil
 ## Implementation Details
 Embed form via iframe on `/register` page. Manual weekly CSV export from Google Sheets, sanitization, and import into Supabase `registrations` table.
 
-*
 
 ## Decision
 [2025-03-30] Use Supabase as the Backend-as-a-Service (BaaS).
@@ -234,7 +226,6 @@ Provides PostgreSQL DB, integrated Auth, auto-generated APIs (PostgREST), real-t
 ## Implementation Details
 Use managed Postgres, implement RLS, use Supabase Auth, interact via `@supabase/supabase-js` and `@supabase/ssr`.
 
-*
 
 ## Decision
 [2025-03-30] Use Supabase Auth (Email Magic Link) for Admin Authentication.
@@ -245,7 +236,6 @@ Simplest secure implementation for admin-only MVP, passwordless, integrates with
 ## Implementation Details
 Configure Supabase Auth provider, use `@supabase/ssr` for session management and route protection in Next.js.
 
-*
 
 ## Decision
 [2025-03-30] Use Vercel for deployment.
@@ -256,7 +246,6 @@ Optimized for Next.js, automated CI/CD from Git, preview deployments, global edg
 ## Implementation Details
 Connect GitHub repo, configure environment variables, use automatic deployments for main/previews.
 
-*
 
 ## Decision
 [2025-03-30] Use Hybrid Rendering Strategy (SSG/SSR/ISR/CSR).
@@ -267,7 +256,6 @@ Optimize performance/SEO (SSG/ISR for public pages), ensure data freshness/secur
 ## Implementation Details
 Use `getStaticProps` (SSG/ISR), `getServerSideProps` (SSR), client-side fetching (SWR/React Query) as appropriate per page type.
 
-*
 
 ## Decision
 [2025-03-30] Use Database-Driven Content Management via Supabase and Custom Admin UI.
@@ -278,7 +266,6 @@ Flexibility for content updates by organizers, structured data storage, leverage
 ## Implementation Details
 Store content in Supabase tables, build simple CRUD forms in `/admin` section, use protected API routes for updates.
 
-*
 
 ## Decision
 [2025-03-30] Use `@supabase/ssr` package for Next.js/Supabase auth integration.
@@ -291,7 +278,6 @@ Installed `@supabase/ssr`, uninstalled `@supabase/auth-helpers-nextjs`. Updated 
 
 ---
 
-*
 
 ## Decision
 [2025-04-02] Use `NODE_EXTRA_CA_CERTS` environment variable in `dev` script to resolve local SSL errors.
@@ -303,7 +289,6 @@ Node.js on the development machine was unable to find the system's trusted CA ce
 Added `NODE_EXTRA_CA_CERTS="/etc/ssl/certs/ca-certificates.crt"` prefix to the `next dev` command in `platform/package.json`'s `scripts.dev` section.
 
 
-*
 
 ## Decision
 [2025-04-03] Use VS Code Dev Containers for the development environment.
@@ -315,7 +300,6 @@ Provides an isolated and consistent development environment defined by a Dockerf
 Created `Dockerfile` based on `node:18-bullseye`, installed Node.js and required Puppeteer/Chromium system libraries. Created `.devcontainer/devcontainer.json` to configure the container build, workspace mount, port forwarding, extensions, and post-creation commands (`npm install`).
 
 
-*
 
 ## Decision
 [2025-04-03] Use `mounts` property and named volume for VS Code server state persistence in Dev Container.
@@ -328,7 +312,6 @@ Added a `mounts` array to `.devcontainer/devcontainer.json`. Moved the existing 
 
 
 
-*
 
 ## Decision
 [2025-04-03] Add directory creation and ownership commands to `Dockerfile` for `/home/node/.vscode-server` volume.
@@ -340,7 +323,6 @@ The previous attempt to fix permissions using `postCreateCommand` failed because
 Added `RUN mkdir -p /home/node/.vscode-server && chown -R 1000:1000 /home/node/.vscode-server` to `Dockerfile`. Reverted `postCreateCommand` in `.devcontainer/devcontainer.json` to its original state (`cd platform && npm install`).
 
 
-*
 
 ## Decision
 [2025-04-03 07:22:00] Add `libnss3` package to Dev Container Dockerfile.
@@ -350,28 +332,27 @@ Puppeteer was failing with a missing shared library error (`libnss3.so`) within 
 
 ## Implementation Details
 Added `libnss3` to the `apt-get install -y` command list within the `RUN` instruction in `Dockerfile`.
-[2025-04-18 17:04:00] - [DevOps Task] Merged Feature Branches (Task 26) [Completed] - Merged all completed feature/fix/chore branches from Task 25 into main.
-
-[2025-04-18 17:40:00] - [Debug Task] Investigated Visual Rendering (Task 30) [Analysis Complete] - Font/spacing setup (Philosopher, JetBrains Mono) verified in layout, config, globals, Hero, NavBar. Code seems correct. Identified potential browser rendering or subjective spacing issues as likely cause. Proposed DevTools verification and targeted adjustments/experiments.
-
-
-[2025-04-18 23:49:29] - [DevOps Task] Committed Aesthetic Overhaul (Task 64) [Completed] - Committed changes from Task 61 (minimal hacker aesthetic) to `feat/ui-overhaul` branch. Verified working tree is clean.
-
-
-[2025-04-18 23:25:20] - [Code Task] Minimal Hacker Aesthetic Overhaul (Task 61) [In Progress] - Applied font, color, and border changes across layout, global styles, key components (NavBar, Footer, ContentBlock, Cards, Accordion, Timeline), and main page layouts for a consistent hacker aesthetic. Used subtle gray borders.
-
-
-
-[2025-04-18 23:57:04] - [Code Task] Applied 'Inter' Font Fix (Task 66) [Completed] - Corrected default body font application in layout.tsx and cleaned up related CSS. Build and tests verified.
-
-
-[2025-04-19 00:06:04] - [Code Task] Set Default Font to Monospace (Task 67) [Completed] - Corrected default body font to `font-mono` in layout.tsx and updated tests. Build/tests verified.
-
-
-[2025-04-19 00:16:08] - [Code Task] Refactored NavBar (Task 23) [Completed] - Implemented responsive horizontal layout, hanging mobile dropdown, and hacker aesthetic (monospace links, philosopher logo) in `NavBar.tsx`. Build/tests verified.
-
-
 # Progress
+[2025-04-19 15:18:20] - [Optimizer Task] Refactor P0 Content Mgmt & Update Registration Spec [Completed] - Applied Supabase types to relevant files. Updated registration form/action/DAL based on spec v1.1. Fixed form tests. Committed changes. Note: 7 action tests failing due to outdated mocks.
+
+[2025-04-19 15:01:17] - [Optimizer Task] Refactor P0 Content Management - Apply Supabase Types [Completed] - Generated types after DB tables created. Applied types to relevant DAL/Action files. Verified tests pass. Committed changes.
+
+[2025-04-19 14:54:46] - [DevOps Task] Create `event_details`, `profiles`, `registrations` Tables & Migrations [Completed] - Created, applied, and committed migrations for essential P0 tables.
+
+[2025-04-19 14:04:14] - [DevOps Task] Create `schedule_items` Table & Migration [Completed] - Created and applied migration `20250419175905_create_schedule_items_table.sql` after removing RLS/trigger dependencies. Committed file.
+
+
+[2025-04-19 12:03:15] - [TDD Task] P0 Content Management - Green Phase [Completed] - Implemented minimal code for Event Settings, Schedule Mgmt, Theme Desc (Expanded), Frontend Rendering. Applied style guide. Tests passing (263 passed, 3 skipped).
+
+[2025-04-19 08:56:16] - [DevOps Task] Apply Supabase Profile Trigger Migration [Completed] - Successfully applied and committed the database migration for automatic profile creation.
+
+
+[2025-04-19 05:43:47] - [Debug Task] Debug RLS Test Timeouts (`rls.test.ts`) [Blocked] - Investigated persistent Vitest timeouts for tests involving implicit `.then()` calls after Supabase client method chains. Multiple mock refinement attempts failed. Root cause likely complex async mock resolution issue. Invoking Early Return Clause. [See Debug Issue RLS-TEST-TIMEOUT-001]
+
+
+[2025-04-19 06:26:00] - [Optimizer Task] Refactor for RLS Testability [Completed] - Introduced DAL, refactored Supabase calls, updated tests. RLS test timeouts resolved.
+
+
 [2025-04-19 01:50:05] - [Code Task] Apply Fixes for Admin 404s (Task 75) [Blocked] - Created `admin/page.tsx`, refined middleware matcher. Clean build/restart command (`rm -rf .next && npm run dev`) was terminated before completion. Early Return Clause invoked. [Related to Task 74 Analysis - 2025-04-19 01:27:22]
 
 
@@ -431,7 +412,6 @@ Added `libnss3` to the `apt-get install -y` command list within the `RUN` instru
 [2025-04-17 23:01:00] - Implemented Python script `scripts/rag_markdown_optimizer.py` for optimizing Markdown files for RAG.
 
 [2025-04-03 18:26:00] - Temporarily removed entire admin section (`platform/src/app/admin`) and related components/links (`ThemeActions`, `FaqActions` edit link) to resolve persistent Vercel build errors related to dynamic routes and TypeScript `PageProps` constraints. Admin functionality needs to be revisited/re-implemented later.
-## Completed Tasks
 ## Completed Tasks (Summary - Details in mode-specific/code.md)
 - Memory Bank Restructuring
 - Initial Project Setup (Next.js, Supabase, Vercel)
@@ -452,6 +432,27 @@ Added `libnss3` to the `apt-get install -y` command list within the `RUN` instru
 -   Embed Google Form on Register page.
 
 [2025-03-31 10:18:42] - Implemented `platform/src/components/InstructionBlock.tsx`.
+
+[2025-04-18 17:04:00] - [DevOps Task] Merged Feature Branches (Task 26) [Completed] - Merged all completed feature/fix/chore branches from Task 25 into main.
+
+[2025-04-18 17:40:00] - [Debug Task] Investigated Visual Rendering (Task 30) [Analysis Complete] - Font/spacing setup (Philosopher, JetBrains Mono) verified in layout, config, globals, Hero, NavBar. Code seems correct. Identified potential browser rendering or subjective spacing issues as likely cause. Proposed DevTools verification and targeted adjustments/experiments.
+
+
+[2025-04-18 23:49:29] - [DevOps Task] Committed Aesthetic Overhaul (Task 64) [Completed] - Committed changes from Task 61 (minimal hacker aesthetic) to `feat/ui-overhaul` branch. Verified working tree is clean.
+
+
+[2025-04-18 23:25:20] - [Code Task] Minimal Hacker Aesthetic Overhaul (Task 61) [In Progress] - Applied font, color, and border changes across layout, global styles, key components (NavBar, Footer, ContentBlock, Cards, Accordion, Timeline), and main page layouts for a consistent hacker aesthetic. Used subtle gray borders.
+
+
+
+[2025-04-18 23:57:04] - [Code Task] Applied 'Inter' Font Fix (Task 66) [Completed] - Corrected default body font application in layout.tsx and cleaned up related CSS. Build and tests verified.
+
+
+[2025-04-19 00:06:04] - [Code Task] Set Default Font to Monospace (Task 67) [Completed] - Corrected default body font to `font-mono` in layout.tsx and updated tests. Build/tests verified.
+
+
+[2025-04-19 00:16:08] - [Code Task] Refactored NavBar (Task 23) [Completed] - Implemented responsive horizontal layout, hanging mobile dropdown, and hacker aesthetic (monospace links, philosopher logo) in `NavBar.tsx`. Build/tests verified.
+
 
 [2025-03-31 11:07:01] - Reviewed initial structure of `platform/src/app/admin/page.tsx`.
 [2025-04-02 07:27:00] - Completed UI theme overhaul (hacker style, fixed base styles, refined Matrix background spacing/speed, fixed NavBar, increased padding).

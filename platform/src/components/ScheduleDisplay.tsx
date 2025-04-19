@@ -1,32 +1,95 @@
+// platform/src/components/ScheduleDisplay.tsx
 import React from 'react';
+import { ScheduleItem } from '@/lib/data/schedule'; // Corrected import path
 
-const ScheduleDisplay = () => {
-  return (
-    <div className="bg-medium-gray p-8 mb-16 border border-dark-green"> {/* Updated bg, padding, margin, border */}
-      <h2 className="text-2xl font-semibold text-hacker-green mb-6 border-b border-dark-green pb-3 font-philosopher">Event Schedule</h2> {/* Updated color, margin, border, font */}
+interface ScheduleDisplayProps {
+  items: ScheduleItem[];
+}
 
-      <div className="mb-6">
-        <h3 className="text-xl font-semibold text-hacker-green opacity-90 mb-4 font-philosopher">Saturday, April 26, 2025</h3> {/* Updated color, margin, added font */}
-        <ul className="list-['>_'] list-inside space-y-3 text-light-text pl-4"> {/* Updated list style, spacing, color, added padding */}
-          <li className="pl-2 pr-2"><span className="font-medium text-hacker-green opacity-70 mr-4">8:30 AM - 9:00 AM:</span> Sign-in and Welcome</li> {/* Updated color, added padding */}
-          <li className="pl-2 pr-2"><span className="font-medium text-hacker-green opacity-70 mr-4">9:00 AM - 9:30 AM:</span> Opening Remarks & Theme Announcement</li> {/* Updated color, added padding */}
-          <li className="pl-2 pr-2"><span className="font-medium text-hacker-green opacity-70 mr-4">9:30 AM - 11:30 AM:</span> Initial Team Meetings</li> {/* Updated color, added padding */}
-          <li className="pl-2 pr-2"><span className="font-medium text-hacker-green opacity-70 mr-4">12:00 PM - 1:00 PM:</span> Philosophy of Technology Workshop (Lunch Provided)</li> {/* Updated color, added padding */}
-          <li className="pl-2 pr-2"><span className="font-medium text-hacker-green opacity-70 mr-4">6:00 PM - 8:00 PM:</span> Pascal Quest Workshop (Limited Representation)</li> {/* Updated color, added padding */}
-          <li className="pl-2 pr-2"><span className="font-medium text-hacker-green opacity-70 mr-4">11:59 PM:</span> Submission Deadline</li> {/* Updated color, added padding */}
-        </ul>
-      </div>
-
-      <div>
-        <h3 className="text-xl font-semibold text-hacker-green opacity-90 mb-4 font-philosopher">Tuesday, April 8, 2025</h3> {/* Updated color, margin, added font */}
-        <ul className="list-['>_'] list-inside space-y-3 text-light-text pl-4"> {/* Updated list style, spacing, color, added padding */}
-          <li className="pl-2 pr-2"><span className="font-medium text-hacker-green opacity-70 mr-4">10:30 AM - 12:30 PM:</span> Team Presentations</li> {/* Updated color, added padding */}
-          <li className="pl-2 pr-2"><span className="font-medium text-hacker-green opacity-70 mr-4">12:30 PM - 1:30 PM:</span> Feedback Collection & Discussion</li> {/* Updated color, added padding */}
-          <li className="pl-2 pr-2"><span className="font-medium text-hacker-green opacity-70 mr-4">1:30 PM - 2:00 PM:</span> Closing Remarks</li> {/* Updated color, added padding */}
-        </ul>
-      </div>
-    </div>
-  );
+// Helper function to group items by date
+const groupItemsByDate = (items: ScheduleItem[]) => {
+  return items.reduce((acc, item) => {
+    const date = item.item_date; // Assuming item_date is 'YYYY-MM-DD' string
+    if (!acc[date]) {
+      acc[date] = [];
+    }
+    acc[date].push(item);
+    // Sort items within the date group by start_time
+    acc[date].sort((a: ScheduleItem, b: ScheduleItem) => (a.start_time ?? '').localeCompare(b.start_time ?? ''));
+    return acc;
+  }, {} as Record<string, ScheduleItem[]>);
 };
 
-export default ScheduleDisplay;
+// Helper function to format date string
+const formatDateHeading = (dateString: string): string => {
+  try {
+    const date = new Date(`${dateString}T00:00:00`); // Add time to avoid timezone issues
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      timeZone: 'UTC', // Specify UTC to match the input assumption
+    });
+  } catch (e) {
+    console.error("Error formatting date heading:", dateString, e);
+    return dateString; // Fallback
+  }
+};
+
+// Helper function to format time string (HH:MM:SS -> HH:MM)
+const formatTime = (timeString: string | null | undefined): string => {
+  if (!timeString) return '';
+  return timeString.substring(0, 5); // Extract HH:MM
+};
+
+
+export default function ScheduleDisplay({ items }: ScheduleDisplayProps) {
+  if (!items || items.length === 0) {
+    return <p className="text-center text-gray-400">Schedule coming soon.</p>;
+  }
+
+  const groupedItems = groupItemsByDate(items);
+  const sortedDates = Object.keys(groupedItems).sort();
+
+  return (
+    <div className="space-y-8">
+      {sortedDates.map((date) => (
+        <div key={date}>
+          {/* Apply style guide: text-light-text */}
+          <h2 className="text-xl font-semibold leading-6 text-light-text mb-4">
+            {formatDateHeading(date)}
+          </h2>
+          <ul role="list" className="divide-y divide-medium-gray border-t border-medium-gray">
+            {groupedItems[date].map((item: ScheduleItem) => (
+              <li key={item.id} className="flex gap-x-6 py-5">
+                {/* Apply style guide: text-light-text */}
+                <div className="min-w-0 flex-auto">
+                  {/* Changed <p> to <div> to fix nesting warning */}
+                  <div className="text-sm font-semibold leading-6 text-light-text">
+                    {/* Assuming titles are H3 equivalent for testing */}
+                    <h3 className="inline">{item.title}</h3>
+                  </div>
+                  {item.description && (
+                    <p className="mt-1 truncate text-xs leading-5 text-gray-400">{item.description}</p>
+                  )}
+                   {item.speaker && (
+                    <p className="mt-1 text-sm leading-5 text-gray-400">Speaker: {item.speaker}</p>
+                  )}
+                   {item.location && (
+                    <p className="mt-1 text-sm leading-5 text-gray-400">Location: {item.location}</p>
+                  )}
+                </div>
+                 {/* Apply style guide: text-light-text */}
+                <div className="hidden shrink-0 sm:flex sm:flex-col sm:items-end">
+                  <p className="text-sm leading-6 text-light-text">
+                    {formatTime(item.start_time)} - {formatTime(item.end_time)}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
+}

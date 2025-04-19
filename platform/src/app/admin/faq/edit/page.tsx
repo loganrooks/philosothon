@@ -1,9 +1,8 @@
 // platform/src/app/admin/faq/edit/page.tsx
-import { createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import { FaqForm } from '../components/FaqForm';
 import { updateFaqItem } from '../actions';
-import type { FaqItem } from '../page'; // Import FaqItem type
+import { fetchFaqItemById, type FaqItem } from '@/lib/data/faq'; // Import DAL function and type
 
 interface EditFaqPageProps {
   // Use standard Next.js searchParams type
@@ -18,22 +17,15 @@ export default async function EditFaqPage({ searchParams }: EditFaqPageProps) {
     notFound();
   }
 
-  const supabase = await createClient();
-  const { data: faqItem, error } = await supabase
-    .from('faq_items')
-    .select('*')
-    .eq('id', id)
-    .single();
+  // Fetch FAQ item using the DAL function
+  const { faqItem: faqItemData, error } = await fetchFaqItemById(id);
 
-  if (error || !faqItem) {
-    console.error('Error fetching FAQ item for edit:', error);
+  if (error || !faqItemData) {
+    // Error is already logged in fetchFaqItemById
     notFound();
   }
 
-  // Cast fetched data
-  const faqItemData = faqItem as FaqItem;
-
-  // console.log('Simplified EditFaqPage - ID:', id); // Remove placeholder log
+  // No need for casting
 
   return (
     <div>

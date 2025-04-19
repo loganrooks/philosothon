@@ -1,10 +1,9 @@
 // platform/src/app/admin/auth/actions.ts
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
-import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
+import { initiateOtpSignIn, signOutUser } from '@/lib/data/auth'; // Import DAL functions
 
 // Define schema for form validation
 const LoginSchema = z.object({
@@ -34,27 +33,13 @@ export async function signInWithOtp(
   }
 
   const email = validatedFields.data.email;
-  const origin = (await headers()).get('origin'); // Get the origin URL for the redirect
 
-  if (!origin) {
-    return {
-      message: 'Could not determine redirect origin.',
-      success: false,
-    };
-  }
-
-  const supabase = await createClient(); // Added await
-
-  const { error } = await supabase.auth.signInWithOtp({
-    email,
-    options: {
-      // shouldValidate: false, // Set to true if you want to send the OTP only if the user exists
-      emailRedirectTo: `${origin}/auth/callback`, // URL to redirect to after email confirmation
-    },
-  });
+  // Call the DAL function to initiate OTP sign-in
+  // Note: The DAL function now handles getting headers/origin internally
+  const { data, error } = await initiateOtpSignIn(email);
 
   if (error) {
-    console.error('Supabase OTP Error:', error);
+    // Error is already logged in DAL function
     return {
       message: error.message || 'Could not authenticate user. Please try again.',
       success: false,
@@ -69,7 +54,14 @@ export async function signInWithOtp(
 }
 
 export async function signOut() {
-    const supabase = await createClient(); // Added await
-    await supabase.auth.signOut();
+    // Call the DAL function to sign out
+    const { error } = await signOutUser();
+
+    if (error) {
+        // Error is logged in DAL, but we might want to handle it differently here
+        // For now, we still redirect, but maybe show an error message first?
+        console.error("Sign out failed in action:", error);
+        // Optionally: return an error state if this action used useFormState
+    }
     redirect('/admin/login');
 }

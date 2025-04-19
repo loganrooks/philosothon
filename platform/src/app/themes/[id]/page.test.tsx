@@ -1,8 +1,10 @@
+// platform/src/app/themes/[id]/page.test.tsx
 import { vi, describe, it, expect, beforeEach, Mock } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { notFound } from 'next/navigation';
 import ThemeDetailPage from './page'; // Adjust the import path as necessary
-import { createClient } from '@/lib/supabase/server'; // Adjust if your path differs
+import { createClient } from '@/lib/supabase/server';
+import { type Theme } from '@/lib/data/themes'; // Corrected import path
 
 // Mock the Supabase server client
 vi.mock('@/lib/supabase/server', () => ({
@@ -15,7 +17,13 @@ vi.mock('next/navigation', () => ({
   // Mock other navigation functions if needed (useRouter, usePathname, etc.)
 }));
 
-const mockTheme = {
+// Mock ReactMarkdown to check its props
+vi.mock('react-markdown', () => ({
+  default: vi.fn(({ children }) => <div data-testid="mock-react-markdown">{children}</div>),
+}));
+
+
+const mockTheme: Theme = {
   id: 'mock-theme-id',
   title: 'Mock Theme Title',
   description: 'Mock theme description.',
@@ -24,9 +32,10 @@ const mockTheme = {
   analytic_tradition: null,
   continental_tradition: null,
   relevant_themes: null,
-  relevant_thinkers: null,
-  relevant_works: null,
+  // relevant_thinkers: null, // Typo: Removed, Theme type doesn't have this
+  // relevant_works: null, // Typo: Removed, Theme type doesn't have this
   image_url: null,
+  description_expanded: '## Expanded Content\n\nThis is the *detailed* description.\n\n- Point 1\n- Point 2', // Added field
 };
 
 describe('ThemeDetailPage', () => {
@@ -75,7 +84,12 @@ describe('ThemeDetailPage', () => {
         expect(screen.getByRole('heading', { name: /Mock Theme Title/i })).toBeInTheDocument();
     });
 
-    expect(screen.getByText(/Mock theme description./i)).toBeInTheDocument();
+    // Basic description is NOT rendered because expanded description exists in mock data
+    // expect(screen.getByText('Mock theme description.')).toBeInTheDocument(); // REMOVED
+
+    // Check for expanded description rendering (via mock)
+    expect(screen.getByTestId('mock-react-markdown')).toBeInTheDocument(); // Check ReactMarkdown mock rendered
+
     expect(mockSupabaseClient.from).toHaveBeenCalledWith('themes');
     expect(mockSupabaseClient.from('themes').select).toHaveBeenCalledWith('*');
     expect(mockSupabaseClient.from('themes').select('*').eq).toHaveBeenCalledWith('id', 'mock-theme-id');
@@ -118,4 +132,49 @@ describe('ThemeDetailPage', () => {
   });
 
 
+
+
+  it('should render expanded description using ReactMarkdown within a prose container', async () => {
+    // TDD Anchor: Test that ReactMarkdown is rendered when description_expanded exists (Spec Line 175)
+    // TDD Anchor: Test that the container div has 'prose' classes (Spec Line 176)
+    const params = { id: 'mock-theme-id' };
+    // Ensure mockTheme has expanded description for this test
+    const themeWithExpandedDesc = { ...mockTheme, description_expanded: '## Test Heading\n\nSome content.' };
+    mockSupabaseClient.from('themes').select('*').eq('id', 'mock-theme-id').single.mockResolvedValue({ data: themeWithExpandedDesc, error: null });
+
+    const PagePromise = ThemeDetailPage({ params });
+    const PageComponent = await PagePromise;
+    const { container } = render(PageComponent);
+
+    // Check if ReactMarkdown mock was rendered with the correct content
+    const mockMarkdown = screen.getByTestId('mock-react-markdown');
+    expect(mockMarkdown).toBeInTheDocument();
+    expect(mockMarkdown).toHaveTextContent('## Test Heading Some content.'); // Check children prop passed correctly
+
+    // Check if the container has the prose classes
+    // Note: Finding the specific div might require a more specific selector or test ID if structure is complex
+    const proseContainer = container.querySelector('.prose'); // Find element with 'prose' class
+    expect(proseContainer).toBeInTheDocument();
+    expect(proseContainer).toContainElement(mockMarkdown); // Check if markdown is inside prose div
+    expect(proseContainer).toHaveClass('prose-invert'); // Check for other expected classes
+    expect(proseContainer).toHaveClass('max-w-none');
+  });
+
+  it('should not render the expanded description section if description_expanded is null or empty', async () => {
+    // TDD Anchor: Test that nothing is rendered for this section if description_expanded is null/empty (Spec Line 184)
+    const params = { id: 'mock-theme-id-no-expanded' };
+    const themeWithoutExpandedDesc = { ...mockTheme, description_expanded: null }; // Explicitly null
+    mockSupabaseClient.from('themes').select('*').eq('id', 'mock-theme-id-no-expanded').single.mockResolvedValue({ data: themeWithoutExpandedDesc, error: null });
+
+    const PagePromise = ThemeDetailPage({ params });
+    const PageComponent = await PagePromise;
+    const { container } = render(PageComponent);
+
+    // Check that the mock-react-markdown component was NOT rendered
+    expect(screen.queryByTestId('mock-react-markdown')).not.toBeInTheDocument();
+    // Check that the specific inner div containing ReactMarkdown is not rendered
+    // The outer article still has .prose, so we need a more specific selector.
+    // Let's assume the inner div is the only direct child div of the article.
+    expect(container.querySelector('article > div.prose')).toBeNull();
+  });
 });

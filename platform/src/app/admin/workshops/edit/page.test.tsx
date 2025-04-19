@@ -3,7 +3,7 @@ import { render, screen, act } from '@testing-library/react';
 import { createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import EditWorkshopPage from './page'; // Import the 'Edit' page component
-import type { Workshop } from '../page'; // Import Workshop type
+import type { Workshop } from '@/lib/data/workshops'; // Import Workshop type
 
 // Mock dependencies
 vi.mock('@/lib/supabase/server');
@@ -31,9 +31,9 @@ describe('Edit Workshop Page (/admin/workshops/edit)', () => {
       created_at: '2023-01-01T00:00:00Z',
       title: 'Workshop to Edit',
       description: 'Initial WS Desc',
-      facilitator: 'Test Facilitator',
-      relevant_themes: ['theme-1'],
-      max_capacity: 15,
+      speaker: 'Test Speaker', // Changed from facilitator
+      related_themes: ['theme-1'], // Changed from relevant_themes
+      image_url: null, // Added missing property
   };
 
   beforeEach(() => {

@@ -1,17 +1,22 @@
 // platform/src/app/admin/themes/actions.ts
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 // import { redirect } from 'next/navigation'; // Removed unused import
 import { z } from 'zod';
-// import type { Theme } from './page'; // Removed unused import
+import {
+  insertTheme,
+  updateThemeById,
+  deleteThemeById,
+  type ThemeInput,
+} from '@/lib/data/themes'; // Import DAL functions and type
 
-// Define Zod schema for validation
+// Define Zod schema for validation (including description_expanded)
 const ThemeSchema = z.object({
   id: z.string().optional(), // Optional for creation, required for update (extracted separately)
   title: z.string().min(1, { message: 'Title is required.' }),
   description: z.string().nullable().optional(),
+  description_expanded: z.string().nullable().optional(), // Added
   // Basic validation for JSON strings, allow null/empty
   analytic_tradition: z.string().nullable().optional().refine((val) => {
     if (!val) return true; // Allow null or empty string
@@ -32,6 +37,7 @@ export interface ThemeFormState {
     description?: string[] | undefined;
     analytic_tradition?: string[] | undefined;
     continental_tradition?: string[] | undefined;
+    description_expanded?: string[] | undefined; // Added
     general?: string | undefined; // Keep general error as single string
   };
   success: boolean;
@@ -63,6 +69,7 @@ export async function createTheme(
   const validatedFields = ThemeSchema.safeParse({
     title: formData.get('title'),
     description: formData.get('description'),
+    description_expanded: formData.get('description_expanded'), // Added
     analytic_tradition: formData.get('analytic_tradition'),
     continental_tradition: formData.get('continental_tradition'),
   });
@@ -92,19 +99,23 @@ export async function createTheme(
   }
 
 
-  const supabase = await createClient();
-  const { error } = await supabase.from('themes').insert({
+  // Prepare data for DAL function
+  const themeData: ThemeInput = {
     title: validatedFields.data.title,
     description: validatedFields.data.description,
+    description_expanded: validatedFields.data.description_expanded, // Added
     analytic_tradition: analyticTraditionArray,
     continental_tradition: continentalTraditionArray,
-  });
+  };
+
+  // Call DAL function
+  const { theme, error } = await insertTheme(themeData);
 
   if (error) {
-    console.error('Supabase Create Theme Error:', error);
+    // Error is already logged in DAL function
     return {
       message: error.message || 'Database error: Failed to create theme.',
-      errors: { general: error.message },
+      errors: { general: error.message }, // Keep general error message
       success: false,
     };
   }
@@ -131,6 +142,7 @@ export async function updateTheme(
   const validatedFields = ThemeSchema.safeParse({
     title: formData.get('title'),
     description: formData.get('description'),
+    description_expanded: formData.get('description_expanded'), // Added
     analytic_tradition: formData.get('analytic_tradition'),
     continental_tradition: formData.get('continental_tradition'),
   });
@@ -158,22 +170,23 @@ export async function updateTheme(
      return { message: 'Invalid JSON format for Continental Tradition.', errors: { continental_tradition: ['Invalid JSON format. Must be like ["item1", "item2"].'] }, success: false };
   }
 
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from('themes')
-    .update({
-      title: validatedFields.data.title,
-      description: validatedFields.data.description,
-      analytic_tradition: analyticTraditionArray,
-      continental_tradition: continentalTraditionArray,
-    })
-    .eq('id', id);
+  // Prepare data for DAL function
+  const themeData: Partial<ThemeInput> = {
+    title: validatedFields.data.title,
+    description: validatedFields.data.description,
+    description_expanded: validatedFields.data.description_expanded, // Added
+    analytic_tradition: analyticTraditionArray,
+    continental_tradition: continentalTraditionArray,
+  };
+
+  // Call DAL function
+  const { theme, error } = await updateThemeById(id, themeData);
 
   if (error) {
-    console.error('Supabase Update Theme Error:', error);
+    // Error is already logged in DAL function
     return {
       message: error.message || 'Database error: Failed to update theme.',
-      errors: { general: error.message },
+      errors: { general: error.message }, // Keep general error message
       success: false,
     };
   }
@@ -193,12 +206,12 @@ export async function deleteTheme(id: string): Promise<void> {
        throw new Error('Theme ID is required.');
    }
 
-  const supabase = await createClient();
-  const { error } = await supabase.from('themes').delete().eq('id', id);
+  // Call DAL function
+  const { error } = await deleteThemeById(id);
 
   if (error) {
-    console.error('Supabase Delete Theme Error:', error);
-     // Throw an error instead of returning an object
+    // Error is already logged in DAL function
+    // Throw an error instead of returning an object
     throw new Error(error.message || 'Database error: Failed to delete theme.');
   }
 

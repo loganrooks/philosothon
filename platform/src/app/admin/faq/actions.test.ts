@@ -1,25 +1,25 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
-import { createFaqItem, updateFaqItem, deleteFaqItem, type FaqFormState } from './actions'; // Added deleteFaqItem
+import { createFaqItem, updateFaqItem, deleteFaqItem, type FaqFormState } from './actions';
+import { insertFaqItem, updateFaqItemById, deleteFaqItemById, type FaqItemInput, type FaqItem } from '@/lib/data/faq'; // Import DAL functions and types
 
 // Mock dependencies
-vi.mock('@/lib/supabase/server');
 vi.mock('next/cache');
+vi.mock('@/lib/data/faq'); // Mock the DAL module
 
 describe('FAQ Server Actions (actions.ts)', () => {
-  let mockSupabase: any;
-  let mockInsert: ReturnType<typeof vi.fn>;
   const initialState: FaqFormState = { message: null, success: false, errors: {} };
+  // Mock data matching FaqItem type (no category)
+  const mockFaqItem: FaqItem = { id: 'faq-id-123', question: 'New Question?', answer: 'New Answer.', display_order: 10, created_at: '2023-01-01T00:00:00Z' };
+  const mockUpdatedFaqItem: FaqItem = { ...mockFaqItem, id: 'test-faq-id-789', question: 'Updated Question?', answer: 'Updated Answer.', display_order: 5 };
+
 
   beforeEach(() => {
     vi.clearAllMocks();
-
-    // Mock Supabase client and methods
-    mockInsert = vi.fn();
-    const mockFrom = vi.fn(() => ({ insert: mockInsert }));
-    mockSupabase = { from: mockFrom };
-    vi.mocked(createClient).mockResolvedValue(mockSupabase as any);
+    // Reset DAL mocks
+    vi.mocked(insertFaqItem).mockClear();
+    vi.mocked(updateFaqItemById).mockClear();
+    vi.mocked(deleteFaqItemById).mockClear();
   });
 
   describe('createFaqItem', () => {
@@ -30,8 +30,8 @@ describe('FAQ Server Actions (actions.ts)', () => {
       const result = await createFaqItem(initialState, formData);
 
       expect(result.success).toBe(false);
-      expect(result.errors?.question).toContain('Expected string, received null'); // Zod message
-      expect(mockInsert).not.toHaveBeenCalled();
+      expect(result.errors?.question).toContain('Expected string, received null'); // Updated expected message
+      expect(insertFaqItem).not.toHaveBeenCalled();
       expect(revalidatePath).not.toHaveBeenCalled();
     });
 
@@ -42,8 +42,8 @@ describe('FAQ Server Actions (actions.ts)', () => {
       const result = await createFaqItem(initialState, formData);
 
       expect(result.success).toBe(false);
-      expect(result.errors?.answer).toContain('Expected string, received null'); // Zod message
-      expect(mockInsert).not.toHaveBeenCalled();
+      expect(result.errors?.answer).toContain('Expected string, received null'); // Updated expected message
+      expect(insertFaqItem).not.toHaveBeenCalled();
     });
 
     it('should return validation error for invalid display_order (non-numeric)', async () => {
@@ -56,7 +56,7 @@ describe('FAQ Server Actions (actions.ts)', () => {
 
       expect(result.success).toBe(false);
       expect(result.errors?.display_order).toContain('Display Order must be a whole number.');
-      expect(mockInsert).not.toHaveBeenCalled();
+      expect(insertFaqItem).not.toHaveBeenCalled();
     });
 
      it('should return validation error for invalid display_order (negative)', async () => {
@@ -69,30 +69,29 @@ describe('FAQ Server Actions (actions.ts)', () => {
 
       expect(result.success).toBe(false);
       expect(result.errors?.display_order).toContain('Display Order must be 0 or positive.');
-      expect(mockInsert).not.toHaveBeenCalled();
+      expect(insertFaqItem).not.toHaveBeenCalled();
     });
 
-    it('should call Supabase insert and revalidatePath on successful creation', async () => {
-      mockInsert.mockResolvedValue({ error: null }); // Simulate success
+    it('should call insertFaqItem DAL function and revalidatePath on successful creation', async () => {
+      vi.mocked(insertFaqItem).mockResolvedValue({ faqItem: mockFaqItem, error: null }); // Simulate DAL success
       const formData = new FormData();
-      const question = 'New Question?';
-      const answer = 'New Answer.';
-      const category = 'General';
-      const order = '10';
+      const question = mockFaqItem.question;
+      const answer = mockFaqItem.answer;
+      const order = String(mockFaqItem.display_order); // Convert number to string for FormData
       formData.append('question', question);
       formData.append('answer', answer);
-      formData.append('category', category);
+      // No category
       formData.append('display_order', order);
 
       const result = await createFaqItem(initialState, formData);
 
-      expect(mockInsert).toHaveBeenCalledTimes(1);
-      expect(mockInsert).toHaveBeenCalledWith({
+      expect(insertFaqItem).toHaveBeenCalledTimes(1);
+      const expectedInput: FaqItemInput = {
         question: question,
         answer: answer,
-        category: category,
-        display_order: 10,
-      });
+        display_order: mockFaqItem.display_order,
+      };
+      expect(insertFaqItem).toHaveBeenCalledWith(expectedInput);
       expect(revalidatePath).toHaveBeenCalledTimes(1);
       expect(revalidatePath).toHaveBeenCalledWith('/admin/faq');
       expect(result.success).toBe(true);
@@ -100,40 +99,40 @@ describe('FAQ Server Actions (actions.ts)', () => {
       expect(result.errors).toEqual({});
     });
 
-     it('should handle empty/null optional fields correctly', async () => {
-      mockInsert.mockResolvedValue({ error: null }); // Simulate success
+     it('should handle empty/null optional fields correctly during creation', async () => {
+      vi.mocked(insertFaqItem).mockResolvedValue({ faqItem: { ...mockFaqItem, question: 'Another Q?', answer: 'Another A.' }, error: null }); // Simulate DAL success
       const formData = new FormData();
       formData.append('question', 'Another Q?');
       formData.append('answer', 'Another A.');
-      // category and display_order omitted
+      // display_order omitted
 
       const result = await createFaqItem(initialState, formData);
 
-      expect(mockInsert).toHaveBeenCalledTimes(1);
-      expect(mockInsert).toHaveBeenCalledWith({
+      expect(insertFaqItem).toHaveBeenCalledTimes(1);
+      const expectedInput: FaqItemInput = {
         question: 'Another Q?',
         answer: 'Another A.',
-        category: null,
         display_order: null,
-      });
+      };
+      expect(insertFaqItem).toHaveBeenCalledWith(expectedInput);
       expect(revalidatePath).toHaveBeenCalledTimes(1);
       expect(result.success).toBe(true);
     });
 
-    it('should return error state on Supabase insert failure', async () => {
-      const dbError = { message: 'DB insert failed' };
-      mockInsert.mockResolvedValue({ error: dbError }); // Simulate failure
+    it('should return error state on insertFaqItem DAL failure', async () => {
+      const dalError = new Error('DAL insert failed');
+      vi.mocked(insertFaqItem).mockResolvedValue({ faqItem: null, error: dalError }); // Simulate DAL failure
       const formData = new FormData();
       formData.append('question', 'Fail Q');
       formData.append('answer', 'Fail A');
 
       const result = await createFaqItem(initialState, formData);
 
-      expect(mockInsert).toHaveBeenCalledTimes(1);
+      expect(insertFaqItem).toHaveBeenCalledTimes(1);
       expect(revalidatePath).not.toHaveBeenCalled();
       expect(result.success).toBe(false);
-      expect(result.message).toContain(dbError.message);
-      expect(result.errors?.general).toBe(dbError.message);
+      expect(result.message).toContain(dalError.message);
+      expect(result.errors?.general).toBe(dalError.message);
     });
   });
 
@@ -148,9 +147,9 @@ describe('FAQ Server Actions (actions.ts)', () => {
       const result = await updateFaqItem(initialState, formData);
 
       expect(result.success).toBe(false);
-      expect(result.message).toContain('FAQ Item ID is missing');
-      expect(result.errors?.general).toContain('FAQ Item ID missing');
-      expect(mockSupabase.from).not.toHaveBeenCalled();
+      expect(result.message).toContain('FAQ Item ID is missing.'); // Match exact message
+      expect(result.errors?.general).toContain('FAQ Item ID missing.'); // Match exact message
+      expect(updateFaqItemById).not.toHaveBeenCalled();
     });
 
     it('should return validation error if question is missing', async () => {
@@ -162,8 +161,8 @@ describe('FAQ Server Actions (actions.ts)', () => {
       const result = await updateFaqItem(initialState, formData);
 
       expect(result.success).toBe(false);
-      expect(result.errors?.question).toContain('Expected string, received null');
-      expect(mockSupabase.from).not.toHaveBeenCalled();
+      expect(result.errors?.question).toContain('Expected string, received null'); // Updated expected message
+      expect(updateFaqItemById).not.toHaveBeenCalled();
     });
 
      it('should return validation error for invalid display_order', async () => {
@@ -177,36 +176,31 @@ describe('FAQ Server Actions (actions.ts)', () => {
 
       expect(result.success).toBe(false);
       expect(result.errors?.display_order).toContain('Display Order must be 0 or positive.');
-      expect(mockSupabase.from).not.toHaveBeenCalled();
+      expect(updateFaqItemById).not.toHaveBeenCalled();
     });
 
-    it('should call Supabase update and revalidate paths on successful update', async () => {
-      const mockUpdate = vi.fn().mockReturnThis();
-      const mockEq = vi.fn().mockResolvedValue({ error: null });
-      mockSupabase.from.mockReturnValue({ update: mockUpdate, eq: mockEq });
+    it('should call updateFaqItemById DAL function and revalidate paths on successful update', async () => {
+      vi.mocked(updateFaqItemById).mockResolvedValue({ faqItem: mockUpdatedFaqItem, error: null }); // Simulate DAL success
 
       const formData = new FormData();
-      const question = 'Updated Question?';
-      const answer = 'Updated Answer.';
-      const category = 'Updated Cat';
-      const order = '5';
-      formData.append('id', faqItemId);
+      const question = mockUpdatedFaqItem.question;
+      const answer = mockUpdatedFaqItem.answer;
+      const order = String(mockUpdatedFaqItem.display_order);
+      formData.append('id', mockUpdatedFaqItem.id);
       formData.append('question', question);
       formData.append('answer', answer);
-      formData.append('category', category);
+      // No category
       formData.append('display_order', order);
 
       const result = await updateFaqItem(initialState, formData);
 
-      expect(mockUpdate).toHaveBeenCalledTimes(1);
-      expect(mockUpdate).toHaveBeenCalledWith({
+      expect(updateFaqItemById).toHaveBeenCalledTimes(1);
+      const expectedInput: Partial<FaqItemInput> = {
         question: question,
         answer: answer,
-        category: category,
-        display_order: 5,
-      });
-      expect(mockEq).toHaveBeenCalledTimes(1);
-      expect(mockEq).toHaveBeenCalledWith('id', faqItemId);
+        display_order: mockUpdatedFaqItem.display_order,
+      };
+      expect(updateFaqItemById).toHaveBeenCalledWith(mockUpdatedFaqItem.id, expectedInput);
       expect(revalidatePath).toHaveBeenCalledTimes(2);
       expect(revalidatePath).toHaveBeenCalledWith('/admin/faq');
       expect(revalidatePath).toHaveBeenCalledWith(`/admin/faq/edit?id=${faqItemId}`);
@@ -215,11 +209,9 @@ describe('FAQ Server Actions (actions.ts)', () => {
       expect(result.errors).toEqual({});
     });
 
-     it('should return error state on Supabase update failure', async () => {
-      const dbError = { message: 'DB update failed' };
-      const mockUpdate = vi.fn().mockReturnThis();
-      const mockEq = vi.fn().mockResolvedValue({ error: dbError });
-      mockSupabase.from.mockReturnValue({ update: mockUpdate, eq: mockEq });
+     it('should return error state on updateFaqItemById DAL failure', async () => {
+      const dalError = new Error('DAL update failed');
+      vi.mocked(updateFaqItemById).mockResolvedValue({ faqItem: null, error: dalError }); // Simulate DAL failure
 
       const formData = new FormData();
       formData.append('id', faqItemId);
@@ -228,12 +220,11 @@ describe('FAQ Server Actions (actions.ts)', () => {
 
       const result = await updateFaqItem(initialState, formData);
 
-      expect(mockUpdate).toHaveBeenCalledTimes(1);
-      expect(mockEq).toHaveBeenCalledTimes(1);
+      expect(updateFaqItemById).toHaveBeenCalledTimes(1);
       expect(revalidatePath).not.toHaveBeenCalled();
       expect(result.success).toBe(false);
-      expect(result.message).toContain(dbError.message);
-      expect(result.errors?.general).toBe(dbError.message);
+      expect(result.message).toContain(dalError.message);
+      expect(result.errors?.general).toBe(dalError.message);
     });
   });
 
@@ -242,33 +233,28 @@ describe('FAQ Server Actions (actions.ts)', () => {
 
     it('should throw error if ID is missing', async () => {
       await expect(deleteFaqItem('')).rejects.toThrow('FAQ Item ID is required.');
-      expect(mockSupabase.from).not.toHaveBeenCalled();
+      expect(deleteFaqItemById).not.toHaveBeenCalled();
     });
 
-    it('should call Supabase delete and revalidatePath on successful deletion', async () => {
-      const mockDelete = vi.fn().mockReturnThis();
-      const mockEq = vi.fn().mockResolvedValue({ error: null });
-      mockSupabase.from.mockReturnValue({ delete: mockDelete, eq: mockEq });
+    it('should call deleteFaqItemById DAL function and revalidatePath on successful deletion', async () => {
+      vi.mocked(deleteFaqItemById).mockResolvedValue({ error: null }); // Simulate DAL success
 
       await deleteFaqItem(faqItemId);
 
-      expect(mockDelete).toHaveBeenCalledTimes(1);
-      expect(mockEq).toHaveBeenCalledTimes(1);
-      expect(mockEq).toHaveBeenCalledWith('id', faqItemId);
+      expect(deleteFaqItemById).toHaveBeenCalledTimes(1);
+      expect(deleteFaqItemById).toHaveBeenCalledWith(faqItemId);
       expect(revalidatePath).toHaveBeenCalledTimes(1);
       expect(revalidatePath).toHaveBeenCalledWith('/admin/faq');
     });
 
-     it('should throw error on Supabase delete failure', async () => {
-      const dbError = { message: 'DB delete failed' };
-      const mockDelete = vi.fn().mockReturnThis();
-      const mockEq = vi.fn().mockResolvedValue({ error: dbError });
-      mockSupabase.from.mockReturnValue({ delete: mockDelete, eq: mockEq });
+     it('should throw error on deleteFaqItemById DAL failure', async () => {
+      const dalError = new Error('DAL delete failed');
+      vi.mocked(deleteFaqItemById).mockResolvedValue({ error: dalError }); // Simulate DAL failure
 
-      await expect(deleteFaqItem(faqItemId)).rejects.toThrow(dbError.message);
+      await expect(deleteFaqItem(faqItemId)).rejects.toThrow(dalError.message);
 
-      expect(mockDelete).toHaveBeenCalledTimes(1);
-      expect(mockEq).toHaveBeenCalledTimes(1);
+      expect(deleteFaqItemById).toHaveBeenCalledTimes(1);
+      expect(deleteFaqItemById).toHaveBeenCalledWith(faqItemId);
       expect(revalidatePath).not.toHaveBeenCalled();
     });
   });

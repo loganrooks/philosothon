@@ -1,3 +1,75 @@
+[2025-04-19 15:37:30] - TDD - Completed Task (Fix Failing Registration Server Action Tests - Attempt 2) - Confirmed branch `feature/architecture-v2`. Analyzed `actions.ts` (v1.1 schema) and `actions.test.ts`. Updated mock data (`completeValidData`), `createTestFormData` helper, and assertions in `actions.test.ts` to align with the new schema. Fixed assertion logic for optional fields (empty string vs undefined). Verified tests pass for `actions.test.ts` (9/9) and full suite (263 passed, 3 skipped). Committed changes (`ba45e9c`).
+
+
+[2025-04-19 15:18:20] - Optimizer - Completed Task (Refactor P0 Content Mgmt - Apply Supabase Types & Update Registration Spec) - Generated Supabase types. Applied types to `schedule.ts`, `settings/actions.ts`, `schedule/actions.ts`. Updated `RegistrationForm.tsx`, `register/actions.ts`, and `data/registrations.ts` to align with revised spec v1.1. Fixed test failures in `RegistrationForm.test.tsx`. Verified test suite (256 passed, 3 skipped, 7 failed in `register/actions.test.ts`). Committed changes (`63bef92`, `6549dbd`).
+
+
+[2025-04-19 15:01:17] - Optimizer - Completed Task (Refactor P0 Content Mgmt - Apply Supabase Types) - Generated Supabase types after DevOps created missing tables (`schedule_items`, `event_details`, `profiles`, `registrations`). Applied generated types to `schedule.ts`, `settings/actions.ts`, `schedule/actions.ts`, replacing temporary `any` types. Corrected date type mismatch in `settings/actions.ts`. Verified tests pass (263 passed, 3 skipped). Committed changes (commit `63bef92`). Note: Test mock errors in `schedule/actions.test.ts` remain for TDD mode.
+
+
+[2025-04-19 14:57:00] - Optimizer - Task Resumed (Refactor P0 Content Mgmt - Apply Supabase Types) - Resuming task after DevOps successfully created the `event_details`, `profiles`, and `registrations` tables and migrations (commit `0ec7f01`). Note: RLS/triggers for these tables require separate follow-up migrations.
+
+
+[2025-04-19 14:54:46] - DevOps - Completed Task (Create Missing Supabase Tables & Migrations) - Created and applied migrations for `event_details`, `profiles`, and `registrations` tables based on specs (p0_content_mgmt, p0_rbac, p0_registration v1.1). Handled initial `registrations` migration failure (used CREATE instead of ALTER). Committed migrations (0ec7f01) to `feat/architecture-v2`. Optimizer task can resume.
+
+
+[2025-04-19 14:12:50] - Optimizer - Task Paused Again (Refactor P0 Content Mgmt - Apply Supabase Types) - Paused task due to missing `event_details` and `profiles` tables in the remote Supabase database (public schema). Type generation cannot complete without these. Delegating schema creation and migration for both tables to DevOps mode.
+
+
+[2025-04-19 14:08:36] - Optimizer - Task Resumed (Refactor P0 Content Mgmt - Apply Supabase Types) - Resuming task after DevOps successfully created the `schedule_items` table structure and migration (commit `f48a9cc`). Note: RLS/trigger for this table require separate follow-up migrations.
+
+
+[2025-04-19 14:05:00] - Optimizer - Task Resumed (Refactor P0 Content Mgmt - Apply Supabase Types) - Resuming task after DevOps successfully created the `schedule_items` table and migration (commit `f48a9cc`).
+
+
+[2025-04-19 14:03:58] - DevOps - Completed Task (Create schedule_items Table & Migration) - Created migration `20250419175905_create_schedule_items_table.sql` based on spec, removed RLS/trigger dependencies due to push errors, successfully applied migration to create the table, and committed the file (f48a9cc) to `feat/architecture-v2`. RLS and triggers need separate handling. Optimizer task can now be resumed.
+
+
+[2025-04-19 13:58:00] - Optimizer - Task Paused (Refactor P0 Content Mgmt - Apply Supabase Types) - Paused task due to missing `schedule_items` table in the remote Supabase database (public schema). Type generation failed to include it. Delegating schema creation and migration to DevOps mode.
+
+
+[2025-04-19 11:55:30] - TDD - Completed Green Phase (P0 Content Management) - Implemented minimal code for Admin Event Settings (DAL, Action, Form), Admin Schedule Mgmt (DAL, Actions, List, Form), Admin Theme Desc (Form update), Frontend Rendering (ScheduleDisplay, Theme Detail Page update). Refactored tests to use DAL mocks. Fixed various test issues. Verified all relevant tests pass individually and via full suite run (`npm test`: 263 passed, 3 skipped). Ready for Refactor phase.
+
+
+[2025-04-19 11:36:49] - Code - Refined Style Guide - Further modified `docs/style_guide.md` based on feedback to restrict `hacker-green` text usage and emphasize `light-text` over Matrix/translucent backgrounds.
+
+
+[2025-04-19 10:33:28] - TDD - Completed Red Phase (P0 Content Management) - Created/updated failing tests for Admin Event Settings, Admin Schedule Mgmt, Admin Theme Desc Mgmt (expanded), and Frontend Rendering (Theme Detail, Schedule Display) based on `p0_content_mgmt_spec.md`. Verified tests fail as expected (missing modules/components). Committed tests (commit 9c66a1f) to `feature/architecture-v2`.
+
+
+
+[2025-04-19 10:13:17] - TDD - Verified P0 Registration System Tests (Green Phase Task) - Ran tests for `RegistrationForm.test.tsx` and `actions.test.ts`. All 14 tests passed, confirming previous completion of Green/Refactor phases as per MB logs [2025-04-19 10:09:32]. No code changes needed.
+
+
+[2025-04-19 10:09:32] - TDD - Completed Refactor Phase (P0 Registration System) - Refactored `platform/src/app/register/actions.ts` to use DAL functions (`fetchRegistrationByUserId`, `insertRegistration`). Updated `platform/src/app/register/actions.test.ts` to mock DAL functions instead of Supabase client. Confirmed tests still pass.
+
+[2025-04-19 10:09:32] - TDD - Completed Green Phase (P0 Registration System) - Implemented minimal code in `platform/src/app/register/components/RegistrationForm.tsx` (state, multi-step logic) and `platform/src/app/register/actions.ts` (validation, DAL calls, redirects) to make tests pass. Verified tests in `RegistrationForm.test.tsx` and `actions.test.ts` now pass.
+
+
+[2025-04-19 09:44:26] - TDD - Completed Red Phase (P0 Registration System) - Created failing tests `platform/src/app/register/components/RegistrationForm.test.tsx` and `platform/src/app/register/actions.test.ts` based on `p0_registration_spec.md`. Verified tests fail due to missing modules. Committed tests (commit 773216b) to `feature/architecture-v2`.
+
+
+[2025-04-19 09:27:03] - TDD - Completed P0 RLS Policy Implementation (Green Phase) - Created migration `20250419131936_create_p0_rls_policies.sql` with RLS policies for `profiles`, `themes`, `workshops`, `faq_items` based on `p0_rbac_spec.md`. Applied migration via `supabase db push`. Verified `rls.test.ts` still passes (acknowledging mock limitations). Ran full regression test suite (`npm test`), confirmed 211 passed, 3 skipped, no new regressions. Committed migration file.
+
+
+[2025-04-19 08:56:16] - DevOps - Completed Supabase Migration (Profile Trigger) - Successfully applied migration `20250419121817_add_profile_trigger.sql` using `supabase db push` after user confirmed CLI linking. Committed migration file to `feature/architecture-v2` branch (commit fe73a49).
+
+
+[2025-04-19 08:24:18] - DevOps - Task Blocked (Supabase Migration) - Created migration file `supabase/migrations/20250419121817_add_profile_trigger.sql` with profile creation trigger SQL. Attempt to apply migration via `supabase db push` failed with "Cannot find project ref. Have you run supabase link?". Local CLI is not linked to a remote project. Invoking Early Return Clause.
+
+
+[2025-04-19 06:30:10] - TDD - Completed Green Phase (Middleware RBAC & Profile Creation) - Verified middleware tests pass against existing code. Provided SQL for profile creation trigger. Updated profile creation test to assert 'participant' role and confirmed it passes with mock simulating trigger.
+
+
+[2025-04-19 06:25:49] - Optimizer - Completed Refactoring for RLS Testability - Introduced DAL in `platform/src/lib/data/` abstracting Supabase calls. Refactored Server Actions, Server Components, Middleware, and Tests (themes, workshops, faq, profiles, auth, rls, middleware) to use DAL. Test suite passed (211 passed, 3 skipped), confirming RLS test timeouts resolved and no regressions.
+
+
+[2025-04-19 05:43:47] - Debug - Task Blocked (RLS Test Timeouts) - Investigated persistent timeouts in `platform/src/lib/supabase/rls.test.ts`. Confirmed timeouts occur specifically for tests awaiting promise chains ending in implicit `.then()`. Multiple attempts to refine the `vi.mock` implementation for `createClient` (simplifying structure, removing async, isolating mocks) failed to resolve the `.then()` timeouts, although `.single()` calls now work. Root cause likely complex interaction between Vitest/JSDOM async handling and the Supabase client mock. Invoking Early Return Clause due to intractable mocking issue. [See Debug Issue RLS-TEST-TIMEOUT-001]
+
+
+[2025-04-19 05:35:17] - TDD - Completed Red Phase (Auth/RBAC - Middleware, Profile Creation) - Added failing tests for middleware RBAC checks (profile fetch error, incorrect role) in `platform/src/middleware.test.ts`. Created basic test structure for profile creation check in `platform/src/lib/supabase/profiles.test.ts`. RLS testing in `platform/src/lib/supabase/rls.test.ts` blocked due to persistent test timeouts related to async mocks. Existing auth action tests confirmed. Test run shows expected failures for middleware and timeouts for RLS.
+
+
 [2025-04-19 05:22:35] - DevOps - Committed P0 Specification Drafts - Staged and committed `docs/specs/p0_rbac_spec.md`, `docs/specs/p0_registration_spec.md`, `docs/specs/p0_content_mgmt_spec.md` to the `feature/architecture-v2` branch.
 
 

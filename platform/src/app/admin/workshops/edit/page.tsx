@@ -1,9 +1,9 @@
 // platform/src/app/admin/workshops/edit/page.tsx
-import { createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import { WorkshopForm } from '../components/WorkshopForm';
 import { updateWorkshop } from '../actions';
-import type { Workshop } from '../page'; // Import Workshop type
+import { fetchWorkshopById, type Workshop } from '@/lib/data/workshops'; // Import DAL function and type
+// TODO: Import fetchThemes from themes DAL if implementing multi-select
 
 interface EditWorkshopPageProps {
   searchParams?: {
@@ -18,24 +18,16 @@ export default async function EditWorkshopPage({ searchParams }: EditWorkshopPag
     notFound();
   }
 
-  const supabase = await createClient();
-  // TODO: Fetch themes if needed for multi-select in form
-  const { data: workshop, error } = await supabase
-    .from('workshops')
-    .select('*')
-    .eq('id', id)
-    .single();
+  // Fetch workshop using the DAL function
+  const { workshop: workshopData, error } = await fetchWorkshopById(id);
 
-  if (error || !workshop) {
-    console.error('Error fetching workshop for edit:', error);
+  if (error || !workshopData) {
+    // Error is already logged in fetchWorkshopById
     notFound();
   }
 
-  // Cast the fetched data
-  const workshopData = workshop as Workshop;
-
-  // Placeholder for themes data if implementing multi-select
-  // const { data: themes } = await supabase.from('themes').select('id, title');
+  // TODO: Fetch themes using themes DAL if implementing multi-select
+  // const { themes } = await fetchThemes();
 
   return (
     <div>
