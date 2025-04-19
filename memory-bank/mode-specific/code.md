@@ -1,6 +1,25 @@
 # Code Specific Memory
 <!-- Entries below should be added reverse chronologically (newest first) -->
 
+### [2025-04-19 00:06:16] Styling Update: Set Default Font to Monospace (Task 67)
+- **Purpose**: Apply `font-mono` (JetBrains Mono) as the default body font, correcting the previous application of 'Inter'.
+- **Files Modified**:
+    - `platform/src/app/layout.tsx`: Removed `inter.variable` and `inter.className`, added `font-mono` to `<body>` className.
+    - `platform/src/app/layout.test.tsx`: Updated assertions to remove checks for Inter classes and add check for `font-mono`.
+- **Status**: Implemented & Verified (Build/Test Pass)
+- **Notes**: Corrects the default body font to align with the desired hacker aesthetic.
+
+
+### [2025-04-18 23:57:04] Styling Fix: Apply 'Inter' Font (Task 66)
+- **Purpose**: Correctly apply 'Inter' as the default body font, removing the overriding `font-mono` class.
+- **Files Modified**:
+    - `platform/src/app/layout.tsx`: Removed `font-mono`, added `inter.className`.
+    - `platform/src/app/globals.css`: Removed unused `:root` variables (`--font-sans`, `--font-mono`).
+    - `platform/src/app/layout.test.tsx`: Updated test assertion from `font-mono` to `mock-inter-class`.
+- **Status**: Implemented & Verified (Build/Test Pass)
+- **Notes**: Addresses issue identified in Task 65 where `font-mono` was overriding the intended 'Inter' font.
+
+
 ## Intervention Log
 <!-- Append intervention details using the format below -->
 

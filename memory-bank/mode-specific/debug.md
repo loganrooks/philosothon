@@ -1,6 +1,18 @@
 # Debug Specific Memory
 
 ## Issue History
+### Issue: VISUAL-FONT-INTER-001 - 'Inter' font not applied to body - [Status: Analysis Complete] - [2025-04-18 23:51:39]
+- **Reported**: 2025-04-18 23:50:36 (Task 65) / **Severity**: Medium / **Symptoms**: Body text renders using fallback ('Segoe UI') instead of the configured 'Inter' font.
+- **Investigation**:
+  1. Verified `layout.tsx`: `Inter` imported, `--font-inter` variable created and applied to `<body>` className. **Finding:** `inter.className` missing, `font-mono` class *also* applied directly to `<body>`. (2025-04-18 23:51:21)
+  2. Verified `tailwind.config.ts`: `theme.extend.fontFamily.sans` correctly defined using `['var(--font-inter)', 'Inter', 'sans-serif']`. (2025-04-18 23:51:32)
+  3. Verified `globals.css`: No conflicting `font-family` rules on `body` or `html`. Found unused/conflicting `:root` variables for `--font-sans` and `--font-mono` pointing to Geist fonts. (2025-04-18 23:51:39)
+- **Root Cause**: Explicit `font-mono` class applied directly to `<body>` in `layout.tsx` overrides the intended default `sans` font stack defined in Tailwind config.
+- **Fix Applied**: None yet.
+- **Verification**: N/A.
+- **Related Issues**: Task 61 (Aesthetic Overhaul).
+
+
 <!-- Append new issue details using the format below -->
 ### Issue: VISUAL-PROSE-001 - Tailwind Typography (`prose`) styles not applied - [Status: Blocked] - [2025-04-18 20:26:37]
 - **Reported**: 2025-04-18 20:07:12 (Task 52) / **Severity**: Medium / **Symptoms**: Markdown content rendered by `react-markdown` on `/proposal` page lacks expected styling (headings, lists, spacing) despite `prose prose-invert max-w-none` classes being applied in `ContentBlock.tsx`.

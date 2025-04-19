@@ -11,9 +11,7 @@
   --background: #0D0D0D; /* dark-base */
   --foreground: #E0E0E0; /* light-text */
 
-  /* Keep font variables if they are used elsewhere, otherwise remove */
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Font variables are now managed via next/font and Tailwind config */
 }
 
 /* Remove theme inline and prefers-color-scheme blocks */

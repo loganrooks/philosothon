@@ -40,7 +40,7 @@ export default function RootLayout({
     <html lang="en">
       {/* Apply font variables to the body */}
       <body
-        className={`${inter.variable} ${jetbrainsMono.variable} ${philosopher.variable} font-mono antialiased bg-dark-base text-light-text`} // Use font-mono (JetBrains) by default, apply theme base colors
+        className={`${jetbrainsMono.variable} ${philosopher.variable} font-mono antialiased bg-dark-base text-light-text`} // Use JetBrains Mono font by default, apply theme base colors
         // Removed redundant inline style
 
         suppressHydrationWarning

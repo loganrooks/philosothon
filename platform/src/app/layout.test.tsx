@@ -40,10 +40,11 @@ describe('RootLayout Component', () => {
     const { container } = render(<RootLayout><TestChild /></RootLayout>);
     // Query for the body element rendered by the component, not the global document.body
     const bodyElement = container.querySelector('body');
-    expect(bodyElement).toHaveClass('mock-inter-variable'); // Inter font variable
+    // expect(bodyElement).toHaveClass('mock-inter-variable'); // Inter font variable removed
     expect(bodyElement).toHaveClass('mock-jetbrains-variable'); // JetBrains Mono font variable
     expect(bodyElement).toHaveClass('mock-philosopher-variable'); // Philosopher font variable
-    expect(bodyElement).toHaveClass('font-mono'); // Check default font class (updated for hacker theme)
+    // expect(bodyElement).toHaveClass('mock-inter-class'); // Inter class removed
+    expect(bodyElement).toHaveClass('font-mono'); // Check default font class (now mono)
   });
 
   it('should render NavBar, Footer, and SupabaseProvider mocks', () => {

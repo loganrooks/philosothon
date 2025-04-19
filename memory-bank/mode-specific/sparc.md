@@ -125,3 +125,10 @@
 - **Rationale**: Follow user's explicit direction for branch management during this UI overhaul phase. Acknowledge deviation from standard GitHub Flow.
 - **Outcome**: Intervention logged. Workflow adjusted.
 - **Follow-up**: Ensure all subsequent UI tasks operate on the `ui-overhaul` branch. Commit changes frequently on this branch.
+### [2025-04-19 00:00:00] Intervention: Aesthetic Goal Clarification (Monospace Default)
+- **Trigger**: User feedback after Task 66 ('Inter' font fix), stating 'Inter' doesn't fit the hacker aesthetic and requesting *all* fonts be monospace.
+- **Context**: SPARC/code previously implemented 'Inter' as the default body font based on earlier interpretations. User explicitly corrected this.
+- **Action Taken**: Logged intervention. Will delegate task to make `font-mono` the default font applied to the `<body>` tag.
+- **Rationale**: Align implementation with clarified user aesthetic requirement.
+- **Outcome**: Intervention logged. Next step is applying monospace font globally.
+- **Follow-up**: Ensure subsequent styling tasks adhere to the monospace-first aesthetic.
