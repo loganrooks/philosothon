@@ -8,7 +8,7 @@ export type EventDetailsUpdate = Database['public']['Tables']['event_details']['
 const EVENT_DETAILS_ID = 1;
 
 export async function fetchEventDetails(): Promise<EventDetails | null> {
-    const supabase = createClient();
+    const supabase = await createClient(); // Add await
     const { data, error } = await supabase
         .from('event_details')
         .select('*')
@@ -23,7 +23,7 @@ export async function fetchEventDetails(): Promise<EventDetails | null> {
 }
 
 export async function updateEventDetails(updates: EventDetailsUpdate): Promise<{ data: EventDetails | null; error: any }> {
-    const supabase = createClient();
+    const supabase = await createClient(); // Add await
     const { data, error } = await supabase
         .from('event_details')
         .update(updates)
