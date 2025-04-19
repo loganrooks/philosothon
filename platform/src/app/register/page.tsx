@@ -1,4 +1,4 @@
-import FormEmbed from "@/components/FormEmbed";
+import { RegistrationForm } from "@/app/register/components/RegistrationForm"; // Use named import
 import InstructionBlock from "@/components/InstructionBlock";
 
 export default function RegisterPage() {
@@ -10,8 +10,8 @@ export default function RegisterPage() {
         Sign up below to participate in the upcoming Philosothon event. We look forward to seeing you there!
       </p>
 
-      {/* Embedded Google Form */}
-      <FormEmbed />
+      {/* New Registration Form */}
+      <RegistrationForm />
 
       {/* Instructions */}
       <InstructionBlock />

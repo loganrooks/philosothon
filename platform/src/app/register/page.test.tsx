@@ -1,10 +1,12 @@
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
-import RegisterPage from '@/app/register/page'; // Adjust path as necessary
+import RegisterPage from '@/app/register/page';
+import '@testing-library/jest-dom';
 
 // Mock child components
-vi.mock('@/components/FormEmbed', () => ({
-  default: () => <div data-testid="mock-form-embed">Mock Form Embed</div>,
+// Mock the NEW RegistrationForm, remove the old FormEmbed mock
+vi.mock('@/app/register/components/RegistrationForm', () => ({
+  RegistrationForm: () => <div data-testid="mock-registration-form">Mock Registration Form</div>,
 }));
 vi.mock('@/components/InstructionBlock', () => ({
   default: () => <div data-testid="mock-instruction-block">Mock Instruction Block</div>,
@@ -21,9 +23,10 @@ describe('Register Page Component', () => {
     expect(screen.getByText(/Sign up below to participate/i)).toBeInTheDocument();
   });
 
-  it('should render the FormEmbed component', () => {
+  // Update test to check for RegistrationForm
+  it('should render the RegistrationForm component', () => {
     render(<RegisterPage />);
-    expect(screen.getByTestId('mock-form-embed')).toBeInTheDocument();
+    expect(screen.getByTestId('mock-registration-form')).toBeInTheDocument();
   });
 
   it('should render the InstructionBlock component', () => {
