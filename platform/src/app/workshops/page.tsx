@@ -29,7 +29,7 @@ export default async function WorkshopsPage() {
       {/* Optional Tag Filter */}
       {/* <TagFilter /> */}
 
-      <p className="mb-6 text-gray-700">
+      <p className="mb-6 text-gray-300">
         Discover the workshops offered during the Philosothon. The final workshop selection may depend on participant preferences and relevance to the chosen theme(s).
       </p>
 

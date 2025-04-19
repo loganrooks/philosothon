@@ -3,7 +3,7 @@ const Footer = () => {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="bg-dark-base border-t border-dark-green mt-16 py-8"> {/* Increased margin and padding */}
+    <footer className="bg-dark-base border-t border-medium-gray mt-16 py-8"> {/* Use subtle gray border */}
       <div className="container mx-auto px-4 text-center text-light-text text-sm">
         <p>&copy; {currentYear} Philosothon UofT. All rights reserved.</p>
         {/* Optional: Add links to privacy policy, terms, contact, etc. later */}

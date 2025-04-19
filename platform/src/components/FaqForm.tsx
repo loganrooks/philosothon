@@ -36,7 +36,7 @@ const FaqForm: React.FC<FaqFormProps> = ({ initialData, action, state }) => {
       <div>
         <label
           htmlFor="question"
-          className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+          className="block text-sm font-medium text-gray-300 dark:text-gray-300"
         >
           Question
         </label>
@@ -53,7 +53,7 @@ const FaqForm: React.FC<FaqFormProps> = ({ initialData, action, state }) => {
       <div>
         <label
           htmlFor="answer"
-          className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+          className="block text-sm font-medium text-gray-300 dark:text-gray-300"
         >
           Answer
         </label>
@@ -70,7 +70,7 @@ const FaqForm: React.FC<FaqFormProps> = ({ initialData, action, state }) => {
       <div>
         <label
           htmlFor="category"
-          className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+          className="block text-sm font-medium text-gray-300 dark:text-gray-300"
         >
           Category (Optional)
         </label>
@@ -86,7 +86,7 @@ const FaqForm: React.FC<FaqFormProps> = ({ initialData, action, state }) => {
       <div>
         <label
           htmlFor="display_order"
-          className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+          className="block text-sm font-medium text-gray-300 dark:text-gray-300"
         >
           Display Order (Optional)
         </label>

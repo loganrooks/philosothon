@@ -42,7 +42,7 @@ export default function ThemeForm({ initialData, action }: ThemeFormProps) {
       {initialData?.id && <input type="hidden" name="id" value={initialData.id} />}
 
       <div>
-        <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="title" className="block text-sm font-medium text-gray-300 mb-1">
           Title
         </label>
         <input
@@ -57,7 +57,7 @@ export default function ThemeForm({ initialData, action }: ThemeFormProps) {
       </div>
 
       <div>
-        <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="description" className="block text-sm font-medium text-gray-300 mb-1">
           Description
         </label>
         <textarea
@@ -72,7 +72,7 @@ export default function ThemeForm({ initialData, action }: ThemeFormProps) {
       </div>
 
       <div>
-        <label htmlFor="analytic_tradition" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="analytic_tradition" className="block text-sm font-medium text-gray-300 mb-1">
           Analytic Tradition (Optional)
         </label>
         <textarea
@@ -86,7 +86,7 @@ export default function ThemeForm({ initialData, action }: ThemeFormProps) {
       </div>
 
        <div>
-        <label htmlFor="continental_tradition" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="continental_tradition" className="block text-sm font-medium text-gray-300 mb-1">
           Continental Tradition (Optional)
         </label>
         <textarea

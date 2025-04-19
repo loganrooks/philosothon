@@ -1,3 +1,12 @@
+[2025-04-18 23:13:15] - TDD - Completed Task 60 (Run Regression Tests After Text Color Fix) - Ran full test suite (`npm test` in `platform`). Result: 206 passed, 3 skipped (known Countdown issues). Confirmed no new regressions were introduced by Task 59 text color changes. Test suite stable. [Related to Task 59 - 2025-04-18 23:03:24]
+
+
+[2025-04-18 23:03:24] - Code - Completed Task 59 (Replace Dark Text Classes) - Replaced `text-gray-600/700/800/900` with `text-gray-300` in 9 `.tsx` files within `platform/src` to improve dark theme readability. Verified `npm run build` and `npm test` pass (206 passed, 3 skipped).
+
+
+[2025-04-18 21:37:26] - Code - Completed Task 58 (Adjust Text Colors for Readability) - Inspected `globals.css`, `layout.tsx`, `ContentBlock.tsx`, `ThemeCard.tsx`. Removed redundant `text-light-text` class from `ContentBlock.tsx` to rely on `prose prose-invert` for dark theme text styling. Verified build and tests pass (206 passed, 3 skipped). [Related to Task 56 - 2025-04-18 20:45:11]
+
+
 [2025-04-18 21:31:58] - TDD - Completed Task 57 (Run Regression Tests After Typography Fix) - Ran full test suite (`npm test` in `platform`). Result: 206 passed, 3 skipped (known Countdown issues). Confirmed no new regressions were introduced by Task 56 changes. Test suite stable. [Related to Task 56 - 2025-04-18 20:45:11]
 
 

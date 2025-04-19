@@ -97,3 +97,17 @@
 - **Rationale**: Address user's immediate, concrete concerns and questions before proceeding with broader tasks. Ensure correct Git state.
 - **Outcome**: Intervention logged. Plan adjusted.
 - **Follow-up**: Confirm merge, then delegate specific UI fixes.
+### [2025-04-18 22:57:00] Intervention: Clarification on Dark Text UI Issue
+- **Trigger**: User feedback specifying locations (descriptions, blockquotes, timeline, register page) and likely classes (`text-gray-600/700`) causing readability issues.
+- **Context**: Following Task 58 (attempted text color fix), user confirmed issues remain in specific areas.
+- **Action Taken**: Logged clarification. Will now search for and replace problematic dark text classes.
+- **Rationale**: Address specific user feedback systematically.
+- **Outcome**: Clarification logged. Next step is searching for dark text classes.
+- **Follow-up**: Delegate search and replace task.
+### [2025-04-18 23:15:00] Intervention: Reprioritization to General UI Aesthetic
+- **Trigger**: User decision after SPARC proposed Navbar refactor (Task 23).
+- **Context**: User wants to address the overall "minimal hacker/coder aesthetic" before component-specific refactors like the Navbar.
+- **Action Taken**: Halted proposed Task 23 (Navbar). Logged intervention. Will delegate a broader UI overhaul task (Task 61).
+- **Rationale**: Address user's higher-level aesthetic goals first.
+- **Outcome**: Intervention logged. Next step is delegating UI overhaul task.
+- **Follow-up**: Ensure subsequent UI tasks align with the established aesthetic.

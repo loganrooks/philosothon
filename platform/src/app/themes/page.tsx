@@ -46,7 +46,7 @@ export default async function ThemesPage() {
       {/* Optional Filter Controls */}
       {/* <FilterControls /> */}
 
-      <p className="mb-6 text-gray-700">
+      <p className="mb-6 text-gray-300">
         Explore the potential philosophical themes for this year&apos;s Philosothon. The final theme(s) will be selected based on participant votes during registration.
       </p>
 

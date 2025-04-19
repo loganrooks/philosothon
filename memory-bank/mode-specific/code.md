@@ -4,6 +4,22 @@
 ## Intervention Log
 <!-- Append intervention details using the format below -->
 
+### [2025-04-18 23:03:24] Styling Update: Replace Dark Text Classes (Task 59)
+- **Purpose**: Improve text readability on dark theme by replacing dark gray utility classes (`text-gray-600/700/800/900`) with a lighter alternative (`text-gray-300`).
+- **Files Modified**:
+    - `platform/src/components/StatusFilters.tsx`
+    - `platform/src/components/Timeline.tsx`
+    - `platform/src/components/FaqForm.tsx`
+    - `platform/src/components/WorkshopForm.tsx`
+    - `platform/src/components/ThemeForm.tsx`
+    - `platform/src/app/about/page.tsx`
+    - `platform/src/app/workshops/page.tsx`
+    - `platform/src/app/themes/page.tsx`
+    - `platform/src/app/register/page.tsx`
+- **Status**: Implemented & Verified (Build/Test Pass)
+- **Notes**: Used `search_and_replace` tool iteratively on identified files. Build and tests passed without regressions.
+
+
 ### [2025-04-18 19:43:57] FormEmbed Responsive Styling (Task 48) - Blocked
 - **Purpose**: Apply responsive styling (`max-w-4xl` container, `w-full` iframe) to `FormEmbed.tsx` and ensure tests pass.
 - **Files Modified**: `platform/src/components/FormEmbed.tsx` (Applied `max-w-4xl` to container div).
@@ -12,6 +28,15 @@
 
 
 ## Components Implemented
+### [2025-04-18 21:37:26] Styling Update: Improve Readability via Prose (Task 58)
+- **Purpose**: Ensure body text on pages like `/about` and `/themes` has sufficient contrast against the dark background.
+- **Files Modified**:
+    - `platform/src/components/ContentBlock.tsx`: Removed explicit `text-light-text` class from the `div` containing children, allowing `prose prose-invert` to handle text color correctly for the dark theme.
+- **Status**: Implemented & Verified (Build/Test Pass)
+- **Notes**: Base styles in `globals.css` and `layout.tsx` already set light text. `ThemeCard.tsx` uses appropriate light colors. The issue was likely the explicit text color overriding `prose-invert` defaults. Relying on `prose-invert` is the correct approach.
+
+
+
 ### [2025-04-18 20:45:11] Configuration Update: Correct Typography Plugin Registration (Task 56)
 - **Purpose**: Fix missing `prose` styles (Issue VISUAL-PROSE-001) by changing plugin registration method for Tailwind v4.
 - **Files Modified**:

@@ -8,14 +8,14 @@ interface WorkshopCardProps {
 const WorkshopCard: React.FC<WorkshopCardProps> = ({ title, description, facilitator, relevantThemes }) => {
   // TODO: Refine styling and add more details if necessary
   return (
-    <div className="border border-dark-green rounded-lg p-8 mb-6 bg-dark-base"> {/* Increased padding */}
+    <div className="border border-medium-gray rounded-lg p-8 mb-6 bg-dark-base"> {/* Use subtle gray border, Increased padding */}
       <h3 className="text-xl font-semibold mb-2 text-hacker-green">{title}</h3> {/* Updated color */}
       {facilitator && <p className="text-sm text-light-text opacity-70 mb-2">Facilitator: {facilitator}</p>} {/* Updated color */}
       <p className="text-light-text mb-3">{description}</p> {/* Updated color */}
       
       {/* Display Relevant Themes if available */}
       {relevantThemes && relevantThemes.length > 0 && (
-        <div className="mt-3 pt-3 border-t border-t-dark-green"> {/* Updated border color */}
+        <div className="mt-3 pt-3 border-t border-t-medium-gray"> {/* Use subtle gray border */}
           <h4 className="text-sm font-medium text-hacker-green opacity-80 mb-1">Relevant Themes:</h4> {/* Updated color */}
           <ul className="list-['>_'] list-inside text-sm text-light-text opacity-90"> {/* Updated list style & color */}
             {relevantThemes.map((theme, index) => (

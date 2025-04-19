@@ -32,7 +32,7 @@ export default function WorkshopForm({ initialData, action }: WorkshopFormProps)
   return (
     <form action={action} className="space-y-6">
       <div>
-        <label htmlFor="title" className="block text-sm font-medium text-gray-700">
+        <label htmlFor="title" className="block text-sm font-medium text-gray-300">
           Title
         </label>
         <input
@@ -47,7 +47,7 @@ export default function WorkshopForm({ initialData, action }: WorkshopFormProps)
       </div>
 
       <div>
-        <label htmlFor="description" className="block text-sm font-medium text-gray-700">
+        <label htmlFor="description" className="block text-sm font-medium text-gray-300">
           Description
         </label>
         <textarea
@@ -63,7 +63,7 @@ export default function WorkshopForm({ initialData, action }: WorkshopFormProps)
 
       {/* Added Label for Date and Time */}
       <div>
-        <label htmlFor="date" className="block text-sm font-medium text-gray-700">
+        <label htmlFor="date" className="block text-sm font-medium text-gray-300">
           Date and Time
         </label>
         <input
@@ -78,7 +78,7 @@ export default function WorkshopForm({ initialData, action }: WorkshopFormProps)
 
        {/* Added Label for Location */}
       <div>
-        <label htmlFor="location" className="block text-sm font-medium text-gray-700">
+        <label htmlFor="location" className="block text-sm font-medium text-gray-300">
           Location
         </label>
         <input
@@ -94,7 +94,7 @@ export default function WorkshopForm({ initialData, action }: WorkshopFormProps)
 
 
       <div>
-        <label htmlFor="relevant_themes" className="block text-sm font-medium text-gray-700">
+        <label htmlFor="relevant_themes" className="block text-sm font-medium text-gray-300">
           Relevant Themes (JSONB)
         </label>
         <textarea
@@ -110,7 +110,7 @@ export default function WorkshopForm({ initialData, action }: WorkshopFormProps)
       </div>
 
       <div>
-        <label htmlFor="facilitator" className="block text-sm font-medium text-gray-700">
+        <label htmlFor="facilitator" className="block text-sm font-medium text-gray-300">
           Facilitator (Optional)
         </label>
         <input
@@ -124,7 +124,7 @@ export default function WorkshopForm({ initialData, action }: WorkshopFormProps)
       </div>
 
       <div>
-        <label htmlFor="max_capacity" className="block text-sm font-medium text-gray-700">
+        <label htmlFor="max_capacity" className="block text-sm font-medium text-gray-300">
           Max Capacity (Optional)
         </label>
         <input
