@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { ThemeForm } from './ThemeForm'; // Adjust path if necessary
-import { type Theme } from '../page'; // Import Theme type
+import { type Theme } from '@/lib/types'; // Use central type definition
 
 // Mock Server Action prop
 const mockAction = vi.fn();
@@ -16,7 +16,8 @@ describe('ThemeForm Component', () => {
     expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/analytic tradition/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/continental tradition/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /create theme/i })).toBeInTheDocument(); // Corrected button text
+    expect(screen.getByRole('button', { name: /create theme/i })).toBeInTheDocument();
+    expect(screen.getByLabelText(/Expanded Description/i)).toBeInTheDocument(); // Added test
 
     // Check initial values (should be empty)
     expect(screen.getByLabelText(/title/i)).toHaveValue('');
@@ -24,6 +25,7 @@ describe('ThemeForm Component', () => {
     // Use JSON.stringify with indentation to match component output
     expect(screen.getByLabelText(/analytic tradition/i)).toHaveValue(JSON.stringify([], null, 2));
     expect(screen.getByLabelText(/continental tradition/i)).toHaveValue(JSON.stringify([], null, 2));
+    expect(screen.getByLabelText(/Expanded Description/i)).toHaveValue(''); // Added test
   });
 
   it('should render with initial data when provided', () => {
@@ -35,6 +37,7 @@ describe('ThemeForm Component', () => {
       description: 'Initial Description',
       analytic_tradition: ['Analytic 1', 'Analytic 2'],
       continental_tradition: ['Continental 1'],
+      description_expanded: '## Detailed Markdown\n\n*   Point 1\n*   Point 2', // Added field
     };
 
     // Act
@@ -46,6 +49,7 @@ describe('ThemeForm Component', () => {
     // Use JSON.stringify with indentation to match component output
     expect(screen.getByLabelText(/analytic tradition/i)).toHaveValue(JSON.stringify(initialData.analytic_tradition, null, 2));
     expect(screen.getByLabelText(/continental tradition/i)).toHaveValue(JSON.stringify(initialData.continental_tradition, null, 2));
+    expect(screen.getByLabelText(/Expanded Description/i)).toHaveValue(initialData.description_expanded); // Added test
     expect(screen.getByRole('button', { name: /update theme/i })).toBeInTheDocument(); // Corrected button text
   });
 
