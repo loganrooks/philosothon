@@ -12,7 +12,13 @@
   5. Inspected compiled CSS output: Confirmed `.prose` styles (e.g., `.prose h2`) are **missing**. (2025-04-18 20:19:33)
   6. Verified `postcss.config.js` is correct for Tailwind v4. (2025-04-18 20:26:37)
   7. Performed clean build (`rm -rf .next`, `rm -rf node_modules`, `npm install`, `npm run dev`). Result: No change, issue persists. (2025-04-18 20:26:22)
-- **Root Cause Hypothesis**: Build process failure preventing `@tailwindcss/typography` plugin styles from being generated/included in the final CSS bundle. Similar to previous Preflight issue (VISUAL-PREFLIGHT-001).
+  8. **Static HTML Test (Task 54):** Added static HTML (`h2`, `p`, `ul`) with `prose prose-invert` classes to `about/page.tsx`. User confirmed static content was **not** styled. This confirms the issue is not specific to `react-markdown` interaction. (2025-04-18 20:37:39)
+  9. Verified `tailwind.config.ts` plugin registration and content paths (Task 55). (2025-04-18 20:40:51)
+  10. Verified `postcss.config.js` is correct for v4 (Task 55). (2025-04-18 20:40:59)
+  11. Checked dependency versions: `tailwindcss@^4`, `@tailwindcss/typography@^0.5.16`, `next@^14.2.0` (Task 55). (2025-04-18 20:41:08)
+  12. External research: No confirmed widespread issue found for this stack. (2025-04-18 20:41:42)
+  13. Checked plugin README: Primary installation method shown is `@plugin` in CSS, not config file. (2025-04-18 20:41:59)
+- **Root Cause Hypothesis (Updated 2025-04-18 20:41:59)**: Incorrect plugin registration method likely cause. Plugin README suggests CSS `@plugin \"@tailwindcss/typography\";` registration for v4, not via `tailwind.config.ts`. This would explain missing styles in build output.
 - **Fix Applied**: None.
 - **Verification**: N/A.
 - **Related Issues**: VISUAL-PREFLIGHT-001 (Tasks 31-36).
