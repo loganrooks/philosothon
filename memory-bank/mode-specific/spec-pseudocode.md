@@ -94,6 +94,28 @@
 
 
 ## Functional Requirements
+### Feature: P0 Content Management (Event Info, Expanded Themes)
+- Added: [2025-04-19 05:16:00]
+- Description: Manage core event info (dates, schedule) via new Supabase tables (`event_details`, `schedule_items`) and admin CRUD. Manage expanded theme descriptions (Markdown) via new `description_expanded` column in `themes` table and updated admin form. Render expanded descriptions on frontend using `react-markdown`.
+- Acceptance criteria: 1. New tables exist. 2. Admin UI allows CRUD for event info/schedule. 3. Admin theme form includes textarea for expanded description. 4. Theme detail page fetches and renders Markdown from `description_expanded` using `react-markdown` and `prose` styling.
+- Dependencies: Supabase DB, Admin UI framework, Server Actions, `react-markdown`.
+- Status: Specified (Draft)
+
+### Feature: P0 Registration System (Built-in)
+- Added: [2025-04-19 05:16:00]
+- Description: Implement a multi-step registration form at `/register` for authenticated users, collecting enhanced V2 fields (Req 3.2.4). Use Server Action (`createRegistration`) for validation and saving data to extended `registrations` table in Supabase. Trigger confirmation email.
+- Acceptance criteria: 1. Multi-step form exists at `/register`. 2. Form collects all specified fields with basic validation. 3. Requires authentication. 4. Server Action validates and saves data, preventing duplicates. 5. User redirected on success. 6. Confirmation email triggered.
+- Dependencies: Supabase DB (`registrations` table), Supabase Auth, Server Actions, Client Components (form state), Email service.
+- Status: Specified (Draft)
+
+### Feature: P0 Authentication & RBAC
+- Added: [2025-04-19 05:16:00]
+- Description: Implement authentication using Supabase Magic Link and Role-Based Access Control (RBAC) using a `profiles` table linked to `auth.users` with a `role` enum (`admin`, `participant`, `judge`, `team_member`). Enforce access via Next.js Middleware and Supabase RLS.
+- Acceptance criteria: 1. Magic Link login flow works. 2. Roles defined in `profiles` table (default 'participant'). 3. P0 role assignment is manual (Supabase Studio). 4. Middleware protects routes (e.g., `/admin`). 5. RLS policies restrict data access (e.g., `submissions`, `profiles`).
+- Dependencies: Supabase Auth, Supabase DB (`profiles` table, RLS), Next.js Middleware.
+- Status: Specified (Draft)
+
+
 ### Feature: Admin Section Rebuild (CRUD for Themes, Workshops, FAQs)
 - Added: [2025-04-18 07:35:00]
 - Description: Rebuild the admin section (/admin) to allow authenticated users (via Supabase Magic Link) to perform Create, Read, Update, and Delete operations on Themes, Workshops, and FAQ items stored in the Supabase database.
@@ -156,6 +178,25 @@
     - Description: Implementing multiple roles with distinct permissions across various platform features requires careful design and consistent enforcement (e.g., in UI, API routes, database policies).
     - Impact: Potential for security vulnerabilities or incorrect access if not implemented correctly. Increased development effort.
     - Mitigation strategy: Clearly define permissions for each role. Use middleware and database Row Level Security (RLS) where appropriate. Implement thorough testing of access controls.
+
+
+### Constraint: P0 Content Mgmt - Admin UI Effort
+- Added: [2025-04-19 05:16:00]
+- Description: Building new admin interfaces for `event_details` and `schedule_items` requires frontend development effort (forms, tables, actions).
+- Impact: Increases P0 implementation time.
+- Mitigation strategy: Reuse existing admin CRUD patterns and components where possible.
+
+### Constraint: P0 Registration - Auth Requirement
+- Added: [2025-04-19 05:16:00]
+- Description: The specified registration flow requires users to be authenticated *before* accessing the form.
+- Impact: If anonymous registration is desired later, this flow needs significant changes.
+- Mitigation strategy: Confirm requirement. If anonymous needed, redesign flow (e.g., create user during registration).
+
+### Constraint: P0 RBAC - Manual Role Assignment
+- Added: [2025-04-19 05:16:00]
+- Description: Assigning `admin` and `judge` roles in P0 requires manual intervention via Supabase Studio.
+- Impact: Operational overhead for administrators.
+- Mitigation strategy: Accept for P0. Plan for automated role assignment or admin UI for role management in future phases.
 
 
 ## System Constraints
@@ -233,6 +274,25 @@
     - Scenario: The `vectorize` tool fails to generate a draft description (e.g., API error, no relevant context found).
     - Expected behavior: Log the error. The system should gracefully handle the missing draft (e.g., notify admin, allow manual creation).
     - Testing approach: Simulate failure from the `vectorize` tool during testing.
+
+
+### Edge Case: P0 Content Mgmt - Markdown Rendering Issues
+- Identified: [2025-04-19 05:16:00]
+- Scenario: Invalid Markdown syntax in `description_expanded` or conflicts between `react-markdown` and Tailwind `prose` styles.
+- Expected behavior: `react-markdown` should handle invalid syntax gracefully (render as text or skip). Style conflicts should be resolved via CSS specificity or configuration.
+- Testing approach: Test with invalid Markdown. Inspect rendered HTML/CSS for style conflicts.
+
+### Edge Case: P0 Registration - Duplicate Submission Attempt
+- Identified: [2025-04-19 05:16:00]
+- Scenario: User attempts to submit the registration form after already having a registration record associated with their user ID.
+- Expected behavior: Server Action detects existing registration and returns an error message to the user, preventing duplicate insertion.
+- Testing approach: Test `createRegistration` action with a user ID that already has a registration record.
+
+### Edge Case: P0 RBAC - Middleware Profile Fetch Failure
+- Identified: [2025-04-19 05:16:00]
+- Scenario: The middleware fails to fetch the user's profile (e.g., network error, temporary DB issue, profile doesn't exist yet for a new user).
+- Expected behavior: Middleware should handle the error gracefully, likely redirecting the user to login or an error page, and log the error.
+- Testing approach: Mock Supabase client in middleware tests to simulate profile fetch errors.
 
 
 ## Edge Cases
@@ -351,6 +411,171 @@ export default FormEmbed;
 - Test that container div has max-width computed style (e.g., 672px for max-w-2xl).
 - Test that container div has margin-left/right: auto computed style.
 - Test (Optional/Difficult): iframe height/scrolling behavior at small viewport width.
+
+
+### Pseudocode: P0 Content Mgmt - Theme Detail Page Rendering (`/themes/[id]/page.tsx` Snippet)
+- Created: [2025-04-19 05:16:00]
+- Updated: [2025-04-19 05:16:00]
+```typescript
+// Conceptual rendering part in ThemeDetailPage component
+import ReactMarkdown from 'react-markdown';
+
+// ... inside component, assuming `theme.description_expanded` contains Markdown string ...
+{theme.description_expanded &amp;&amp; (
+  <div className="prose prose-invert max-w-none"> {/* Apply Tailwind Typography */}
+    <ReactMarkdown>{theme.description_expanded}</ReactMarkdown>
+  </div>
+)}
+```
+#### TDD Anchors:
+- Test ReactMarkdown renders when description_expanded exists.
+- Test container div has 'prose' classes.
+- Test nothing renders if description_expanded is null/empty.
+
+### Pseudocode: P0 Content Mgmt - Admin Theme Form Modification (`ThemeForm.tsx` Snippet)
+- Created: [2025-04-19 05:16:00]
+- Updated: [2025-04-19 05:16:00]
+```typescript
+// Conceptual addition to ThemeForm.tsx
+<div>
+  <label htmlFor="description_expanded">Expanded Description (Markdown)</label>
+  <textarea
+    id="description_expanded"
+    name="description_expanded"
+    rows={10}
+    defaultValue={theme?.description_expanded || ''} // Populate if editing
+  />
+  {/* Display validation errors: state.errors?.description_expanded */}
+</div>
+```
+#### TDD Anchors:
+- Test textarea renders with default value.
+- Test Server Actions handle the new field.
+
+### Pseudocode: P0 Registration - Server Action (`src/app/register/actions.ts`)
+- Created: [2025-04-19 05:16:00]
+- Updated: [2025-04-19 05:16:00]
+```typescript
+// src/app/register/actions.ts (Conceptual Pseudocode)
+'use server';
+import { createServerClient } from '@/lib/supabase/server';
+import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
+import { z } from 'zod';
+
+// Define Zod schema matching FR-REG-005...
+const RegistrationSchema = z.object({ /* ... fields ... */ });
+
+export type RegistrationState = { /* ... errors, message, success ... */ };
+
+export async function createRegistration(
+  previousState: RegistrationState,
+  formData: FormData
+): Promise<RegistrationState> {
+  const supabase = createServerClient();
+  // 1. Get user session
+  // 2. Check if user already registered (return error if yes)
+  // 3. Extract/process data from formData (handle arrays)
+  // 4. Validate data using RegistrationSchema (return errors if invalid)
+  // 5. Prepare data for DB (add user_id)
+  // 6. Insert into 'registrations' table
+  // 7. Handle DB errors
+  // 8. Revalidate paths if needed
+  // 9. Redirect on success
+}
+```
+#### TDD Anchors:
+- Test auth check.
+- Test duplicate registration check.
+- Test validation failure/success.
+- Test data processing (arrays).
+- Test DB insertion success/error.
+- Test redirect.
+
+### Pseudocode: P0 Registration - Multi-Step Form Component (`RegistrationForm.tsx`)
+- Created: [2025-04-19 05:16:00]
+- Updated: [2025-04-19 05:16:00]
+```typescript
+// src/app/register/components/RegistrationForm.tsx (Conceptual Pseudocode)
+'use client';
+import React, { useState } from 'react';
+import { useFormState, useFormStatus } from 'react-dom';
+import { createRegistration } from '../actions';
+
+type FormData = { /* ... all fields ... */ };
+const initialState = { /* ... message, errors, success ... */ };
+
+function SubmitButton() { /* ... uses useFormStatus ... */ }
+
+export function RegistrationForm() {
+  const [currentStep, setCurrentStep] = useState(1);
+  const [formData, setFormData] = useState<Partial<FormData>>({});
+  const [state, formAction] = useFormState(createRegistration, initialState);
+  const totalSteps = 4; // Example
+
+  const handleNext = () => { /* ... increment step ... */ };
+  const handlePrevious = () => { /* ... decrement step ... */ };
+  const handleChange = (e) => { /* ... update formData state, handle checkboxes/arrays ... */ };
+  const renderStepContent = () => { /* ... switch(currentStep) to render field sections ... */ };
+
+  return (
+    <form action={formAction}>
+      {/* Display messages */} 
+      {renderStepContent()}
+      {/* Render hidden inputs for all formData on final step */} 
+      {/* Navigation buttons (Previous, Next, Submit) */} 
+    </form>
+  );
+}
+```
+#### TDD Anchors:
+- Test handleChange updates state correctly.
+- Test renderStepContent shows correct fields per step.
+- Test navigation buttons enable/disable/function correctly.
+- Test display of server errors.
+
+### Pseudocode: P0 RBAC - Middleware (`src/middleware.ts`)
+- Created: [2025-04-19 05:16:00]
+- Updated: [2025-04-19 05:16:00]
+```typescript
+// src/middleware.ts (Conceptual Pseudocode)
+import { type NextRequest, NextResponse } from 'next/server';
+import { createServerClient } from '@/lib/supabase/middleware';
+
+const protectedPaths = { '/admin': ['admin'], /* ... other paths ... */ };
+
+export async function middleware(request: NextRequest) {
+  const { supabase, response } = createServerClient(request);
+  const { data: { session } } = await supabase.auth.getSession();
+  const pathname = request.nextUrl.pathname;
+
+  // Check if path is protected
+  const requiredRoles = /* ... find required roles for pathname ... */;
+
+  if (requiredRoles) {
+    if (!session) {
+      return NextResponse.redirect(new URL('/admin/login', request.url));
+    }
+    // Fetch profile role for session.user.id
+    const { data: profile, error } = await supabase.from('profiles').select('role').eq('id', session.user.id).single();
+    if (error || !profile || !requiredRoles.includes(profile.role)) {
+       console.warn(/* ... log details ... */);
+       return NextResponse.redirect(new URL('/admin/login', request.url)); // Or /unauthorized
+    }
+  }
+  // Optional: Redirect logged-in from /admin/login
+  // ...
+  return response;
+}
+
+export const config = { matcher: [ /* ... paths to include/exclude ... */ ] };
+```
+#### TDD Anchors:
+- Test redirect if no session.
+- Test redirect if role mismatch.
+- Test redirect if profile fetch fails.
+- Test successful access with correct role.
+- Test redirect from login if session exists.
 
 
 ## Pseudocode Library

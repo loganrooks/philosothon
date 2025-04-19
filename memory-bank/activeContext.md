@@ -1,3 +1,9 @@
+[2025-04-19 05:22:35] - DevOps - Committed P0 Specification Drafts - Staged and committed `docs/specs/p0_rbac_spec.md`, `docs/specs/p0_registration_spec.md`, `docs/specs/p0_content_mgmt_spec.md` to the `feature/architecture-v2` branch.
+
+
+[2025-04-19 05:16:00] - SpecPseudo - Drafted P0 Specifications - Read V2 spec, relevant ADRs (RBAC, Registration, Content Mgmt), and architect memory. Created initial drafts for P0 specs: `docs/specs/p0_rbac_spec.md`, `docs/specs/p0_registration_spec.md`, `docs/specs/p0_content_mgmt_spec.md`. Preparing Memory Bank update and clarifying questions.
+
+
 [2025-04-19 05:02:15] - Architect - Completed V2 Architecture Documentation Refinement - Created C4 diagrams (Context, Container) in `docs/architecture/`. Refined data models (constraints, RLS) and added sequence diagrams (Registration, Gamification, Submission) in `memory-bank/mode-specific/architect.md`. Created/Updated ADRs in `memory-bank/adr/` based on feedback and decisions.
 
 
