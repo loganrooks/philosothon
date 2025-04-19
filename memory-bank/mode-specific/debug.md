@@ -1,6 +1,25 @@
 # Debug Specific Memory
 
 ## Issue History
+### Issue: AUTH-MIDDLEWARE-001 - 404 Errors on /auth/callback and /admin - [Status: Analysis Complete] - [2025-04-19 01:15:43]
+- **Reported**: 2025-04-19 01:14:52 (Task 72) / **Severity**: High / **Symptoms**: User experiences 404 on `/auth/callback` after magic link click, and subsequent 404s when trying to access `/admin` routes.
+- **Investigation**:
+  1. Reviewed `platform/src/middleware.ts`: Logic correctly redirects unauthenticated users from `/admin/*` (except `/admin/login`) to `/admin/login`, and authenticated users from `/admin/login` to `/admin`. Uses `updateSession` helper.
+  2. Reviewed `platform/src/lib/supabase/middleware.ts`: Correctly implements `@supabase/ssr` pattern for session management and cookie handling.
+  3. Analyzed `config.matcher` in `middleware.ts`: Current pattern `'/((?!_next/static|_next/image|favicon.ico|.*\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'` includes `/admin`, `/admin/login`, and `/auth/callback`, causing the middleware to run on these paths.
+  4. Middleware logic does not explicitly block `/auth/callback` or `/admin/login` (when unauthenticated); it returns `NextResponse.next()` for these cases if no other redirect applies.
+- **Root Cause (Updated 2025-04-19 01:27:22)**:
+    - `/admin` 404s: Confirmed **missing page file `platform/src/app/admin/page.tsx`**. Middleware redirects correctly, but Next.js finds no page to render.
+    - `/admin/login` 404s: Cause still uncertain despite `platform/src/app/admin/login/page.tsx` existing. Hypotheses: 1) Subtle issue with broad middleware `matcher` interaction. 2) Corrupted Next.js build/cache. 3) Unhandled error within `admin/layout.tsx` or `admin/login/page.tsx`.
+- **Fix Applied**: None yet.
+- **Verification**: N/A.
+- **Recommendations (Updated 2025-04-19 01:27:22)**:
+    1. **Create Admin Dashboard Page:** Add `platform/src/app/admin/page.tsx` (e.g., basic dashboard or redirect).
+    2. **Refine Middleware Matcher:** Modify `config.matcher` in `platform/src/middleware.ts` to explicitly exclude `/auth/callback` for clarity and performance (e.g., `'/((?!_next/static|_next/image|favicon.ico|auth/callback|api/|.*\\.).*)'`).
+    3. **Perform Clean Build:** Stop dev server, run `rm -rf platform/.next`, restart server (`npm run dev` in `platform`).
+- **Related Issues**: Task 7 (Admin Implementation), Task 73 (Callback Handler Implementation).
+
+
 ### Issue: VISUAL-FONT-INTER-001 - 'Inter' font not applied to body - [Status: Analysis Complete] - [2025-04-18 23:51:39]
 - **Reported**: 2025-04-18 23:50:36 (Task 65) / **Severity**: Medium / **Symptoms**: Body text renders using fallback ('Segoe UI') instead of the configured 'Inter' font.
 - **Investigation**:
