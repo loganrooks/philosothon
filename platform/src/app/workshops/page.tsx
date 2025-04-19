@@ -24,12 +24,12 @@ export default async function WorkshopsPage() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-6 text-hacker-green border-b pb-2 font-philosopher">Event Workshops</h1>
+      <h1 className="text-3xl font-bold mb-6 text-hacker-green border-b border-medium-gray pb-2 font-philosopher">Event Workshops</h1>
 
       {/* Optional Tag Filter */}
       {/* <TagFilter /> */}
 
-      <p className="mb-6 text-gray-300">
+      <p className="mb-6">
         Discover the workshops offered during the Philosothon. The final workshop selection may depend on participant preferences and relevance to the chosen theme(s).
       </p>
 

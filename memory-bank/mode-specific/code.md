@@ -27,6 +27,25 @@
 - **Notes**: Applied the correct Tailwind class (`max-w-4xl`) to the container div. However, the tests in `FormEmbed.test.tsx` (updated in Task 47 to use `toHaveStyle`) failed. This confirms the previously identified limitation where JSDOM cannot reliably compute styles applied via Tailwind utility classes. Invoking Early Return Clause.
 
 
+### [2025-04-18 23:25:32] Styling Update: Minimal Hacker Aesthetic (Task 61)
+- **Purpose**: Refactor UI for a consistent "minimal hacker/coder aesthetic" (fonts, colors, spacing, borders).
+- **Files Modified**:
+    - `platform/src/app/globals.css`: Added global link styles (`text-hacker-green`, hover).
+    - `platform/src/components/Footer.tsx`: Changed border to `border-medium-gray`.
+    - `platform/src/components/ContentBlock.tsx`: Changed border to `border-medium-gray`.
+    - `platform/src/components/ThemeCard.tsx`: Changed borders to `border-medium-gray`.
+    - `platform/src/components/WorkshopCard.tsx`: Changed borders to `border-medium-gray`.
+    - `platform/src/components/AccordionGroup.tsx`: Changed borders to `border-medium-gray`.
+    - `platform/src/app/about/page.tsx`: Updated `h1` border to `border-medium-gray`, updated `blockquote` styles (border, padding, text).
+    - `platform/src/components/Timeline.tsx`: Updated colors (border, heading, dot, year) to use theme colors.
+    - `platform/src/app/themes/page.tsx`: Updated `h1` border to `border-medium-gray`, removed explicit text color from intro paragraph.
+    - `platform/src/app/workshops/page.tsx`: Updated `h1` border to `border-medium-gray`, removed explicit text color from intro paragraph.
+    - `platform/src/app/faq/page.tsx`: Updated `h1` border to `border-medium-gray`.
+- **Status**: Implemented
+- **Notes**: Applied changes iteratively across key components and pages. Focused on consistent use of theme colors (`hacker-green`, `dark-base`, `light-text`, `medium-gray`) and `font-mono`. Used subtle gray borders for a minimal look. `NavBar` already aligned well.
+
+
+
 ## Components Implemented
 ### [2025-04-18 21:37:26] Styling Update: Improve Readability via Prose (Task 58)
 - **Purpose**: Ensure body text on pages like `/about` and `/themes` has sufficient contrast against the dark background.

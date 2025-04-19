@@ -26,10 +26,6 @@ body {
 
 li {
 
-a {
-  @apply text-hacker-green hover:text-opacity-80 transition-colors;
-}
-
   /* Removed global padding */
 }
 

@@ -111,3 +111,17 @@
 - **Rationale**: Address user's higher-level aesthetic goals first.
 - **Outcome**: Intervention logged. Next step is delegating UI overhaul task.
 - **Follow-up**: Ensure subsequent UI tasks align with the established aesthetic.
+### [2025-04-18 23:38:00] Intervention: Incorrect Font Application & Git Workflow Violation (Task 61)
+- **Trigger**: User feedback rejecting monospace font suggestion, providing DevTools output showing incorrect body font rendering (Segoe UI instead of Inter), and reminding about Git workflow violation.
+- **Context**: SPARC incorrectly assumed monospace was desired for the hacker aesthetic and failed *again* to ensure Task 61 was performed on its feature branch (`feature/hacker-aesthetic`). The body font ('Inter') loaded via `next/font` is not applying correctly.
+- **Action Taken**: Halted proposed Task 62 (Regression Tests). Logged intervention. Will prioritize cleaning `main` branch by moving Task 61 changes, then debugging the 'Inter' font application.
+- **Rationale**: Correct critical font rendering issue and repeated Git workflow failure.
+- **Outcome**: Intervention logged. Next step is Git cleanup (Task 63).
+- **Follow-up**: SPARC must verify font loading and application in `layout.tsx` and `tailwind.config.ts`. Implement stricter Git checks.
+### [2025-04-18 23:40:00] Intervention: Workflow Adjustment - Consolidate UI Work on `ui-overhaul` Branch
+- **Trigger**: User clarification stating they are already on a `ui-overhaul` branch and want to consolidate all UI work there, overriding SPARC's multi-branch/cleanup plan.
+- **Context**: SPARC proposed Task 63 to clean `main` and commit Task 61 changes to `feature/hacker-aesthetic`. User stated they are already on `ui-overhaul` where this work belongs.
+- **Action Taken**: Cancelled Task 63 (Git Cleanup). Logged intervention. Will proceed with debugging/implementing UI changes directly on the user's `ui-overhaul` branch. Will first commit existing unstaged changes on this branch.
+- **Rationale**: Follow user's explicit direction for branch management during this UI overhaul phase. Acknowledge deviation from standard GitHub Flow.
+- **Outcome**: Intervention logged. Workflow adjusted.
+- **Follow-up**: Ensure all subsequent UI tasks operate on the `ui-overhaul` branch. Commit changes frequently on this branch.
