@@ -97,3 +97,45 @@
 - **Rationale**: Address user's immediate, concrete concerns and questions before proceeding with broader tasks. Ensure correct Git state.
 - **Outcome**: Intervention logged. Plan adjusted.
 - **Follow-up**: Confirm merge, then delegate specific UI fixes.
+### [2025-04-18 22:57:00] Intervention: Clarification on Dark Text UI Issue
+- **Trigger**: User feedback specifying locations (descriptions, blockquotes, timeline, register page) and likely classes (`text-gray-600/700`) causing readability issues.
+- **Context**: Following Task 58 (attempted text color fix), user confirmed issues remain in specific areas.
+- **Action Taken**: Logged clarification. Will now search for and replace problematic dark text classes.
+- **Rationale**: Address specific user feedback systematically.
+- **Outcome**: Clarification logged. Next step is searching for dark text classes.
+- **Follow-up**: Delegate search and replace task.
+### [2025-04-18 23:15:00] Intervention: Reprioritization to General UI Aesthetic
+- **Trigger**: User decision after SPARC proposed Navbar refactor (Task 23).
+- **Context**: User wants to address the overall "minimal hacker/coder aesthetic" before component-specific refactors like the Navbar.
+- **Action Taken**: Halted proposed Task 23 (Navbar). Logged intervention. Will delegate a broader UI overhaul task (Task 61).
+- **Rationale**: Address user's higher-level aesthetic goals first.
+- **Outcome**: Intervention logged. Next step is delegating UI overhaul task.
+- **Follow-up**: Ensure subsequent UI tasks align with the established aesthetic.
+### [2025-04-18 23:38:00] Intervention: Incorrect Font Application & Git Workflow Violation (Task 61)
+- **Trigger**: User feedback rejecting monospace font suggestion, providing DevTools output showing incorrect body font rendering (Segoe UI instead of Inter), and reminding about Git workflow violation.
+- **Context**: SPARC incorrectly assumed monospace was desired for the hacker aesthetic and failed *again* to ensure Task 61 was performed on its feature branch (`feature/hacker-aesthetic`). The body font ('Inter') loaded via `next/font` is not applying correctly.
+- **Action Taken**: Halted proposed Task 62 (Regression Tests). Logged intervention. Will prioritize cleaning `main` branch by moving Task 61 changes, then debugging the 'Inter' font application.
+- **Rationale**: Correct critical font rendering issue and repeated Git workflow failure.
+- **Outcome**: Intervention logged. Next step is Git cleanup (Task 63).
+- **Follow-up**: SPARC must verify font loading and application in `layout.tsx` and `tailwind.config.ts`. Implement stricter Git checks.
+### [2025-04-18 23:40:00] Intervention: Workflow Adjustment - Consolidate UI Work on `ui-overhaul` Branch
+- **Trigger**: User clarification stating they are already on a `ui-overhaul` branch and want to consolidate all UI work there, overriding SPARC's multi-branch/cleanup plan.
+- **Context**: SPARC proposed Task 63 to clean `main` and commit Task 61 changes to `feature/hacker-aesthetic`. User stated they are already on `ui-overhaul` where this work belongs.
+- **Action Taken**: Cancelled Task 63 (Git Cleanup). Logged intervention. Will proceed with debugging/implementing UI changes directly on the user's `ui-overhaul` branch. Will first commit existing unstaged changes on this branch.
+- **Rationale**: Follow user's explicit direction for branch management during this UI overhaul phase. Acknowledge deviation from standard GitHub Flow.
+- **Outcome**: Intervention logged. Workflow adjusted.
+- **Follow-up**: Ensure all subsequent UI tasks operate on the `ui-overhaul` branch. Commit changes frequently on this branch.
+### [2025-04-19 00:00:00] Intervention: Aesthetic Goal Clarification (Monospace Default)
+- **Trigger**: User feedback after Task 66 ('Inter' font fix), stating 'Inter' doesn't fit the hacker aesthetic and requesting *all* fonts be monospace.
+- **Context**: SPARC/code previously implemented 'Inter' as the default body font based on earlier interpretations. User explicitly corrected this.
+- **Action Taken**: Logged intervention. Will delegate task to make `font-mono` the default font applied to the `<body>` tag.
+- **Rationale**: Align implementation with clarified user aesthetic requirement.
+- **Outcome**: Intervention logged. Next step is applying monospace font globally.
+- **Follow-up**: Ensure subsequent styling tasks adhere to the monospace-first aesthetic.
+### [2025-04-19 00:45:00] Intervention: Process Improvement (Visual Verification) & Aesthetic Refinement (Sharp Corners)
+- **Trigger**: User feedback after SPARC requested verification for Task 69 (Navbar refinement). User pointed out verification should happen *before* completion logging and requested sharp corners as part of the aesthetic.
+- **Context**: SPARC/modes were logging completion after build/test pass, leading to back-and-forth when visual checks failed. Aesthetic requirement needed refinement.
+- **Action Taken**: Logged intervention. Explicitly adopted process change: User visual verification is now required *before* UI task completion. Halted further Navbar refinement. Will prioritize removing rounded corners as part of the aesthetic overhaul.
+- **Rationale**: Improve workflow efficiency by incorporating user verification earlier. Refine aesthetic implementation based on specific feedback.
+- **Outcome**: Intervention logged. Process adjusted. Next step is removing rounded corners.
+- **Follow-up**: Ensure all modes request user verification for UI tasks before completion. Ensure subsequent UI tasks implement sharp corners.

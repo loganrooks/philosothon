@@ -38,7 +38,7 @@ export function ThemeForm({ action, initialData }: ThemeFormProps) {
   const isEditing = !!initialData;
 
   return (
-    <form action={formAction} className="space-y-4 rounded bg-gray-800 p-6 shadow">
+    <form action={formAction} className="space-y-4 bg-gray-800 p-6 shadow">
       {/* Hidden input for ID when editing */}
       {initialData?.id && <input type="hidden" name="id" value={initialData.id} />}
 
@@ -52,7 +52,7 @@ export function ThemeForm({ action, initialData }: ThemeFormProps) {
           type="text"
           required
           defaultValue={initialData?.title ?? ''}
-          className="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 px-3 py-2 text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+          className="mt-1 block w-full border-gray-600 bg-gray-700 px-3 py-2 text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
           aria-describedby="title-error"
         />
         {state.errors?.title && (
@@ -71,7 +71,7 @@ export function ThemeForm({ action, initialData }: ThemeFormProps) {
           name="description"
           rows={4}
           defaultValue={initialData?.description ?? ''}
-          className="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 px-3 py-2 text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+          className="mt-1 block w-full border-gray-600 bg-gray-700 px-3 py-2 text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
           aria-describedby="description-error"
         ></textarea>
          {state.errors?.description && (
@@ -91,7 +91,7 @@ export function ThemeForm({ action, initialData }: ThemeFormProps) {
           name="analytic_tradition"
           rows={3}
           defaultValue={initialData?.analytic_tradition ? JSON.stringify(initialData.analytic_tradition, null, 2) : '[]'}
-          className="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 px-3 py-2 font-mono text-sm text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+          className="mt-1 block w-full border-gray-600 bg-gray-700 px-3 py-2 font-mono text-sm text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
           placeholder='["Keyword1", "Keyword2"]'
           aria-describedby="analytic_tradition-error"
         ></textarea>
@@ -111,7 +111,7 @@ export function ThemeForm({ action, initialData }: ThemeFormProps) {
           name="continental_tradition"
           rows={3}
           defaultValue={initialData?.continental_tradition ? JSON.stringify(initialData.continental_tradition, null, 2) : '[]'}
-          className="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 px-3 py-2 font-mono text-sm text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+          className="mt-1 block w-full border-gray-600 bg-gray-700 px-3 py-2 font-mono text-sm text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
           placeholder='["KeywordA", "KeywordB"]'
           aria-describedby="continental_tradition-error"
         ></textarea>

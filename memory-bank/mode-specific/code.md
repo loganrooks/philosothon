@@ -1,8 +1,82 @@
 # Code Specific Memory
 <!-- Entries below should be added reverse chronologically (newest first) -->
 
+### [2025-04-19 00:56:32] Styling Fix: NavBar Mobile Dropdown Padding (Task 70 Follow-up)
+- **Purpose**: Increase left spacing within the mobile navigation dropdown after user reported it looked "wonky" post-Task 70.
+- **Files Modified**: `platform/src/components/NavBar.tsx` (Changed `p-4-md` to `px-6 py-4` on dropdown div).
+- **Status**: Implemented & Verified (Build/Test Pass). Awaiting user visual verification.
+- **Notes**: Addresses visual feedback received after removing rounded corners.
+
+
+### [2025-04-19 00:50:56] Styling Update: Remove Rounded Corners (Task 70)
+- **Purpose**: Remove Tailwind rounded corner utility classes (e.g., `rounded`, `rounded-md`) for a sharper aesthetic.
+- **Files Modified**: All `.tsx` files within `platform/src` (via `find` and `sed`).
+- **Status**: Implemented & Verified (Build/Test Pass). Awaiting user visual verification.
+- **Notes**: Used `find src -name '*.tsx' -exec sed -i 's/ rounded\\(-\\w\\+\\)\\?\\b//g' {} +` command in `platform` directory.
+
+
+### [2025-04-19 00:41:00] Styling Update: Refine Navbar Mobile Dropdown (Task 69)
+- **Purpose**: Adjust mobile dropdown background color and position based on user feedback.
+- **Files Modified**: `platform/src/components/NavBar.tsx` (Changed `bg-dark-base` to `bg-black`, `right-0` to `right-4` in dropdown div).
+- **Status**: Implemented & Verified (Build/Test Pass)
+- **Notes**: Addresses visual feedback from Task 23 intervention.
+
+
+### [2025-04-19 00:06:16] Styling Update: Set Default Font to Monospace (Task 67)
+- **Purpose**: Apply `font-mono` (JetBrains Mono) as the default body font, correcting the previous application of 'Inter'.
+- **Files Modified**:
+    - `platform/src/app/layout.tsx`: Removed `inter.variable` and `inter.className`, added `font-mono` to `<body>` className.
+    - `platform/src/app/layout.test.tsx`: Updated assertions to remove checks for Inter classes and add check for `font-mono`.
+- **Status**: Implemented & Verified (Build/Test Pass)
+- **Notes**: Corrects the default body font to align with the desired hacker aesthetic.
+
+
+### [2025-04-18 23:57:04] Styling Fix: Apply 'Inter' Font (Task 66)
+- **Purpose**: Correctly apply 'Inter' as the default body font, removing the overriding `font-mono` class.
+- **Files Modified**:
+    - `platform/src/app/layout.tsx`: Removed `font-mono`, added `inter.className`.
+    - `platform/src/app/globals.css`: Removed unused `:root` variables (`--font-sans`, `--font-mono`).
+    - `platform/src/app/layout.test.tsx`: Updated test assertion from `font-mono` to `mock-inter-class`.
+- **Status**: Implemented & Verified (Build/Test Pass)
+- **Notes**: Addresses issue identified in Task 65 where `font-mono` was overriding the intended 'Inter' font.
+
+
 ## Intervention Log
+### [2025-04-19 00:21:34] Intervention Fix: NavBar Visual Issues (Task 23)
+- **Trigger**: User visual review (Intervention: [2025-04-19 00:18:51])
+- **Context**: Mobile dropdown was aligned left and perceived as transparent.
+- **Action Taken**: Modified `NavBar.tsx` dropdown `div` class: changed `left-0 right-0` to `right-0 w-48` for alignment, removed `shadow-lg` to ensure opacity.
+- **Rationale**: Align dropdown with trigger button and ensure readability.
+- **Outcome**: Build and tests passed. Awaiting user visual confirmation.
+- **Follow-up**: Request user visual confirmation.
+
+
+### [2025-04-19 00:18:51] Intervention: NavBar Visual Feedback (Task 23)
+- **Trigger**: User visual review
+- **Context**: After implementing the hanging dropdown in Task 23, user observed incorrect mobile menu alignment (left instead of right) and perceived background transparency.
+- **Action Taken**: Will adjust Tailwind positioning classes (`left-0 right-0` to `right-0`) and verify background class (`bg-dark-base`) for opacity.
+- **Rationale**: Align mobile dropdown with the trigger button and ensure readability against page content.
+- **Outcome**: Pending code modification and verification.
+- **Follow-up**: Request user visual confirmation after fix.
+
+
 <!-- Append intervention details using the format below -->
+
+### [2025-04-18 23:03:24] Styling Update: Replace Dark Text Classes (Task 59)
+- **Purpose**: Improve text readability on dark theme by replacing dark gray utility classes (`text-gray-600/700/800/900`) with a lighter alternative (`text-gray-300`).
+- **Files Modified**:
+    - `platform/src/components/StatusFilters.tsx`
+    - `platform/src/components/Timeline.tsx`
+    - `platform/src/components/FaqForm.tsx`
+    - `platform/src/components/WorkshopForm.tsx`
+    - `platform/src/components/ThemeForm.tsx`
+    - `platform/src/app/about/page.tsx`
+    - `platform/src/app/workshops/page.tsx`
+    - `platform/src/app/themes/page.tsx`
+    - `platform/src/app/register/page.tsx`
+- **Status**: Implemented & Verified (Build/Test Pass)
+- **Notes**: Used `search_and_replace` tool iteratively on identified files. Build and tests passed without regressions.
+
 
 ### [2025-04-18 19:43:57] FormEmbed Responsive Styling (Task 48) - Blocked
 - **Purpose**: Apply responsive styling (`max-w-4xl` container, `w-full` iframe) to `FormEmbed.tsx` and ensure tests pass.
@@ -11,7 +85,45 @@
 - **Notes**: Applied the correct Tailwind class (`max-w-4xl`) to the container div. However, the tests in `FormEmbed.test.tsx` (updated in Task 47 to use `toHaveStyle`) failed. This confirms the previously identified limitation where JSDOM cannot reliably compute styles applied via Tailwind utility classes. Invoking Early Return Clause.
 
 
+### [2025-04-18 23:25:32] Styling Update: Minimal Hacker Aesthetic (Task 61)
+- **Purpose**: Refactor UI for a consistent "minimal hacker/coder aesthetic" (fonts, colors, spacing, borders).
+- **Files Modified**:
+    - `platform/src/app/globals.css`: Added global link styles (`text-hacker-green`, hover).
+    - `platform/src/components/Footer.tsx`: Changed border to `border-medium-gray`.
+    - `platform/src/components/ContentBlock.tsx`: Changed border to `border-medium-gray`.
+    - `platform/src/components/ThemeCard.tsx`: Changed borders to `border-medium-gray`.
+    - `platform/src/components/WorkshopCard.tsx`: Changed borders to `border-medium-gray`.
+    - `platform/src/components/AccordionGroup.tsx`: Changed borders to `border-medium-gray`.
+    - `platform/src/app/about/page.tsx`: Updated `h1` border to `border-medium-gray`, updated `blockquote` styles (border, padding, text).
+    - `platform/src/components/Timeline.tsx`: Updated colors (border, heading, dot, year) to use theme colors.
+    - `platform/src/app/themes/page.tsx`: Updated `h1` border to `border-medium-gray`, removed explicit text color from intro paragraph.
+    - `platform/src/app/workshops/page.tsx`: Updated `h1` border to `border-medium-gray`, removed explicit text color from intro paragraph.
+    - `platform/src/app/faq/page.tsx`: Updated `h1` border to `border-medium-gray`.
+- **Status**: Implemented
+- **Notes**: Applied changes iteratively across key components and pages. Focused on consistent use of theme colors (`hacker-green`, `dark-base`, `light-text`, `medium-gray`) and `font-mono`. Used subtle gray borders for a minimal look. `NavBar` already aligned well.
+
+
+
+### [2025-04-19 00:16:20] Component Refactor: NavBar (Task 23)
+- **Purpose**: Refactor NavBar for responsive horizontal layout, hanging mobile dropdown, and hacker aesthetic.
+- **Files Modified**: `platform/src/components/NavBar.tsx`
+- **Status**: Implemented & Verified (Build/Test Pass)
+- **Dependencies**: `useState` (React)
+- **API Surface**: None changed.
+- **Tests**: Existing tests in `NavBar.test.tsx` passed.
+- **Notes**: Implemented horizontal desktop links (`md:flex`), hanging absolute dropdown (`absolute`, `top-full`), `useState` for toggle, `font-philosopher` for logo, `font-mono` for links.
+
+
 ## Components Implemented
+### [2025-04-18 21:37:26] Styling Update: Improve Readability via Prose (Task 58)
+- **Purpose**: Ensure body text on pages like `/about` and `/themes` has sufficient contrast against the dark background.
+- **Files Modified**:
+    - `platform/src/components/ContentBlock.tsx`: Removed explicit `text-light-text` class from the `div` containing children, allowing `prose prose-invert` to handle text color correctly for the dark theme.
+- **Status**: Implemented & Verified (Build/Test Pass)
+- **Notes**: Base styles in `globals.css` and `layout.tsx` already set light text. `ThemeCard.tsx` uses appropriate light colors. The issue was likely the explicit text color overriding `prose-invert` defaults. Relying on `prose-invert` is the correct approach.
+
+
+
 ### [2025-04-18 20:45:11] Configuration Update: Correct Typography Plugin Registration (Task 56)
 - **Purpose**: Fix missing `prose` styles (Issue VISUAL-PROSE-001) by changing plugin registration method for Tailwind v4.
 - **Files Modified**:

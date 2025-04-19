@@ -41,12 +41,12 @@ export default async function ThemesPage() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-6 text-hacker-green border-b pb-2 font-philosopher">Event Themes</h1>
+      <h1 className="text-3xl font-bold mb-6 text-hacker-green border-b border-medium-gray pb-2 font-philosopher">Event Themes</h1> {/* Added subtle border color */}
 
       {/* Optional Filter Controls */}
       {/* <FilterControls /> */}
 
-      <p className="mb-6 text-gray-700">
+      <p className="mb-6">
         Explore the potential philosophical themes for this year&apos;s Philosothon. The final theme(s) will be selected based on participant votes during registration.
       </p>
 

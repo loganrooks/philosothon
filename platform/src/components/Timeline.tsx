@@ -10,14 +10,14 @@ const Timeline = () => {
   ];
 
   return (
-    <div className="mt-8 border-l-2 border-purple-300 pl-6">
-      <h3 className="text-lg font-semibold text-gray-700 mb-4">A Brief History</h3>
+    <div className="mt-8 border-l-2 border-hacker-green pl-6"> {/* Updated border color */}
+      <h3 className="text-lg font-semibold text-hacker-green mb-4">A Brief History</h3> {/* Updated text color */}
       <div className="space-y-6">
         {timelineEvents.map((item) => (
           <div key={item.year} className="relative">
-            <div className="absolute -left-[30px] top-1 h-4 w-4 rounded-full bg-purple-500 border-2 border-white"></div>
-            <p className="text-sm font-semibold text-purple-700">{item.year}</p>
-            <p className="text-gray-600">{item.event}</p>
+            <div className="absolute -left-[30px] top-1 h-4 w-4 bg-hacker-green border-2 border-dark-base"></div> {/* Updated dot colors */}
+            <p className="text-sm font-semibold text-hacker-green opacity-80">{item.year}</p> {/* Updated year color */}
+            <p className="">{item.event}</p> {/* Removed explicit text color to inherit */}
           </div>
         ))}
       </div>

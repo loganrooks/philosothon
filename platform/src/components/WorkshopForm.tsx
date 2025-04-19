@@ -32,7 +32,7 @@ export default function WorkshopForm({ initialData, action }: WorkshopFormProps)
   return (
     <form action={action} className="space-y-6">
       <div>
-        <label htmlFor="title" className="block text-sm font-medium text-gray-700">
+        <label htmlFor="title" className="block text-sm font-medium text-gray-300">
           Title
         </label>
         <input
@@ -41,13 +41,13 @@ export default function WorkshopForm({ initialData, action }: WorkshopFormProps)
           id="title"
           required
           defaultValue={initialData?.title ?? ''}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+          className="mt-1 block w-full border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
           placeholder="Enter workshop title"
         />
       </div>
 
       <div>
-        <label htmlFor="description" className="block text-sm font-medium text-gray-700">
+        <label htmlFor="description" className="block text-sm font-medium text-gray-300">
           Description
         </label>
         <textarea
@@ -56,14 +56,14 @@ export default function WorkshopForm({ initialData, action }: WorkshopFormProps)
           rows={4}
           required
           defaultValue={initialData?.description ?? ''}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+          className="mt-1 block w-full border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
           placeholder="Enter workshop description"
         />
       </div>
 
       {/* Added Label for Date and Time */}
       <div>
-        <label htmlFor="date" className="block text-sm font-medium text-gray-700">
+        <label htmlFor="date" className="block text-sm font-medium text-gray-300">
           Date and Time
         </label>
         <input
@@ -72,13 +72,13 @@ export default function WorkshopForm({ initialData, action }: WorkshopFormProps)
           id="date"
           required // Assuming date is required
           defaultValue={defaultDateValue}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+          className="mt-1 block w-full border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
         />
       </div>
 
        {/* Added Label for Location */}
       <div>
-        <label htmlFor="location" className="block text-sm font-medium text-gray-700">
+        <label htmlFor="location" className="block text-sm font-medium text-gray-300">
           Location
         </label>
         <input
@@ -87,14 +87,14 @@ export default function WorkshopForm({ initialData, action }: WorkshopFormProps)
           id="location"
           required // Assuming location is required
           defaultValue={initialData?.location ?? ''}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+          className="mt-1 block w-full border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
           placeholder="Enter workshop location"
         />
       </div>
 
 
       <div>
-        <label htmlFor="relevant_themes" className="block text-sm font-medium text-gray-700">
+        <label htmlFor="relevant_themes" className="block text-sm font-medium text-gray-300">
           Relevant Themes (JSONB)
         </label>
         <textarea
@@ -103,14 +103,14 @@ export default function WorkshopForm({ initialData, action }: WorkshopFormProps)
           rows={3}
           // Removed required attribute as it might not always be needed
           defaultValue={initialData?.relevant_themes ? JSON.stringify(initialData.relevant_themes, null, 2) : ''}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm font-mono"
+          className="mt-1 block w-full border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm font-mono"
           placeholder='e.g., ["theme-id-1", "theme-id-2"]' // Updated placeholder
         />
         <p className="mt-1 text-xs text-gray-500">Enter as a valid JSON array of theme IDs.</p>
       </div>
 
       <div>
-        <label htmlFor="facilitator" className="block text-sm font-medium text-gray-700">
+        <label htmlFor="facilitator" className="block text-sm font-medium text-gray-300">
           Facilitator (Optional)
         </label>
         <input
@@ -118,13 +118,13 @@ export default function WorkshopForm({ initialData, action }: WorkshopFormProps)
           name="facilitator"
           id="facilitator"
           defaultValue={initialData?.facilitator ?? ''}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+          className="mt-1 block w-full border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
           placeholder="Enter facilitator name"
         />
       </div>
 
       <div>
-        <label htmlFor="max_capacity" className="block text-sm font-medium text-gray-700">
+        <label htmlFor="max_capacity" className="block text-sm font-medium text-gray-300">
           Max Capacity (Optional)
         </label>
         <input
@@ -133,7 +133,7 @@ export default function WorkshopForm({ initialData, action }: WorkshopFormProps)
           id="max_capacity"
           min="1"
           defaultValue={initialData?.max_capacity?.toString() ?? ''} // Convert number to string for defaultValue
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+          className="mt-1 block w-full border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
           placeholder="Enter maximum capacity"
         />
       </div>
@@ -144,7 +144,7 @@ export default function WorkshopForm({ initialData, action }: WorkshopFormProps)
       <div className="flex justify-end">
         <button
           type="submit"
-          className="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+          className="inline-flex justify-center border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
         >
           {initialData ? 'Update Workshop' : 'Save Workshop'}
         </button>

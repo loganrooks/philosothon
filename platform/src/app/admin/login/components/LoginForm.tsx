@@ -18,7 +18,7 @@ function SubmitButton() {
       type="submit"
       aria-disabled={pending}
       disabled={pending}
-      className="mt-4 w-full rounded-md bg-green-600 px-4 py-2 text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50"
+      className="mt-4 w-full bg-green-600 px-4 py-2 text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50"
     >
       {pending ? 'Sending...' : 'Send Magic Link'}
     </button>
@@ -48,7 +48,7 @@ export function LoginForm() {
           name="email"
           type="email"
           required
-          className="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 px-3 py-2 text-white shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
+          className="mt-1 block w-full border-gray-600 bg-gray-700 px-3 py-2 text-white shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
           placeholder="you@example.com"
         />
       </div>

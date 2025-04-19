@@ -46,7 +46,7 @@ export default async function AdminWorkshopsPage() {
         </Link>
       </div>
 
-      <div className="overflow-x-auto rounded shadow">
+      <div className="overflow-x-auto shadow">
         <table className="min-w-full divide-y divide-gray-700 bg-gray-800">
           <thead>
             <tr>

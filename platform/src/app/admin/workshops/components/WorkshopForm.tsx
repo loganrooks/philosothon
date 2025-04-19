@@ -39,7 +39,7 @@ export function WorkshopForm({ action, initialData }: WorkshopFormProps) {
   const isEditing = !!initialData;
 
   return (
-    <form action={formAction} className="space-y-4 rounded bg-gray-800 p-6 shadow">
+    <form action={formAction} className="space-y-4 bg-gray-800 p-6 shadow">
       {/* Hidden input for ID when editing */}
       {initialData?.id && <input type="hidden" name="id" value={initialData.id} />}
 
@@ -53,7 +53,7 @@ export function WorkshopForm({ action, initialData }: WorkshopFormProps) {
           type="text"
           required
           defaultValue={initialData?.title ?? ''}
-          className="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 px-3 py-2 text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+          className="mt-1 block w-full border-gray-600 bg-gray-700 px-3 py-2 text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
           aria-describedby="title-error"
         />
         {state.errors?.title && (
@@ -73,7 +73,7 @@ export function WorkshopForm({ action, initialData }: WorkshopFormProps) {
           name="description"
           rows={4}
           defaultValue={initialData?.description ?? ''}
-          className="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 px-3 py-2 text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+          className="mt-1 block w-full border-gray-600 bg-gray-700 px-3 py-2 text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
           aria-describedby="description-error"
         ></textarea>
          {state.errors?.description && (
@@ -93,7 +93,7 @@ export function WorkshopForm({ action, initialData }: WorkshopFormProps) {
           name="relevant_themes"
           rows={3}
           defaultValue={initialData?.relevant_themes ? JSON.stringify(initialData.relevant_themes, null, 2) : '[]'}
-          className="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 px-3 py-2 font-mono text-sm text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+          className="mt-1 block w-full border-gray-600 bg-gray-700 px-3 py-2 font-mono text-sm text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
           placeholder='["theme_id_1", "theme_id_2"]'
           aria-describedby="relevant_themes-error"
         ></textarea>
@@ -113,7 +113,7 @@ export function WorkshopForm({ action, initialData }: WorkshopFormProps) {
           name="facilitator"
           type="text"
           defaultValue={initialData?.facilitator ?? ''}
-          className="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 px-3 py-2 text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+          className="mt-1 block w-full border-gray-600 bg-gray-700 px-3 py-2 text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
           aria-describedby="facilitator-error"
         />
         {state.errors?.facilitator && (
@@ -133,7 +133,7 @@ export function WorkshopForm({ action, initialData }: WorkshopFormProps) {
           type="number"
            min="0" // Optional: prevent negative numbers
           defaultValue={initialData?.max_capacity ?? ''}
-          className="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 px-3 py-2 text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+          className="mt-1 block w-full border-gray-600 bg-gray-700 px-3 py-2 text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
           aria-describedby="max_capacity-error"
         />
         {state.errors?.max_capacity && (

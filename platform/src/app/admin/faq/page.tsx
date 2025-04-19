@@ -48,7 +48,7 @@ export default async function AdminFaqPage() {
       </div>
 
       {/* TODO: Implement reordering controls if needed */}
-      <div className="overflow-x-auto rounded shadow">
+      <div className="overflow-x-auto shadow">
         <table className="min-w-full divide-y divide-gray-700 bg-gray-800">
           <thead>
             <tr>

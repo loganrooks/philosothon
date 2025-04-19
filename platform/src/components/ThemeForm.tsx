@@ -42,7 +42,7 @@ export default function ThemeForm({ initialData, action }: ThemeFormProps) {
       {initialData?.id && <input type="hidden" name="id" value={initialData.id} />}
 
       <div>
-        <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="title" className="block text-sm font-medium text-gray-300 mb-1">
           Title
         </label>
         <input
@@ -50,14 +50,14 @@ export default function ThemeForm({ initialData, action }: ThemeFormProps) {
           name="title"
           id="title"
           required
-          className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+          className="block w-full px-3 py-2 border border-gray-300 shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
           defaultValue={initialData?.title ?? ''}
           // TODO: Add onChange handler if controlled component is needed
         />
       </div>
 
       <div>
-        <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="description" className="block text-sm font-medium text-gray-300 mb-1">
           Description
         </label>
         <textarea
@@ -65,35 +65,35 @@ export default function ThemeForm({ initialData, action }: ThemeFormProps) {
           id="description"
           rows={4}
           required
-          className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+          className="block w-full px-3 py-2 border border-gray-300 shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
           defaultValue={initialData?.description ?? ''}
           // TODO: Add onChange handler if controlled component is needed
         />
       </div>
 
       <div>
-        <label htmlFor="analytic_tradition" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="analytic_tradition" className="block text-sm font-medium text-gray-300 mb-1">
           Analytic Tradition (Optional)
         </label>
         <textarea
           name="analytic_tradition"
           id="analytic_tradition"
           rows={3}
-          className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+          className="block w-full px-3 py-2 border border-gray-300 shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
           defaultValue={initialData?.analytic_tradition ?? ''}
           // TODO: Add onChange handler if controlled component is needed
         />
       </div>
 
        <div>
-        <label htmlFor="continental_tradition" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="continental_tradition" className="block text-sm font-medium text-gray-300 mb-1">
           Continental Tradition (Optional)
         </label>
         <textarea
           name="continental_tradition"
           id="continental_tradition"
           rows={3}
-          className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+          className="block w-full px-3 py-2 border border-gray-300 shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
           defaultValue={initialData?.continental_tradition ?? ''}
           // TODO: Add onChange handler if controlled component is needed
         />
@@ -102,7 +102,7 @@ export default function ThemeForm({ initialData, action }: ThemeFormProps) {
       <div>
         <button
           type="submit"
-          className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
           // TODO: Add disabled state based on form validity/submission status
         >
           Save Theme
