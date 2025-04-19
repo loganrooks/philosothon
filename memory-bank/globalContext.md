@@ -1,4 +1,4 @@
-# Global Context
+hc# Global Context
 
 This file consolidates less frequently updated global project information, including product goals, architectural patterns, key decisions, and overall progress.
 
@@ -43,6 +43,13 @@ This file consolidates less frequently updated global project information, inclu
 
 ## Architectural Patterns
 
+-   **Authentication & RBAC (V2):** Supabase Auth (Magic Link enhanced with RBAC). Roles managed in `profiles` table, enforced via Middleware and RLS.
+-   **Registration (V2):** Built-in Next.js form using Server Actions, storing extended data in Supabase.
+-   **Content Management (V2):** Core event info and expanded theme descriptions stored in Supabase tables, managed via Admin UI.
+-   **Team Communication (V2):** External platform (Discord/Slack) integrated via Supabase Edge Functions.
+-   **Gamification (V2):** Dedicated MCP Server (AI Agent, State), Vector DB (Philosophical Texts), Supabase (User Progress), Edge Functions (Notifications).
+-   **Submissions (V2):** Supabase Storage with RLS, accessed via dedicated portal UI.
+
 -   **Backend:** Backend-as-a-Service (BaaS) using Supabase.
 -   **Rendering:** Hybrid Rendering (SSG/ISR for public content, SSR for admin, CSR for UI interactions).
 -   **Authentication:** Supabase Auth (Email Magic Link for Admin MVP).
@@ -83,6 +90,73 @@ This file consolidates less frequently updated global project information, inclu
 
 # Decision Log
 ## Decision
+## Decision
+[2025-04-19 04:37:30] Adopt Supabase Profiles Table + Middleware/RLS for RBAC.
+
+## Rationale
+Leverages existing Supabase Auth/DB, centralizes role management (`profiles` table linked to `auth.users`), enables fine-grained control via RLS and route protection via middleware. Initial role assignment manual, future automation possible.
+
+## Implementation Details
+Add `role` enum column to `profiles` table. Implement middleware checks for protected routes. Define RLS policies on relevant tables (submissions, teams, profiles) based on user role.
+
+*
+
+## Decision
+[2025-04-19 04:37:30] Implement Built-in Registration Form with Extended Supabase Schema.
+
+## Rationale
+Replaces Google Forms, keeps data within the platform, enables direct use for team formation/personalization. Aligns with Supabase backend strategy.
+
+## Implementation Details
+Extend `registrations` table or create `registration_details` with new fields (JSONB/arrays/enums as appropriate). Build multi-step form in Next.js using Server Actions.
+
+*
+
+## Decision
+[2025-04-19 04:37:30] Use Supabase Tables for Core Event Info & Expanded Theme Content.
+
+## Rationale
+Confirms spec recommendations (3.3.1 Option A, 3.3.2 Option C). Provides dynamic updates, single source of truth, leverages existing stack.
+
+## Implementation Details
+Create `event_details`, `schedule_items` tables. Add `description_expanded` column to `themes` table. Update admin CRUD and frontend pages accordingly.
+
+*
+
+## Decision
+[2025-04-19 04:37:30] Use External Platform (Discord/Slack) via Edge Functions for V2 Team Communication.
+
+## Rationale
+Fastest implementation, leverages robust existing platforms, aligns with spec recommendation (3.4.2 Option B). Platform-integrated messaging is complex for V2.
+
+## Implementation Details
+Supabase Edge Function triggered on team finalization calls Discord/Slack API (via webhook/bot token) to create channels/groups and invite members.
+
+*
+
+## Decision
+[2025-04-19 04:37:30] Implement Gamification via Dedicated MCP Server + Vector DB + Supabase State.
+
+## Rationale
+Isolates complex logic (AI agent, personalization, state management). Allows specialized tools (LLM, vector DB). Enables independent scaling/development.
+
+## Implementation Details
+Create MCP server (Node/Python) for AI interaction/state. Use Supabase `pgvector` or dedicated vector DB (Pinecone/Weaviate) for philosophical texts. Store user progress in Supabase (`user_puzzle_progress`). Use Edge Functions for notifications. Track user activity via middleware/client events.
+
+*
+
+## Decision
+[2025-04-19 04:37:30] Use Supabase Storage + RLS for Submission Portal.
+
+## Rationale
+Leverages integrated Supabase features for storage and fine-grained access control. Aligns with existing stack.
+
+## Implementation Details
+Create Supabase Storage bucket (`submissions`). Implement RLS policies on bucket/metadata table (`submissions`) based on user roles (Team Member, Judge, Admin). Build UI in `/submit` and `/judge` sections. Use Edge Function for email receipts.
+
+*
+
+
 [2025-04-18 19:20:37] Use Fixed Height + Container Width Control for Google Form Embed.
 
 ## Rationale
