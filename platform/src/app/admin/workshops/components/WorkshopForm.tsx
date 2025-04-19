@@ -2,7 +2,7 @@
 'use client';
 
 import { useFormState, useFormStatus } from 'react-dom';
-import type { Workshop } from '../page'; // Assuming Workshop type is exported from page.tsx
+import type { Workshop } from '@/lib/data/workshops'; // Import type from DAL
 import type { WorkshopFormState } from '../actions'; // Assuming state type is defined in actions.ts
 
 // TODO: Move Workshop interface to a shared types file
@@ -92,14 +92,14 @@ export function WorkshopForm({ action, initialData }: WorkshopFormProps) {
           id="relevant_themes"
           name="relevant_themes"
           rows={3}
-          defaultValue={initialData?.relevant_themes ? JSON.stringify(initialData.relevant_themes, null, 2) : '[]'}
+          defaultValue={initialData?.related_themes ? JSON.stringify(initialData.related_themes, null, 2) : '[]'}
           className="mt-1 block w-full border-gray-600 bg-gray-700 px-3 py-2 font-mono text-sm text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
           placeholder='["theme_id_1", "theme_id_2"]'
           aria-describedby="relevant_themes-error"
         ></textarea>
-         {state.errors?.relevant_themes && (
+         {state.errors?.related_themes && (
           <p id="relevant_themes-error" className="mt-1 text-sm text-red-400">
-             {Array.isArray(state.errors.relevant_themes) ? state.errors.relevant_themes[0] : state.errors.relevant_themes}
+             {Array.isArray(state.errors.related_themes) ? state.errors.related_themes[0] : state.errors.related_themes}
           </p>
         )}
       </div>
@@ -112,37 +112,16 @@ export function WorkshopForm({ action, initialData }: WorkshopFormProps) {
           id="facilitator"
           name="facilitator"
           type="text"
-          defaultValue={initialData?.facilitator ?? ''}
+          defaultValue={initialData?.speaker ?? ''}
           className="mt-1 block w-full border-gray-600 bg-gray-700 px-3 py-2 text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
           aria-describedby="facilitator-error"
         />
-        {state.errors?.facilitator && (
+        {state.errors?.speaker && (
           <p id="facilitator-error" className="mt-1 text-sm text-red-400">
-            {Array.isArray(state.errors.facilitator) ? state.errors.facilitator[0] : state.errors.facilitator}
+            {Array.isArray(state.errors.speaker) ? state.errors.speaker[0] : state.errors.speaker}
           </p>
         )}
       </div>
-
-       <div>
-        <label htmlFor="max_capacity" className="block text-sm font-medium text-gray-300">
-          Max Capacity
-        </label>
-        <input
-          id="max_capacity"
-          name="max_capacity"
-          type="number"
-           min="0" // Optional: prevent negative numbers
-          defaultValue={initialData?.max_capacity ?? ''}
-          className="mt-1 block w-full border-gray-600 bg-gray-700 px-3 py-2 text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-          aria-describedby="max_capacity-error"
-        />
-        {state.errors?.max_capacity && (
-          <p id="max_capacity-error" className="mt-1 text-sm text-red-400">
-            {Array.isArray(state.errors.max_capacity) ? state.errors.max_capacity[0] : state.errors.max_capacity}
-          </p>
-        )}
-      </div>
-
 
       <div className="flex items-center justify-end space-x-3">
          {state.message && !state.success && (
