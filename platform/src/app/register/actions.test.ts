@@ -1,4 +1,4 @@
-import { createRegistration, RegistrationState } from './actions';
+import { createRegistration, RegistrationState } from '@/app/register/actions';
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
@@ -39,39 +39,15 @@ vi.mock('next/headers', () => ({
   })),
 }));
 
-// Mock Zod schema for testing purposes (can refine later)
-const MockRegistrationSchema = z.object({
-  full_name: z.string().min(1),
-  university: z.string().min(1),
-  program: z.string().min(1),
-  year_of_study: z.coerce.number().int().min(1),
-  can_attend_may_3_4: z.enum(['yes', 'no', 'maybe']),
-  may_3_4_comment: z.string().optional(),
-  prior_courses: z.array(z.string()).optional(),
-  familiarity_analytic: z.coerce.number().int().min(1).max(5),
-  familiarity_continental: z.coerce.number().int().min(1).max(5),
-  familiarity_other: z.coerce.number().int().min(1).max(5),
-  areas_of_interest: z.string().optional(),
-  preferred_working_style: z.enum(['structured', 'exploratory', 'balanced']),
-  skill_writing: z.coerce.number().int().min(1).max(5),
-  skill_speaking: z.coerce.number().int().min(1).max(5),
-  skill_research: z.coerce.number().int().min(1).max(5),
-  skill_synthesis: z.coerce.number().int().min(1).max(5),
-  skill_critique: z.coerce.number().int().min(1).max(5),
-  preferred_teammates: z.string().optional(),
-  complementary_perspectives: z.string().optional(),
-  familiarity_tech_concepts: z.coerce.number().int().min(1).max(5),
-  prior_hackathon_experience: z.preprocess((val) => String(val).toLowerCase() === 'true', z.boolean()),
-  prior_hackathon_details: z.string().optional(),
-  accessibility_needs: z.string().optional(),
-});
+// No longer mocking the schema, we rely on the real one imported by the action.
 
-// Helper to create FormData
+// Updated createTestFormData helper
 const createTestFormData = (data: Record<string, any>): FormData => {
   const formData = new FormData();
   for (const key in data) {
     if (Array.isArray(data[key])) {
-        data[key].forEach((value: string) => formData.append(key, value));
+      // Append each value of the array with the same key
+      data[key].forEach((value: string | number | boolean) => formData.append(key, String(value)));
     } else if (data[key] !== undefined && data[key] !== null) {
       formData.append(key, String(data[key]));
     }
@@ -99,26 +75,98 @@ const { fetchRegistrationByUserId: mockFetchReg, insertRegistration: mockInsertR
 describe('createRegistration Server Action', () => {
   let previousState: RegistrationState;
 
-  // Define complete valid data based on the schema in actions.ts
+  // Define complete valid data based on the schema in actions.ts (v1.1)
   const completeValidData = {
-    email: 'test@example.com',
-    full_name: 'Test User',
-    university: 'UofT',
-    program: 'Philosophy',
-    year_of_study: 3,
-    can_attend_may_3_4: 'yes',
-    familiarity_analytic: 3,
+    full_name: 'Valid Test User',
+    email: 'valid@example.com',
+    university: 'University of Testing',
+    program: 'Test Philosophy',
+    year_of_study: 2,
+    can_attend_may_3_4: 'yes' as const, // Use const for enum type safety
+    may_3_4_comment: '',
+    prior_courses: ['PHI101', 'PHI202'],
+    discussion_confidence: 7,
+    writing_confidence: 8,
+    familiarity_analytic: 4,
     familiarity_continental: 3,
-    familiarity_other: 1,
-    preferred_working_style: 'balanced',
+    familiarity_other: 2,
+    philosophical_traditions: ['Analytic', 'Continental'],
+    philosophical_interests: ['Ethics', 'Metaphysics'],
+    areas_of_interest: 'AI Ethics',
+    theme_rankings: JSON.stringify([
+      { rank: 1, theme_id: 't1' }, { rank: 2, theme_id: 't2' },
+      { rank: 3, theme_id: 't3' }, { rank: 4, theme_id: 't4' },
+      { rank: 5, theme_id: 't5' }, { rank: 6, theme_id: 't6' },
+      { rank: 7, theme_id: 't7' }, { rank: 8, theme_id: 't8' },
+    ]),
+    theme_suggestion: '',
+    workshop_rankings: JSON.stringify([
+      { rank: 1, workshop_id: 'w1' }, { rank: 2, workshop_id: 'w2' },
+      { rank: 3, workshop_id: 'w3' }, { rank: 4, workshop_id: 'w4' },
+      { rank: 5, workshop_id: 'w5' }, { rank: 6, workshop_id: 'w6' },
+      { rank: 7, workshop_id: 'w7' }, { rank: 8, workshop_id: 'w8' },
+    ]), // Rank all 8 for simplicity, meets min 3 requirement
+    preferred_working_style: 'balanced' as const,
+    teammate_similarity: 5,
+    skill_writing: 4,
+    skill_speaking: 3,
+    skill_research: 4,
+    skill_synthesis: 3,
+    skill_critique: 4,
+    mentorship_preference: 'no_preference' as const,
+    mentorship_areas: '',
+    preferred_teammates: '',
+    complementary_perspectives: '',
+    familiarity_tech_concepts: 2,
+    prior_hackathon_experience: 'false', // Use string for FormData
+    prior_hackathon_details: '',
+    dietary_restrictions: 'None',
+    accessibility_needs: 'None',
+    additional_notes: '',
+    how_heard: 'professor' as const,
+    how_heard_other: '',
+  };
+
+  // Expected data structure after Zod parsing and before DB insertion
+  // (used for checking mockInsertReg calls)
+  const expectedParsedData = {
+    ...completeValidData,
+    // Zod coerces these to numbers
+    year_of_study: 2,
+    discussion_confidence: 7,
+    writing_confidence: 8,
+    familiarity_analytic: 4,
+    familiarity_continental: 3,
+    familiarity_other: 2,
+    teammate_similarity: 5,
     skill_writing: 4,
     skill_speaking: 3,
     skill_research: 4,
     skill_synthesis: 3,
     skill_critique: 4,
     familiarity_tech_concepts: 2,
+    // Zod transforms these JSON strings into objects/arrays
+    theme_rankings: JSON.parse(completeValidData.theme_rankings),
+    workshop_rankings: JSON.parse(completeValidData.workshop_rankings),
+    // Zod preprocesses this to boolean
     prior_hackathon_experience: false,
-    // Optional fields can be omitted or added as needed
+    // Ensure arrays are present
+    prior_courses: ['PHI101', 'PHI202'],
+    philosophical_traditions: ['Analytic', 'Continental'],
+    philosophical_interests: ['Ethics', 'Metaphysics'],
+    // Optional fields provided as empty strings in completeValidData remain empty strings
+    may_3_4_comment: '',
+    theme_suggestion: '',
+    mentorship_areas: '',
+    preferred_teammates: '',
+    complementary_perspectives: '',
+    prior_hackathon_details: '',
+    dietary_restrictions: 'None', // Provided
+    accessibility_needs: 'None', // Provided
+    additional_notes: '',
+    how_heard_other: '',
+    // Optional enum defaults if not provided
+    mentorship_preference: 'no_preference',
   };
 
 
@@ -145,7 +193,7 @@ describe('createRegistration Server Action', () => {
     // TDD Anchor: Test invalid email submission.
     // Explicitly mock getSession for this case as no session is expected
     vi.mocked(mockSupabaseClient.auth.getSession).mockResolvedValue({ data: { session: null }, error: null });
-    // Use complete data but override email *after* spreading
+    // Use complete data but override email
     const formData = createTestFormData({ ...completeValidData, email: 'invalid-email' });
     const result = await createRegistration(previousState, formData);
     expect(result.success).toBe(false);
@@ -158,7 +206,7 @@ describe('createRegistration Server Action', () => {
        data: { session: { user: { id: 'user-123', email: 'logged-in@example.com' } } } as any,
        error: null,
      });
-     // Use complete valid data, overriding only the email
+     // Use complete valid data, overriding email
      const formData = createTestFormData({ ...completeValidData, email: 'different@example.com' });
      const result = await createRegistration(previousState, formData);
      expect(result.success).toBe(false);
@@ -169,14 +217,14 @@ describe('createRegistration Server Action', () => {
   it('should return error if logged-in user is already registered', async () => {
     // TDD Anchor: Test handling when logged-in user has already registered.
     vi.mocked(mockSupabaseClient.auth.getSession).mockResolvedValue({
-      data: { session: { user: { id: 'user-123', email: 'test@example.com' } } } as any,
+      data: { session: { user: { id: 'user-123', email: 'valid@example.com' } } } as any, // Use valid email
       error: null,
     });
     // Mock the DAL function to return an existing registration
     mockFetchReg.mockResolvedValue({ registration: { id: 'reg-456' } as any, error: null });
 
    // Use complete valid data
-   const formData = createTestFormData({ ...completeValidData, email: 'test@example.com' });
+   const formData = createTestFormData({ ...completeValidData }); // Email matches session
    const result = await createRegistration(previousState, formData);
    expect(result.success).toBe(false);
     expect(result.message).toContain('You have already registered');
@@ -185,14 +233,14 @@ describe('createRegistration Server Action', () => {
    it('should return error on database error checking existing registration', async () => {
      // TDD Anchor: Test handling of database error during existing registration check (logged-in).
      vi.mocked(mockSupabaseClient.auth.getSession).mockResolvedValue({
-       data: { session: { user: { id: 'user-123', email: 'test@example.com' } } } as any,
+       data: { session: { user: { id: 'user-123', email: 'valid@example.com' } } } as any, // Use valid email
        error: null,
      });
     // Mock the DAL function to return an error
     mockFetchReg.mockResolvedValue({ registration: null, error: new Error('DB check failed') });
 
     // Use complete valid data
-    const formData = createTestFormData({ ...completeValidData, email: 'test@example.com' });
+    const formData = createTestFormData({ ...completeValidData }); // Email matches session
     const result = await createRegistration(previousState, formData);
     expect(result.success).toBe(false);
      expect(result.message).toContain('Database error checking registration status');
@@ -203,14 +251,18 @@ describe('createRegistration Server Action', () => {
     vi.mocked(mockSupabaseClient.auth.getSession).mockResolvedValue({ data: { session: null }, error: null }); // No session
     vi.mocked(mockSupabaseClient.auth.signInWithOtp).mockResolvedValue({ data: {}, error: null }); // Assume OTP sent
 
-    const formData = createTestFormData({ email: 'new@example.com' /* Missing required fields */ });
+    // Create data missing a required field (e.g., university) by omitting it
+    const { university, ...incompleteData } = completeValidData;
+    const formData = createTestFormData(incompleteData);
     const result = await createRegistration(previousState, formData);
 
     expect(result.success).toBe(false);
     expect(result.message).toContain('Validation failed');
     expect(result.errors).toBeDefined();
-    expect(result.errors?.full_name).toBeDefined(); // Example required field
-    expect(result.errors?.university).toBeDefined(); // Example required field
+    // Expect the *first* validation error based on the schema order
+    expect(result.errors?.university).toBeDefined();
+    // Optionally check that other errors are NOT present if university is the first failure
+    // expect(result.errors?.full_name).toBeUndefined();
   });
 
   it('should return error on Supabase sign-up failure', async () => {
@@ -220,7 +272,7 @@ describe('createRegistration Server Action', () => {
       data: {},
       error: new Error('Supabase OTP error'), // Simulate sign-up error
     });
-    // Use complete valid data, overriding only the email
+    // Use complete valid data, overriding email
     const formData = createTestFormData({ ...completeValidData, email: 'new@example.com' });
     const result = await createRegistration(previousState, formData);
     expect(result.success).toBe(false);
@@ -233,7 +285,7 @@ describe('createRegistration Server Action', () => {
 
     // --- Specific Mocks for this Test ---
      vi.mocked(mockSupabaseClient.auth.getSession).mockResolvedValue({ // Mock successful session
-       data: { session: { user: { id: 'user-123', email: 'test@example.com' } } } as any,
+       data: { session: { user: { id: 'user-123', email: 'valid@example.com' } } } as any, // Use valid email
        error: null,
      });
 
@@ -243,8 +295,8 @@ describe('createRegistration Server Action', () => {
      // --- End Specific Mocks ---
 
 
-    // Use the predefined completeValidData
-    const validData = { ...completeValidData };
+    // Use the updated completeValidData
+    const validData = { ...completeValidData }; // Email matches session
     const formData = createTestFormData(validData);
     const result = await createRegistration(previousState, formData);
 
@@ -261,7 +313,7 @@ describe('createRegistration Server Action', () => {
     // TDD Anchor: Test correct redirect path based on logged-in user.
      const userId = 'user-123';
      vi.mocked(mockSupabaseClient.auth.getSession).mockResolvedValue({
-       data: { session: { user: { id: userId, email: 'test@example.com' } } } as any,
+       data: { session: { user: { id: userId, email: 'valid@example.com' } } } as any, // Use valid email
        error: null,
      });
      // Mock DAL functions for successful path
@@ -269,13 +321,14 @@ describe('createRegistration Server Action', () => {
      mockInsertReg.mockResolvedValue({ registration: { id: 'new-reg-id' } as any, error: null }); // Successful insert
 
 
-    // Use the predefined completeValidData
-    const validData = { ...completeValidData };
+    // Use the updated completeValidData
+    const validData = { ...completeValidData }; // Email matches session
     const formData = createTestFormData(validData);
     await createRegistration(previousState, formData);
 
+    // Check against the expected parsed data structure
     expect(mockInsertReg).toHaveBeenCalledWith(
-      expect.objectContaining({ ...validData, user_id: userId }) // Check if user_id is included
+      expect.objectContaining({ ...expectedParsedData, user_id: userId })
     );
     expect(revalidatePath).toHaveBeenCalledWith('/admin/registrations');
     expect(redirect).toHaveBeenCalledWith('/register/success');
@@ -290,13 +343,14 @@ describe('createRegistration Server Action', () => {
     mockInsertReg.mockResolvedValue({ registration: { id: 'new-reg-id-2' } as any, error: null });
 
 
-    // Use the predefined completeValidData, overriding email
-    const validData = { ...completeValidData, email: 'new@example.com', full_name: 'New User' };
+    // Use the updated completeValidData, overriding email
+    const validData = { ...completeValidData, email: 'new@example.com' };
     const formData = createTestFormData(validData);
     await createRegistration(previousState, formData);
 
+    // Check against the expected parsed data structure, ensuring user_id is null/undefined
     expect(mockInsertReg).toHaveBeenCalledWith(
-      expect.objectContaining({ ...validData, email: 'new@example.com', user_id: undefined }) // Check user_id is NOT included initially
+      expect.objectContaining({ ...expectedParsedData, email: 'new@example.com', user_id: null })
     );
     expect(revalidatePath).toHaveBeenCalledWith('/admin/registrations');
     expect(redirect).toHaveBeenCalledWith('/register/pending');
