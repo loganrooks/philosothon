@@ -1,21 +1,26 @@
-import { createRegistration, RegistrationState } from './actions'; // Action doesn't exist yet
-import { createClient } from '@/lib/supabase/server'; // Corrected import name
+import { createRegistration, RegistrationState } from './actions';
+import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { headers } from 'next/headers';
-import { z } from 'zod'; // Assuming Zod is used as per spec
-import { SupabaseClient } from '@supabase/supabase-js'; // Import type for casting
+import { z } from 'zod';
+import { SupabaseClient } from '@supabase/supabase-js';
 
 // --- Mocks ---
-// Mock the module containing createClient
+// Mock the module containing createClient (still needed for getSession, signInWithOtp)
 vi.mock('@/lib/supabase/server', async (importOriginal) => {
-  const actual = await importOriginal() as any; // Import actual module if needed, cast to any
-  // Return an object where createClient is the mock function
+  const actual = await importOriginal() as any;
   return {
-    ...actual, // Spread actual exports if needed
-    createClient: vi.fn(), // This is the function we will configure in beforeEach
+    ...actual,
+    createClient: vi.fn(),
   };
 });
+
+// Mock the DAL module for registrations
+vi.mock('@/lib/data/registrations', () => ({
+  fetchRegistrationByUserId: vi.fn(),
+  insertRegistration: vi.fn(),
+}));
 
 vi.mock('next/cache', () => ({
   revalidatePath: vi.fn(),
@@ -35,7 +40,6 @@ vi.mock('next/headers', () => ({
 }));
 
 // Mock Zod schema for testing purposes (can refine later)
-// Define this *outside* the describe block
 const MockRegistrationSchema = z.object({
   full_name: z.string().min(1),
   university: z.string().min(1),
@@ -63,7 +67,6 @@ const MockRegistrationSchema = z.object({
 });
 
 // Helper to create FormData
-// Define this *outside* the describe block
 const createTestFormData = (data: Record<string, any>): FormData => {
   const formData = new FormData();
   for (const key in data) {
@@ -80,18 +83,44 @@ const createTestFormData = (data: Record<string, any>): FormData => {
 const mockedCreateClient = vi.mocked(createClient);
 
 // Define the structure of the mock client object returned by the mocked function
-// Define this *outside* the describe block
 const mockSupabaseClient = {
     auth: {
       getSession: vi.fn(),
       signInWithOtp: vi.fn(),
     },
-    from: vi.fn(), // Initialize 'from' as a simple mock function here
+    // Remove 'from' property as it's no longer mocked
 };
+
+// Import mocked DAL functions at the top level
+const { fetchRegistrationByUserId: mockFetchReg, insertRegistration: mockInsertReg } =
+  vi.mocked(await import('@/lib/data/registrations'));
 
 
 describe('createRegistration Server Action', () => {
   let previousState: RegistrationState;
+
+  // Define complete valid data based on the schema in actions.ts
+  const completeValidData = {
+    email: 'test@example.com',
+    full_name: 'Test User',
+    university: 'UofT',
+    program: 'Philosophy',
+    year_of_study: 3,
+    can_attend_may_3_4: 'yes',
+    familiarity_analytic: 3,
+    familiarity_continental: 3,
+    familiarity_other: 1,
+    preferred_working_style: 'balanced',
+    skill_writing: 4,
+    skill_speaking: 3,
+    skill_research: 4,
+    skill_synthesis: 3,
+    skill_critique: 4,
+    familiarity_tech_concepts: 2,
+    prior_hackathon_experience: false,
+    // Optional fields can be omitted or added as needed
+  };
+
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -102,20 +131,9 @@ describe('createRegistration Server Action', () => {
     vi.mocked(mockSupabaseClient.auth.getSession).mockReset();
     vi.mocked(mockSupabaseClient.auth.signInWithOtp).mockReset();
 
-    // Reset the 'from' mock and provide a default implementation
-    const fromMock = vi.mocked(mockSupabaseClient.from);
-    fromMock.mockReset();
-
-    // Default implementation for 'from' returning chainable mocks
-    const defaultInsertMock = vi.fn().mockResolvedValue({ error: null });
-    const defaultMaybeSingleMock = vi.fn().mockResolvedValue({ data: null, error: null });
-    const defaultEqMock = vi.fn(() => ({ maybeSingle: defaultMaybeSingleMock }));
-    const defaultSelectMock = vi.fn(() => ({ eq: defaultEqMock }));
-
-    fromMock.mockImplementation(() => ({
-        select: defaultSelectMock,
-        insert: defaultInsertMock,
-    }) as any); // Use 'as any' to simplify typing
+    // Reset DAL mocks
+    mockFetchReg.mockReset();
+    mockInsertReg.mockReset();
 
 
     previousState = { success: false, message: null, errors: {} }; // Reset state
@@ -125,8 +143,10 @@ describe('createRegistration Server Action', () => {
 
   it('should return error for invalid email submission', async () => {
     // TDD Anchor: Test invalid email submission.
-    const formData = createTestFormData({ email: 'invalid-email' });
-    // Action doesn't exist yet, this test *should* fail at runtime
+    // Explicitly mock getSession for this case as no session is expected
+    vi.mocked(mockSupabaseClient.auth.getSession).mockResolvedValue({ data: { session: null }, error: null });
+    // Use complete data but override email *after* spreading
+    const formData = createTestFormData({ ...completeValidData, email: 'invalid-email' });
     const result = await createRegistration(previousState, formData);
     expect(result.success).toBe(false);
     expect(result.message).toContain('Invalid email address');
@@ -138,7 +158,8 @@ describe('createRegistration Server Action', () => {
        data: { session: { user: { id: 'user-123', email: 'logged-in@example.com' } } } as any,
        error: null,
      });
-     const formData = createTestFormData({ email: 'different@example.com', full_name: 'Test' /* ... other valid fields */ });
+     // Use complete valid data, overriding only the email
+     const formData = createTestFormData({ ...completeValidData, email: 'different@example.com' });
      const result = await createRegistration(previousState, formData);
      expect(result.success).toBe(false);
      expect(result.message).toContain('Email does not match logged-in user');
@@ -151,20 +172,13 @@ describe('createRegistration Server Action', () => {
       data: { session: { user: { id: 'user-123', email: 'test@example.com' } } } as any,
       error: null,
     });
-    // Setup the specific mock response for this test case using mockImplementationOnce
-    const specificMaybeSingleMock = vi.fn().mockResolvedValue({ data: { id: 'reg-456' }, error: null }); // Simulate existing registration
-    vi.mocked(mockSupabaseClient.from).mockImplementationOnce(() => ({
-        select: vi.fn(() => ({
-            eq: vi.fn(() => ({
-                maybeSingle: specificMaybeSingleMock
-            }))
-        })),
-        insert: vi.fn(), // Include insert for type compatibility
-    }) as any);
+    // Mock the DAL function to return an existing registration
+    mockFetchReg.mockResolvedValue({ registration: { id: 'reg-456' } as any, error: null });
 
-    const formData = createTestFormData({ email: 'test@example.com', full_name: 'Test' /* ... other valid fields */ });
-    const result = await createRegistration(previousState, formData);
-    expect(result.success).toBe(false);
+   // Use complete valid data
+   const formData = createTestFormData({ ...completeValidData, email: 'test@example.com' });
+   const result = await createRegistration(previousState, formData);
+   expect(result.success).toBe(false);
     expect(result.message).toContain('You have already registered');
   });
 
@@ -174,20 +188,13 @@ describe('createRegistration Server Action', () => {
        data: { session: { user: { id: 'user-123', email: 'test@example.com' } } } as any,
        error: null,
      });
-     // Setup the specific mock response for this test case
-     const specificMaybeSingleErrorMock = vi.fn().mockResolvedValue({ data: null, error: new Error('DB check failed') }); // Simulate DB error
-     vi.mocked(mockSupabaseClient.from).mockImplementationOnce(() => ({
-        select: vi.fn(() => ({
-            eq: vi.fn(() => ({
-                maybeSingle: specificMaybeSingleErrorMock
-            }))
-        })),
-        insert: vi.fn(),
-     }) as any);
+    // Mock the DAL function to return an error
+    mockFetchReg.mockResolvedValue({ registration: null, error: new Error('DB check failed') });
 
-     const formData = createTestFormData({ email: 'test@example.com', full_name: 'Test' /* ... other valid fields */ });
-     const result = await createRegistration(previousState, formData);
-     expect(result.success).toBe(false);
+    // Use complete valid data
+    const formData = createTestFormData({ ...completeValidData, email: 'test@example.com' });
+    const result = await createRegistration(previousState, formData);
+    expect(result.success).toBe(false);
      expect(result.message).toContain('Database error checking registration status');
    });
 
@@ -213,7 +220,8 @@ describe('createRegistration Server Action', () => {
       data: {},
       error: new Error('Supabase OTP error'), // Simulate sign-up error
     });
-    const formData = createTestFormData({ email: 'new@example.com', full_name: 'Test' /* ... other valid fields */ });
+    // Use complete valid data, overriding only the email
+    const formData = createTestFormData({ ...completeValidData, email: 'new@example.com' });
     const result = await createRegistration(previousState, formData);
     expect(result.success).toBe(false);
     expect(result.message).toContain('Could not initiate sign-up: Supabase OTP error');
@@ -222,43 +230,27 @@ describe('createRegistration Server Action', () => {
 
   it('should return error on database insertion failure', async () => {
     // TDD Anchor: Test database insertion error handling.
-     vi.mocked(mockSupabaseClient.auth.getSession).mockResolvedValue({
+
+    // --- Specific Mocks for this Test ---
+     vi.mocked(mockSupabaseClient.auth.getSession).mockResolvedValue({ // Mock successful session
        data: { session: { user: { id: 'user-123', email: 'test@example.com' } } } as any,
        error: null,
      });
-     // Ensure maybeSingle resolves successfully, but insert fails
-     const insertFailMock = vi.fn().mockResolvedValue({ error: new Error('DB insert failed') });
-     vi.mocked(mockSupabaseClient.from).mockImplementationOnce(() => ({
-        select: vi.fn(() => ({
-            eq: vi.fn(() => ({
-                maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }) // No existing registration
-            }))
-        })),
-        insert: insertFailMock, // Simulate insert error
-     }) as any);
+
+     // Mock DAL functions for this specific scenario
+     mockFetchReg.mockResolvedValue({ registration: null, error: null }); // No existing registration
+     mockInsertReg.mockResolvedValue({ registration: null, error: new Error('DB insert failed') }); // Insert fails
+     // --- End Specific Mocks ---
 
 
-    const validData = {
-      email: 'test@example.com',
-      full_name: 'Test User',
-      university: 'UofT',
-      program: 'Philosophy',
-      year_of_study: 3,
-      can_attend_may_3_4: 'yes',
-      familiarity_analytic: 3,
-      familiarity_continental: 3,
-      familiarity_other: 1,
-      preferred_working_style: 'balanced',
-      skill_writing: 4,
-      skill_speaking: 3,
-      skill_research: 4,
-      skill_synthesis: 3,
-      skill_critique: 4,
-      familiarity_tech_concepts: 2,
-      prior_hackathon_experience: false,
-    };
+    // Use the predefined completeValidData
+    const validData = { ...completeValidData };
     const formData = createTestFormData(validData);
     const result = await createRegistration(previousState, formData);
+
+    // Add a check to ensure result is defined before accessing properties
+    expect(result).toBeDefined();
+    if (!result) return; // Guard clause for type safety
 
     expect(result.success).toBe(false);
     expect(result.message).toContain('Database Error: Failed to save registration. DB insert failed');
@@ -272,41 +264,17 @@ describe('createRegistration Server Action', () => {
        data: { session: { user: { id: userId, email: 'test@example.com' } } } as any,
        error: null,
      });
-     // Setup mocks for successful path (rely on default beforeEach setup for maybeSingle)
-     const insertMock = vi.fn().mockResolvedValue({ error: null });
-     vi.mocked(mockSupabaseClient.from).mockImplementation(() => ({ // Ensure insert uses the specific mock
-        select: vi.fn(() => ({
-            eq: vi.fn(() => ({
-                maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }) // Default maybeSingle
-            }))
-        })),
-        insert: insertMock,
-     }) as any);
+     // Mock DAL functions for successful path
+     mockFetchReg.mockResolvedValue({ registration: null, error: null }); // No existing registration
+     mockInsertReg.mockResolvedValue({ registration: { id: 'new-reg-id' } as any, error: null }); // Successful insert
 
 
-    const validData = {
-      email: 'test@example.com',
-      full_name: 'Test User',
-      university: 'UofT',
-      program: 'Philosophy',
-      year_of_study: 3,
-      can_attend_may_3_4: 'yes',
-      familiarity_analytic: 3,
-      familiarity_continental: 3,
-      familiarity_other: 1,
-      preferred_working_style: 'balanced',
-      skill_writing: 4,
-      skill_speaking: 3,
-      skill_research: 4,
-      skill_synthesis: 3,
-      skill_critique: 4,
-      familiarity_tech_concepts: 2,
-      prior_hackathon_experience: false,
-    };
+    // Use the predefined completeValidData
+    const validData = { ...completeValidData };
     const formData = createTestFormData(validData);
     await createRegistration(previousState, formData);
 
-    expect(insertMock).toHaveBeenCalledWith(
+    expect(mockInsertReg).toHaveBeenCalledWith(
       expect.objectContaining({ ...validData, user_id: userId }) // Check if user_id is included
     );
     expect(revalidatePath).toHaveBeenCalledWith('/admin/registrations');
@@ -318,37 +286,16 @@ describe('createRegistration Server Action', () => {
     // TDD Anchor: Test correct redirect path based on new user.
     vi.mocked(mockSupabaseClient.auth.getSession).mockResolvedValue({ data: { session: null }, error: null }); // No session
     vi.mocked(mockSupabaseClient.auth.signInWithOtp).mockResolvedValue({ data: {}, error: null }); // Assume OTP sent
-    // Setup mocks for successful path
-    const insertMock = vi.fn().mockResolvedValue({ error: null });
-    vi.mocked(mockSupabaseClient.from).mockImplementation(() => ({ // Ensure insert uses the specific mock
-        insert: insertMock,
-        select: vi.fn(), // Add select for type compatibility if needed by other parts of the mock type
-    }) as any);
+    // Mock DAL function for successful insert
+    mockInsertReg.mockResolvedValue({ registration: { id: 'new-reg-id-2' } as any, error: null });
 
 
-    const validData = {
-      email: 'new@example.com',
-      full_name: 'New User',
-      university: 'UofT',
-      program: 'CS',
-      year_of_study: 1,
-      can_attend_may_3_4: 'no',
-      familiarity_analytic: 1,
-      familiarity_continental: 1,
-      familiarity_other: 1,
-      preferred_working_style: 'structured',
-      skill_writing: 2,
-      skill_speaking: 2,
-      skill_research: 2,
-      skill_synthesis: 2,
-      skill_critique: 2,
-      familiarity_tech_concepts: 1,
-      prior_hackathon_experience: false,
-    };
+    // Use the predefined completeValidData, overriding email
+    const validData = { ...completeValidData, email: 'new@example.com', full_name: 'New User' };
     const formData = createTestFormData(validData);
     await createRegistration(previousState, formData);
 
-    expect(insertMock).toHaveBeenCalledWith(
+    expect(mockInsertReg).toHaveBeenCalledWith(
       expect.objectContaining({ ...validData, email: 'new@example.com', user_id: undefined }) // Check user_id is NOT included initially
     );
     expect(revalidatePath).toHaveBeenCalledWith('/admin/registrations');

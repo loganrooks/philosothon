@@ -1,5 +1,47 @@
 # TDD Specific Memory
 
+### Test Execution: P0 Registration Green/Refactor Phase - [2025-04-19 10:09:32]
+- **Trigger**: Manual (Post-Code Change - Implemented component/action, refactored to DAL)
+- **Outcome**: PASS / **Summary**: 70 tests passed
+- **Failed Tests**: None
+- **Notes**: All tests in `RegistrationForm.test.tsx` and `actions.test.ts` now pass after implementing minimal code and refactoring action to use DAL.
+
+
+### Test Execution: Regression Run Post-RLS Migration - [2025-04-19 09:26:10]
+### Test Execution: P0 Registration Red Phase - [2025-04-19 09:43:04]
+- **Trigger**: Manual (Post-Code Change - Added failing tests)
+- **Outcome**: FAIL / **Summary**: 2 files failed (RegistrationForm.test.tsx, actions.test.ts), 51 passed, 3 skipped
+- **Failed Tests**:
+    - `src/app/register/components/RegistrationForm.test.tsx`: Failed to resolve import "./RegistrationForm"
+    - `src/app/register/actions.test.ts`: Failed to resolve import "./actions"
+- **Skipped Tests**:
+    - `src/components/Countdown.test.tsx` (3 tests): Known issue (timers/async - Task 20).
+- **Notes**: Tests fail as expected due to missing component/action files. Confirmed Red phase status.
+
+
+- **Trigger**: Manual (Post-Code Change - Applied RLS migration `20250419131936_create_p0_rls_policies.sql`)
+- **Outcome**: PASS (with known exceptions) / **Summary**: 211 tests passed, 3 skipped
+- **Failed Tests**: None
+- **Skipped Tests**:
+    - `src/components/Countdown.test.tsx` (3 tests): Known issue (timers/async - Task 20).
+- **Notes**: Confirmed that applying the RLS policies and adding the `get_my_role()` helper function did not introduce any new regressions. Test suite remains stable.
+
+
+### Test Execution: RLS Policy Verification (Mocked DAL) - [2025-04-19 09:25:03]
+- **Trigger**: Manual (Post-Code Change - Applied RLS migration `20250419131936_create_p0_rls_policies.sql`)
+- **Outcome**: PASS / **Summary**: 5 tests passed
+- **Failed Tests**: None
+- **Notes**: Tests in `src/lib/supabase/rls.test.ts` passed as expected. These tests verify the mocked DAL behavior and confirm the migration application didn't break the test setup, but do not directly test the RLS policies against the database.
+
+
+### TDD Cycle: P0 RLS Policies (Profiles, Themes, Workshops, FAQ) - [2025-04-19 09:27:03]
+- **Red**: Attempted to verify failing tests in `rls.test.ts`. Tests passed unexpectedly due to reliance on DAL mocks.
+- **Green**: Read `p0_rbac_spec.md`. Created migration `20250419131936_create_p0_rls_policies.sql`. Wrote SQL policies for `profiles`, `themes`, `workshops`, `faq_items` including `get_my_role()` helper. Applied migration via `supabase db push` (succeeded on retry after network error).
+- **Refactor**: N/A.
+- **Outcome**: RLS policies implemented via migration. Unit tests (`rls.test.ts`) pass (verifying mocks). Full regression suite passes. Migration committed. **Note:** RLS effectiveness requires integration testing.
+
+
+
 ### Test Execution: P0 Auth/RBAC Red Phase - [2025-04-19 05:35:34]
 - **Trigger**: Manual (Post-Code Change - Added failing tests for Middleware RBAC, RLS, Profile Creation)
 - **Outcome**: FAIL / **Summary**: 207 tests passed, 7 failed, 3 skipped
@@ -13,6 +55,28 @@
 
 ## Test Plans (Driving Implementation)
 ### Test Execution: Regression Run Post-Downgrade (Task 18) - [2025-04-18 16:08:45]
+### Test Plan: P0 Registration System - [2025-04-19 09:32:05]
+- **Objective**: Drive implementation of the built-in registration form and server action based on `docs/specs/p0_registration_spec.md`.
+- **Scope**: `RegistrationForm.tsx` component (multi-step logic, field rendering, client validation, state management, action call) and `createRegistration` server action (server validation, user handling, DB interaction, email trigger).
+- **Test Cases (Component - Red Phase)**:
+    - Case 1 (Failing): `RegistrationForm.test.tsx` - Renders step 1 fields / Expected: Fields present / Status: Red (Component not found)
+    - Case 2 (Failing): `RegistrationForm.test.tsx` - Updates state on input change / Expected: State updated / Status: Red (Component not found)
+    - Case 3 (Failing): `RegistrationForm.test.tsx` - Navigates to next step / Expected: Step 2 fields rendered / Status: Red (Component not found)
+    - Case 4 (Failing): `RegistrationForm.test.tsx` - Navigates to previous step / Expected: Step 1 fields rendered / Status: Red (Component not found)
+    - Case 5 (Failing): `RegistrationForm.test.tsx` - Shows submit button only on last step / Expected: Button present/absent / Status: Red (Component not found)
+- **Test Cases (Server Action - Red Phase)**:
+    - Case 1 (Failing): `actions.test.ts` - Invalid email returns error / Expected: `success: false`, error message / Status: Red (Action not found)
+    - Case 2 (Failing): `actions.test.ts` - Logged-in user, different email returns error / Expected: `success: false`, error message / Status: Red (Action not found)
+    - Case 3 (Failing): `actions.test.ts` - Logged-in user, already registered returns error / Expected: `success: false`, error message / Status: Red (Action not found)
+    - Case 4 (Failing): `actions.test.ts` - DB error checking registration returns error / Expected: `success: false`, error message / Status: Red (Action not found)
+    - Case 5 (Failing): `actions.test.ts` - Missing required fields returns validation errors / Expected: `success: false`, `errors` object populated / Status: Red (Action not found)
+    - Case 6 (Failing): `actions.test.ts` - Supabase sign-up error returns error / Expected: `success: false`, error message / Status: Red (Action not found)
+    - Case 7 (Failing): `actions.test.ts` - DB insertion error returns error / Expected: `success: false`, error message / Status: Red (Action not found)
+    - Case 8 (Failing): `actions.test.ts` - Logged-in user success calls insert/redirect / Expected: `insert`, `redirect('/register/success')` called / Status: Red (Action not found)
+    - Case 9 (Failing): `actions.test.ts` - New user success calls insert/redirect / Expected: `insert`, `redirect('/register/pending')` called / Status: Red (Action not found)
+- **Related Requirements**: `docs/specs/p0_registration_spec.md`
+
+
 - **Trigger**: Manual (Post-Code Change by 'code' mode - Task 17, Dependency Downgrade)
 - **Outcome**: PASS (with known exceptions) / **Summary**: 199 tests passed, 7 failed
 - **Failed Tests**:
@@ -58,6 +122,31 @@
 
 
 ## Test Execution Results
+### Test Execution: P0 Content Management Red Phase - [2025-04-19 10:22:52]
+- **Trigger**: Manual (Post-Code Change - Added/Updated failing tests)
+- **Outcome**: FAIL / **Summary**: 223 tests passed, 8 failed, 3 skipped
+- **Failed Tests**:
+    - `src/app/admin/schedule/actions.test.ts`: Failed to resolve import "./actions" (Expected)
+    - `src/app/admin/settings/actions.test.ts`: Failed to resolve import "./actions" (Expected)
+    - `src/app/admin/schedule/components/ScheduleForm.test.tsx`: Failed to resolve import "./ScheduleForm" (Expected)
+    - `src/app/admin/schedule/components/ScheduleList.test.tsx`: Failed to resolve import "./ScheduleList" (Expected)
+    - `src/app/admin/settings/components/SettingsForm.test.tsx`: Failed to resolve import "./SettingsForm" (Expected)
+    - `src/components/ScheduleDisplay.test.tsx` (4 tests): Failed due to missing component/elements (Expected)
+    - `src/app/themes/[id]/page.test.tsx` (1 test): Failed assertion `expect(container.querySelector('.prose')).toBeNull()` (Expected - component renders prose unconditionally)
+    - `src/app/admin/themes/components/ThemeForm.test.tsx` (2 tests): Failed to find label `/Expanded Description/i` (Expected - component not updated)
+- **Skipped Tests**:
+    - `src/components/Countdown.test.tsx` (3 tests): Known issue (timers/async - Task 20).
+- **Notes**: Most failures are expected due to missing components/actions for the Red phase. Test for basic description rendering in theme detail page was fixed.
+
+
+
+### Test Execution: P0 Registration Verification - [2025-04-19 10:13:17]
+- **Trigger**: Manual (Verification for Green Phase Task)
+- **Outcome**: PASS / **Summary**: 14 tests passed (RegistrationForm.test.tsx: 5, actions.test.ts: 9)
+- **Failed Tests**: None
+- **Notes**: Verified that tests for the P0 Registration System are still passing, confirming previous completion of Green/Refactor phases. No regressions detected.
+
+
 ### Test Execution: Profile Creation Green Phase - [2025-04-19 06:30:10]
 - **Trigger**: Manual (Post-Code Change - Updated test mock/assertion)
 - **Outcome**: PASS / **Summary**: 1 test passed
@@ -290,7 +379,29 @@
 
 
 
+### TDD Cycle: P0 Registration System - Green/Refactor Phase - [2025-04-19 10:09:32]
+- **Red**: Failing tests existed from previous phase (`RegistrationForm.test.tsx`, `actions.test.ts`).
+- **Green**: Implemented minimal multi-step logic and state in `RegistrationForm.tsx`. Implemented validation, user session handling, DAL calls (mocked), and redirects in `createRegistration` action (`actions.ts`). Fixed import/type errors. Verified all tests pass.
+- **Refactor**: Updated `createRegistration` action to use `fetchRegistrationByUserId` and `insertRegistration` from DAL (`registrations.ts`). Updated `actions.test.ts` to mock DAL functions instead of Supabase client `from` method. Verified tests still pass.
+- **Outcome**: Green and Refactor phases complete. Component and action implemented and refactored to use DAL. Tests passing.
+
+
 ## TDD Cycles Log
+### TDD Cycle: P0 Content Management - Red Phase - [2025-04-19 10:33:57]
+- **Red**: Created/updated failing tests for Admin Event Settings (Form, Action), Admin Schedule Mgmt (List, Form, Actions), Admin Theme Desc Mgmt (Form - expanded field), and Frontend Rendering (Theme Detail - expanded field, Schedule Display) based on `p0_content_mgmt_spec.md`. Test Files: `SettingsForm.test.tsx`, `settings/actions.test.ts`, `ScheduleList.test.tsx`, `ScheduleForm.test.tsx`, `schedule/actions.test.ts`, `ThemeForm.test.tsx`, `themes/[id]/page.test.tsx`, `ScheduleDisplay.test.tsx`. Fixed unexpected failure in existing theme detail test. Verified tests fail as expected (missing modules/components).
+- **Green**: N/A
+- **Refactor**: N/A
+- **Outcome**: Red phase complete. Failing tests committed (commit 9c66a1f). Ready for Green phase implementation.
+
+
+
+### TDD Cycle: P0 Registration System - Red Phase - [2025-04-19 09:44:26]
+- **Red**: Created `platform/src/app/register/components/RegistrationForm.test.tsx` with tests for rendering steps, state updates, and navigation. Created `platform/src/app/register/actions.test.ts` with tests for validation, user handling (login/signup), DB interactions (check, insert), and redirects. Corrected mock setups. Verified tests fail due to missing `./RegistrationForm` and `./actions` modules.
+- **Green**: N/A
+- **Refactor**: N/A
+- **Outcome**: Red phase complete. Failing tests committed (commit 773216b). Ready for Green phase implementation.
+
+
 ### TDD Cycle: Responsive Form Embed (Task 49 - Test Fix) - [2025-04-18 19:46:06]
 - **Red**: N/A (Previous failures in Task 47 were due to `toHaveStyle` limitations in JSDOM, not incorrect code).
 - **Green**: Reverted 3 tests in `platform/src/components/FormEmbed.test.tsx` from using `toHaveStyle` back to `toHaveClass` to check for container (`max-w-4xl`, `mx-auto`, `w-full`) and iframe (`w-full`) classes. Ran tests (`npm test -- FormEmbed.test.tsx`) and confirmed they pass. Test File: `platform/src/components/FormEmbed.test.tsx`
