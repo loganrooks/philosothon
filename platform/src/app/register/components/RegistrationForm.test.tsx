@@ -51,7 +51,7 @@ describe('RegistrationForm', () => {
     // TDD Anchor: Test Previous/Next button clicks update the currentStep state.
     fireEvent.click(nextButton);
 
-    expect(screen.getByRole('heading', { name: /Step 2: Availability & Background/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Step 2: Philosophical Background/i })).toBeInTheDocument();
     // Add assertions for step 2 fields
   });
 
@@ -72,11 +72,12 @@ describe('RegistrationForm', () => {
      // TDD Anchor: Test navigation buttons enable/disable correctly based on step.
      expect(screen.queryByRole('button', { name: /Submit Registration/i })).not.toBeInTheDocument();
 
-     // Navigate to the final step (assuming 4 steps for now)
+     // Navigate to the final step (which is step 5)
      const nextButton = screen.getByRole('button', { name: /Next/i });
      fireEvent.click(nextButton); // Step 2
      fireEvent.click(nextButton); // Step 3
      fireEvent.click(nextButton); // Step 4
+     fireEvent.click(nextButton); // Step 5
 
      expect(screen.getByRole('button', { name: /Submit Registration/i })).toBeInTheDocument();
      expect(screen.queryByRole('button', { name: /Next/i })).not.toBeInTheDocument(); // Next button should be hidden

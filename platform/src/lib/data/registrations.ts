@@ -1,10 +1,17 @@
 import { createClient } from '@/lib/supabase/server';
 
-// Define ENUM types used in registrations (based on spec)
-export type AttendanceOption = 'yes' | 'no' | 'maybe';
-export type WorkingStyle = 'structured' | 'exploratory' | 'balanced';
+import { Database, Json } from '@/lib/supabase/database.types'; // Import Database and Json types
+
+// Define ENUM types using generated types for consistency
+export type AttendanceOption = Database["public"]["Enums"]["attendance_option"];
+export type WorkingStyle = Database["public"]["Enums"]["working_style"];
+export type MentorshipRole = Database["public"]["Enums"]["mentorship_role"];
+export type ReferralSource = Database["public"]["Enums"]["referral_source"];
+
 
 // Define the Registration type based on spec FR-REG-005 and data model
+// This should ideally align perfectly with Database['public']['Tables']['registrations']['Row']
+// For now, keeping the manually defined one but adding missing fields based on spec v1.1
 export interface Registration {
   id: string; // Assuming UUID
   user_id: string | null; // UUID from auth.users, nullable initially
@@ -15,28 +22,43 @@ export interface Registration {
   year_of_study: number;
   can_attend_may_3_4: AttendanceOption; // Mapped to ENUM
   may_3_4_comment: string | null;
-  prior_courses: string[] | null; // text[]
-  familiarity_analytic: number; // integer 1-5
-  familiarity_continental: number; // integer 1-5
+  prior_courses: string[] | null;
+  discussion_confidence: number; // Added
+  writing_confidence: number; // Added
+  familiarity_analytic: number;
+  familiarity_continental: number;
   familiarity_other: number; // integer 1-5
   areas_of_interest: string | null;
-  preferred_working_style: WorkingStyle; // Mapped to ENUM
-  skill_writing: number; // integer 1-5
-  skill_speaking: number; // integer 1-5
+  philosophical_traditions: string[]; // Added, text[]
+  philosophical_interests: string[]; // Added, text[]
+  theme_rankings: Json; // Added, JSONB
+  theme_suggestion: string | null; // Added
+  workshop_rankings: Json; // Added, JSONB
+  preferred_working_style: WorkingStyle;
+  teammate_similarity: number; // Added, integer 1-10
+  skill_writing: number;
+  skill_speaking: number;
   skill_research: number; // integer 1-5
   skill_synthesis: number; // integer 1-5
   skill_critique: number; // integer 1-5
   preferred_teammates: string | null;
   complementary_perspectives: string | null;
-  familiarity_tech_concepts: number; // integer 1-5
+  mentorship_preference: MentorshipRole | null; // Added
+  mentorship_areas: string | null; // Added
+  familiarity_tech_concepts: number;
   prior_hackathon_experience: boolean;
   prior_hackathon_details: string | null;
+  dietary_restrictions: string | null; // Added
   accessibility_needs: string | null;
-  created_at: string; // Assuming timestamp string
-  updated_at: string; // Assuming timestamp string
+  additional_notes: string | null; // Added
+  how_heard: ReferralSource; // Added
+  how_heard_other: string | null; // Added
+  created_at: string;
+  updated_at: string;
 }
 
 // Define input type for insert/update (matches Zod schema in actions)
+// Includes all fields from spec v1.1
 export interface RegistrationInput {
   user_id?: string | null; // Optional for initial insert
   email: string;
@@ -47,11 +69,19 @@ export interface RegistrationInput {
   can_attend_may_3_4: AttendanceOption;
   may_3_4_comment?: string | null;
   prior_courses?: string[] | null;
+  discussion_confidence: number; // Added
+  writing_confidence: number; // Added
   familiarity_analytic: number;
   familiarity_continental: number;
   familiarity_other: number;
+  philosophical_traditions: string[]; // Added
+  philosophical_interests: string[]; // Added
   areas_of_interest?: string | null;
+  theme_rankings: Json; // Added
+  theme_suggestion?: string | null; // Added
+  workshop_rankings: Json; // Added
   preferred_working_style: WorkingStyle;
+  teammate_similarity: number; // Added
   skill_writing: number;
   skill_speaking: number;
   skill_research: number;
@@ -59,10 +89,16 @@ export interface RegistrationInput {
   skill_critique: number;
   preferred_teammates?: string | null;
   complementary_perspectives?: string | null;
+  mentorship_preference?: MentorshipRole | null; // Added
+  mentorship_areas?: string | null; // Added
   familiarity_tech_concepts: number;
   prior_hackathon_experience: boolean;
   prior_hackathon_details?: string | null;
+  dietary_restrictions?: string | null; // Added
   accessibility_needs?: string | null;
+  additional_notes?: string | null; // Added
+  how_heard: ReferralSource; // Added
+  how_heard_other?: string | null; // Added
 }
 
 /**
