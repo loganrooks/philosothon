@@ -1,44 +1,27 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createClient } from '@/lib/supabase/server';
-import { headers } from 'next/headers'; // Removed incorrect Headers import
+import { describe, it, expect, vi, beforeEach, type MockedFunction } from 'vitest';
 import { redirect } from 'next/navigation';
 import { signInWithOtp, signOut, type LoginFormState } from './actions'; // Import the actions and type
+import { initiateOtpSignIn, signOutUser } from '@/lib/data/auth'; // Import DAL functions to mock
 
 // Mock dependencies
-vi.mock('@/lib/supabase/server');
-vi.mock('next/headers');
 vi.mock('next/navigation');
+vi.mock('@/lib/data/auth'); // Mock the DAL module
 
 describe('Admin Authentication Server Actions (auth/actions.ts)', () => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let mockSupabase: any; // Disabled ESLint for mock variable type
-  let mockSignInWithOtp: ReturnType<typeof vi.fn>;
-  let mockSignOut: ReturnType<typeof vi.fn>;
-  let mockHeadersGet: ReturnType<typeof vi.fn>;
+  // Mock the DAL functions
+  const mockedInitiateOtpSignIn = initiateOtpSignIn as MockedFunction<typeof initiateOtpSignIn>;
+  const mockedSignOutUser = signOutUser as MockedFunction<typeof signOutUser>;
 
   beforeEach(() => {
     vi.clearAllMocks();
-
-    // Mock Supabase client and auth methods
-    mockSignInWithOtp = vi.fn();
-    mockSignOut = vi.fn();
-    const mockAuth = { signInWithOtp: mockSignInWithOtp, signOut: mockSignOut };
-    mockSupabase = { auth: mockAuth };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    vi.mocked(createClient).mockResolvedValue(mockSupabase as any); // Disabled ESLint for mock cast
-
-    // Mock next/headers
-    mockHeadersGet = vi.fn();
-    vi.mocked(headers).mockReturnValue({
-      get: mockHeadersGet,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } as any); // Disabled ESLint for mock cast
+    // Reset DAL mocks
+    mockedInitiateOtpSignIn.mockClear();
+    mockedSignOutUser.mockClear();
 
     // Mock next/navigation redirect
     vi.mocked(redirect).mockImplementation((path: string) => {
-      // In tests, throw specific error to catch redirects
       const error = new Error('NEXT_REDIRECT');
-      (error as Error & { digest?: string }).digest = `NEXT_REDIRECT;${path}`; // Use specific type assertion
+      (error as Error & { digest?: string }).digest = `NEXT_REDIRECT;${path}`;
       throw error;
     });
   });
@@ -55,7 +38,7 @@ describe('Admin Authentication Server Actions (auth/actions.ts)', () => {
         success: false,
         message: 'Invalid email address.',
       });
-      expect(mockSignInWithOtp).not.toHaveBeenCalled();
+      expect(mockedInitiateOtpSignIn).not.toHaveBeenCalled();
     });
 
     it('should return validation error if email is invalid', async () => {
@@ -69,29 +52,16 @@ describe('Admin Authentication Server Actions (auth/actions.ts)', () => {
         success: false,
         message: 'Invalid email address.',
       });
-      expect(mockSignInWithOtp).not.toHaveBeenCalled();
+      expect(mockedInitiateOtpSignIn).not.toHaveBeenCalled();
     });
 
-     it('should return error if origin header is missing', async () => {
-      mockHeadersGet.mockReturnValue(null); // Simulate missing origin
-      const formData = new FormData();
-      formData.append('email', 'test@example.com');
-      const initialState: LoginFormState = { message: null, success: false };
+     // Note: The DAL function handles origin internally, so we don't test missing origin here.
+     // Instead, we test if the DAL function itself returns an error.
 
-      const result = await signInWithOtp(initialState, formData);
-
-      expect(result).toEqual({
-        success: false,
-        message: 'Could not determine redirect origin.', // Corrected message
-      });
-      expect(mockSignInWithOtp).not.toHaveBeenCalled();
-    });
-
-    it('should call Supabase signInWithOtp and return success on valid email', async () => {
+    it('should call initiateOtpSignIn DAL function and return success on valid email', async () => {
       const testEmail = 'test@example.com';
-      const testOrigin = 'http://localhost:3000';
-      mockHeadersGet.mockReturnValue(testOrigin); // Set origin
-      mockSignInWithOtp.mockResolvedValue({ data: {}, error: null }); // Mock successful Supabase call
+      // Mock successful DAL call
+      mockedInitiateOtpSignIn.mockResolvedValue({ data: {}, error: null });
 
       const formData = new FormData();
       formData.append('email', testEmail);
@@ -99,28 +69,19 @@ describe('Admin Authentication Server Actions (auth/actions.ts)', () => {
 
       const result = await signInWithOtp(initialState, formData);
 
-      expect(createClient).toHaveBeenCalledTimes(1);
-      expect(headers).toHaveBeenCalledTimes(1);
-      expect(mockHeadersGet).toHaveBeenCalledWith('origin');
-      expect(mockSignInWithOtp).toHaveBeenCalledTimes(1);
-      expect(mockSignInWithOtp).toHaveBeenCalledWith({
-        email: testEmail,
-        options: {
-          emailRedirectTo: `${testOrigin}/auth/callback`,
-        },
-      });
+      expect(mockedInitiateOtpSignIn).toHaveBeenCalledTimes(1);
+      expect(mockedInitiateOtpSignIn).toHaveBeenCalledWith(testEmail);
       expect(result).toEqual({
         success: true,
-        message: 'Check your email for the magic link!', // Added exclamation mark
+        message: 'Check your email for the magic link!',
       });
     });
 
-    it('should return error message on Supabase signInWithOtp failure', async () => {
+    it('should return error message on initiateOtpSignIn DAL failure', async () => {
       const testEmail = 'test@example.com';
-      const testOrigin = 'http://localhost:3000';
-      const supabaseError = { message: 'Supabase OTP error' };
-      mockHeadersGet.mockReturnValue(testOrigin);
-      mockSignInWithOtp.mockResolvedValue({ data: null, error: supabaseError }); // Mock failed Supabase call
+      const dalError = new Error('DAL OTP error');
+      // Mock failed DAL call
+      mockedInitiateOtpSignIn.mockResolvedValue({ data: null, error: dalError });
 
       const formData = new FormData();
       formData.append('email', testEmail);
@@ -128,59 +89,50 @@ describe('Admin Authentication Server Actions (auth/actions.ts)', () => {
 
       const result = await signInWithOtp(initialState, formData);
 
-      expect(mockSignInWithOtp).toHaveBeenCalledTimes(1);
+      expect(mockedInitiateOtpSignIn).toHaveBeenCalledTimes(1);
+      expect(mockedInitiateOtpSignIn).toHaveBeenCalledWith(testEmail);
       expect(result).toEqual({
         success: false,
-        message: 'Supabase OTP error', // Use the actual error message from the mock
+        message: dalError.message, // Expect the DAL error message
       });
-
+    });
+  });
 
   describe('signOut', () => {
-    it('should call Supabase signOut and redirect to /admin/login on success', async () => {
+    it('should call signOutUser DAL function and redirect to /admin/login on success', async () => {
       // Arrange
-      mockSignOut.mockResolvedValue({ error: null }); // Mock successful sign out
+      mockedSignOutUser.mockResolvedValue({ error: null }); // Mock successful DAL call
 
       // Act & Assert: Expect redirect
       try {
         await signOut();
-      } catch (e: unknown) { // Changed any to unknown
-        // Check if it's an error and rethrow if not the expected redirect error
+      } catch (e: unknown) {
         if (e instanceof Error && e.message !== 'NEXT_REDIRECT') throw e;
       }
 
-      expect(createClient).toHaveBeenCalledTimes(1);
-      expect(mockSignOut).toHaveBeenCalledTimes(1);
+      expect(mockedSignOutUser).toHaveBeenCalledTimes(1);
       expect(redirect).toHaveBeenCalledTimes(1);
       expect(redirect).toHaveBeenCalledWith('/admin/login');
     });
 
-    it('should still redirect to /admin/login even if Supabase signOut fails', async () => {
+    it('should still redirect to /admin/login even if signOutUser DAL fails', async () => {
       // Arrange
-      const signOutError = new Error('Supabase signout failed');
-      mockSignOut.mockResolvedValue({ error: signOutError }); // Mock failed sign out
+      const dalError = new Error('DAL signout failed');
+      mockedSignOutUser.mockResolvedValue({ error: dalError }); // Mock failed DAL call
       console.error = vi.fn(); // Mock console.error to check if it's called
 
       // Act & Assert: Expect redirect despite error
       try {
         await signOut();
-      } catch (e: unknown) { // Changed any to unknown
-        // Check if it's an error and rethrow if not the expected redirect error
+      } catch (e: unknown) {
         if (e instanceof Error && e.message !== 'NEXT_REDIRECT') throw e;
       }
 
-      expect(createClient).toHaveBeenCalledTimes(1);
-      expect(mockSignOut).toHaveBeenCalledTimes(1);
-      // Optional: Check if the error was logged
-      // expect(console.error).toHaveBeenCalledWith('Error signing out:', signOutError);
+      expect(mockedSignOutUser).toHaveBeenCalledTimes(1);
+      // Check if the error was logged by the action
+      expect(console.error).toHaveBeenCalledWith('Sign out failed in action:', dalError);
       expect(redirect).toHaveBeenCalledTimes(1);
       expect(redirect).toHaveBeenCalledWith('/admin/login');
     });
   });
-      // Optional: Check console.error was called
-      // console.error = vi.fn(); // Mock console.error if needed
-      // expect(console.error).toHaveBeenCalledWith('Supabase OTP Error:', supabaseError);
-    });
-  });
-
-  // Add signOut tests later
 });

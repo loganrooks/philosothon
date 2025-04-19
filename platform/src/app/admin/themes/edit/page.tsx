@@ -1,9 +1,8 @@
 // platform/src/app/admin/themes/edit/page.tsx
-import { createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import { ThemeForm } from '../components/ThemeForm';
 import { updateTheme } from '../actions';
-import type { Theme } from '../page'; // Import Theme type
+import { fetchThemeById, type Theme } from '@/lib/data/themes'; // Import DAL function and type
 
 interface EditThemePageProps {
   searchParams?: {
@@ -18,21 +17,15 @@ export default async function EditThemePage({ searchParams }: EditThemePageProps
     notFound(); // Redirect to 404 if no ID is provided
   }
 
-  const supabase = await createClient();
-  const { data: theme, error } = await supabase
-    .from('themes')
-    .select('*')
-    .eq('id', id)
-    .single(); // Fetch a single record
+  // Fetch theme using the DAL function
+  const { theme: themeData, error } = await fetchThemeById(id);
 
-  if (error || !theme) {
-    console.error('Error fetching theme for edit:', error);
+  if (error || !themeData) {
+    // Error is already logged within fetchThemeById
     notFound(); // Redirect to 404 if theme not found or error occurs
   }
 
-  // We need to cast the fetched data to the Theme type
-  // Supabase client might return a more generic type
-  const themeData = theme as Theme;
+  // No need for casting, fetchThemeById should return the correct type
 
   return (
     <div>

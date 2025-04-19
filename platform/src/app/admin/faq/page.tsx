@@ -1,32 +1,22 @@
 // platform/src/app/admin/faq/page.tsx
-import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { FaqActions } from './components/FaqActions'; // Import FaqActions
+import { fetchFaqItems, type FaqItem } from '@/lib/data/faq'; // Import DAL function and type
 
-// TODO: Move this interface to a shared types file (e.g., @/lib/types.ts)
-export interface FaqItem {
-  id: string;
-  created_at: string;
-  question: string;
-  answer: string | null;
-  category: string | null;
-  display_order: number | null;
-}
+// Removed local FaqItem interface
 
 export default async function AdminFaqPage() {
-  const supabase = await createClient();
-  // Order by display_order, then perhaps created_at or question for consistent ordering
-  const { data: faqItems, error } = await supabase
-    .from('faq_items')
-    .select('*')
-    .order('display_order', { ascending: true, nullsFirst: false }); // Order by display_order (remove secondary for now)
-    // .order('created_at', { ascending: true }); // Removed redundant order
+  // Fetch FAQ items using the DAL function
+  const { faqItems, error } = await fetchFaqItems();
 
   if (error) {
-    console.error('Error fetching FAQ items:', error);
+    // Error is already logged in fetchFaqItems
     notFound();
   }
+
+  // Use an empty array if faqItems is null (e.g., due to error)
+  const faqList = faqItems ?? [];
 
    const truncateText = (text: string | null, maxLength: number = 80) => {
     if (!text) return 'N/A';
@@ -61,17 +51,15 @@ export default async function AdminFaqPage() {
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-300">
                 Answer
               </th>
-               <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-300">
-                Category
-              </th>
+              {/* Removed Category column header */}
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-300">
                 Actions
               </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-700">
-            {faqItems && faqItems.length > 0 ? (
-              faqItems.map((item: FaqItem) => (
+            {faqList && faqList.length > 0 ? (
+              faqList.map((item: FaqItem) => (
                 <tr key={item.id}>
                    <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-300">
                     {item.display_order ?? 'N/A'}
@@ -84,11 +72,9 @@ export default async function AdminFaqPage() {
                      <span className="block max-w-xs truncate" title={item.answer ?? ''}>
                          {truncateText(item.answer)}
                     </span>
-                  </td>
-                   <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-300">
-                    {item.category ?? 'N/A'}
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm font-medium">
+                 </td>
+                 {/* Removed Category column data */}
+                 <td className="whitespace-nowrap px-6 py-4 text-sm font-medium">
                     {/* Use FaqActions component */}
                     <FaqActions faqItemId={item.id} faqQuestion={item.question} />
                   </td>
@@ -97,7 +83,7 @@ export default async function AdminFaqPage() {
             ) : (
               <tr>
                 <td
-                  colSpan={5} // Adjusted colspan
+                  colSpan={4} // Adjusted colspan after removing Category
                   className="px-6 py-4 text-center text-sm text-gray-400"
                 >
                   No FAQ items found.

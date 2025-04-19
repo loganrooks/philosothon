@@ -19,10 +19,10 @@ import { fetchWorkshops } from '@/lib/data/workshops';
 const mockedFetchWorkshops = fetchWorkshops as MockedFunction<typeof fetchWorkshops>;
 const MockedWorkshopCard = WorkshopCard as MockedFunction<typeof WorkshopCard>;
 
-// Define mock data
+// Define mock data (matching the updated Workshop type in DAL)
 const mockWorkshopsData: Workshop[] = [
-  { id: '1', title: 'Workshop Alpha', description: 'Desc A', facilitator: 'Fac A', created_at: new Date().toISOString(), relevant_themes: null, max_capacity: 20 },
-  { id: '2', title: 'Workshop Beta', description: 'Desc B', facilitator: 'Fac B', created_at: new Date().toISOString(), relevant_themes: null, max_capacity: null },
+  { id: '1', title: 'Workshop Alpha', description: 'Desc A', speaker: 'Fac A', created_at: new Date().toISOString(), image_url: null, related_themes: null },
+  { id: '2', title: 'Workshop Beta', description: 'Desc B', speaker: 'Fac B', created_at: new Date().toISOString(), image_url: null, related_themes: null },
 ];
 
 describe('WorkshopsPage (Server Component Test)', () => {
@@ -33,8 +33,8 @@ describe('WorkshopsPage (Server Component Test)', () => {
   });
 
   it('should render the main heading and workshop cards when data is fetched successfully', async () => {
-    // Setup mock for success case
-    mockedFetchWorkshops.mockResolvedValue(mockWorkshopsData);
+    // Setup mock for success case (return the object structure)
+    mockedFetchWorkshops.mockResolvedValue({ workshops: mockWorkshopsData, error: null });
 
     // Await the Server Component function call
     const PageComponent = await WorkshopsPage();
@@ -62,21 +62,21 @@ describe('WorkshopsPage (Server Component Test)', () => {
     expect(MockedWorkshopCard).toHaveBeenCalledWith(expect.objectContaining({
       title: mockWorkshopsData[0].title,
       description: mockWorkshopsData[0].description,
-      facilitator: mockWorkshopsData[0].facilitator,
-      relevantThemes: undefined, // Because mockWorkshopsData[0].relevant_themes is null
+      speaker: mockWorkshopsData[0].speaker, // Changed from facilitator
+      relatedThemes: undefined, // Changed from relevantThemes, still undefined as mock is null
     }), {}); // Check for empty object as second argument (React 18 behavior)
     expect(MockedWorkshopCard).toHaveBeenCalledWith(expect.objectContaining({
       title: mockWorkshopsData[1].title,
       description: mockWorkshopsData[1].description,
-      facilitator: mockWorkshopsData[1].facilitator,
-      relevantThemes: undefined, // Because mockWorkshopsData[1].relevant_themes is null
+      speaker: mockWorkshopsData[1].speaker, // Changed from facilitator
+      relatedThemes: undefined, // Changed from relevantThemes, still undefined as mock is null
     }), {}); // Check for empty object as second argument (React 18 behavior)
   });
 
   it('should render an error message if data fetching fails', async () => {
-    // Setup mock for error case
+    // Setup mock for error case (return the object structure with error)
     const errorMessage = 'Failed to fetch';
-    mockedFetchWorkshops.mockRejectedValue(new Error(errorMessage));
+    mockedFetchWorkshops.mockResolvedValue({ workshops: null, error: new Error(errorMessage) });
 
     // Await the Server Component function call
     const PageComponent = await WorkshopsPage();
@@ -99,8 +99,8 @@ describe('WorkshopsPage (Server Component Test)', () => {
   });
 
   it('should render a message if no workshops are available', async () => {
-    // Setup mock for empty data case
-    mockedFetchWorkshops.mockResolvedValue([]);
+    // Setup mock for empty data case (return the object structure)
+    mockedFetchWorkshops.mockResolvedValue({ workshops: [], error: null });
 
     // Await the Server Component function call
     const PageComponent = await WorkshopsPage();

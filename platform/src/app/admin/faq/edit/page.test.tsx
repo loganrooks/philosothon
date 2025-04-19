@@ -3,7 +3,7 @@ import { render, screen, act } from '@testing-library/react';
 import { createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import EditFaqPage from './page'; // Import the 'Edit' page component
-import type { FaqItem } from '../page'; // Import FaqItem type
+import type { FaqItem } from '@/lib/data/faq'; // Import FaqItem type
 
 // Mock dependencies
 vi.mock('@/lib/supabase/server');
@@ -31,7 +31,7 @@ describe('Edit FAQ Page (/admin/faq/edit)', () => {
       created_at: '2023-01-01T00:00:00Z',
       question: 'FAQ Item to Edit?',
       answer: 'Initial FAQ Answer for Edit.',
-      category: 'Editing FAQ',
+
       display_order: 101,
   };
 

@@ -1,33 +1,20 @@
 // platform/src/app/admin/themes/page.tsx
-import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import { notFound } from 'next/navigation'; // Import notFound
 import { ThemeActions } from './components/ThemeActions'; // Import ThemeActions
+import { fetchThemes, type Theme } from '@/lib/data/themes'; // Import DAL function and type
 
-// Exporting Theme interface for use in ThemeForm
-export interface Theme { // Added export
-  id: string;
-  created_at: string;
-  title: string;
-  description: string | null;
-  analytic_tradition: string[] | null; // Assuming JSONB mapped to string[]
-  continental_tradition: string[] | null; // Assuming JSONB mapped to string[]
-}
+// Removed Theme interface export, now imported from DAL
 
 export default async function AdminThemesPage() {
-  const supabase = await createClient();
-  const { data: themes, error } = await supabase
-    .from('themes')
-    .select('*')
-    .order('title', { ascending: true });
+  // Fetch themes using the DAL function
+  const { themes, error } = await fetchThemes();
 
   if (error) {
-    console.error('Error fetching themes:', error);
-    // Consider showing an error message to the user
-    // For now, we can treat it like no themes found or throw an error
-    // Depending on how critical this page is.
-    // Let's use notFound for simplicity here, but a proper error boundary might be better.
-     notFound(); // Or throw new Error('Failed to fetch themes');
+    // Error is already logged within fetchThemes
+    // Decide how to handle the error in the UI
+    // Using notFound for now, consistent with previous logic
+    notFound(); // Or throw new Error('Failed to fetch themes');
   }
 
   // Function to truncate description

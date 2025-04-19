@@ -1,0 +1,127 @@
+import { createClient } from '@/lib/supabase/server';
+
+// Define ENUM types used in registrations (based on spec)
+export type AttendanceOption = 'yes' | 'no' | 'maybe';
+export type WorkingStyle = 'structured' | 'exploratory' | 'balanced';
+
+// Define the Registration type based on spec FR-REG-005 and data model
+export interface Registration {
+  id: string; // Assuming UUID
+  user_id: string | null; // UUID from auth.users, nullable initially
+  email: string; // Stored for matching if user_id is null initially
+  full_name: string;
+  university: string;
+  program: string;
+  year_of_study: number;
+  can_attend_may_3_4: AttendanceOption; // Mapped to ENUM
+  may_3_4_comment: string | null;
+  prior_courses: string[] | null; // text[]
+  familiarity_analytic: number; // integer 1-5
+  familiarity_continental: number; // integer 1-5
+  familiarity_other: number; // integer 1-5
+  areas_of_interest: string | null;
+  preferred_working_style: WorkingStyle; // Mapped to ENUM
+  skill_writing: number; // integer 1-5
+  skill_speaking: number; // integer 1-5
+  skill_research: number; // integer 1-5
+  skill_synthesis: number; // integer 1-5
+  skill_critique: number; // integer 1-5
+  preferred_teammates: string | null;
+  complementary_perspectives: string | null;
+  familiarity_tech_concepts: number; // integer 1-5
+  prior_hackathon_experience: boolean;
+  prior_hackathon_details: string | null;
+  accessibility_needs: string | null;
+  created_at: string; // Assuming timestamp string
+  updated_at: string; // Assuming timestamp string
+}
+
+// Define input type for insert/update (matches Zod schema in actions)
+export interface RegistrationInput {
+  user_id?: string | null; // Optional for initial insert
+  email: string;
+  full_name: string;
+  university: string;
+  program: string;
+  year_of_study: number;
+  can_attend_may_3_4: AttendanceOption;
+  may_3_4_comment?: string | null;
+  prior_courses?: string[] | null;
+  familiarity_analytic: number;
+  familiarity_continental: number;
+  familiarity_other: number;
+  areas_of_interest?: string | null;
+  preferred_working_style: WorkingStyle;
+  skill_writing: number;
+  skill_speaking: number;
+  skill_research: number;
+  skill_synthesis: number;
+  skill_critique: number;
+  preferred_teammates?: string | null;
+  complementary_perspectives?: string | null;
+  familiarity_tech_concepts: number;
+  prior_hackathon_experience: boolean;
+  prior_hackathon_details?: string | null;
+  accessibility_needs?: string | null;
+}
+
+/**
+ * Inserts a new registration into the database.
+ * @param registrationData The data for the new registration.
+ * @returns An object containing the inserted registration or an error.
+ */
+export async function insertRegistration(registrationData: RegistrationInput): Promise<{ registration: Registration | null; error: Error | null }> {
+  try {
+    const supabase = await createClient();
+    // Assume data is validated by the caller (Server Action)
+    const { data, error } = await supabase
+      .from('registrations')
+      .insert(registrationData)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error inserting registration:', error);
+      throw new Error(`Database error inserting registration: ${error.message}`);
+    }
+
+    return { registration: data as Registration, error: null };
+  } catch (err) {
+    const error = err instanceof Error ? err : new Error('An unknown error occurred inserting registration.');
+    console.error('insertRegistration failed:', error);
+    return { registration: null, error };
+  }
+}
+
+/**
+ * Fetches a registration by user ID.
+ * @param userId The UUID of the user.
+ * @returns An object containing the fetched registration or an error.
+ */
+export async function fetchRegistrationByUserId(userId: string): Promise<{ registration: Registration | null; error: Error | null }> {
+  if (!userId) {
+    return { registration: null, error: new Error('User ID is required.') };
+  }
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from('registrations')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle(); // Use maybeSingle as registration might not exist yet
+
+    if (error) {
+      console.error(`Error fetching registration for user ${userId}:`, error);
+      throw new Error(`Database error fetching registration for user ${userId}: ${error.message}`);
+    }
+
+    return { registration: data as Registration | null, error: null };
+  } catch (err) {
+    const error = err instanceof Error ? err : new Error(`An unknown error occurred fetching registration for user ${userId}.`);
+    console.error(`fetchRegistrationByUserId(${userId}) failed:`, error);
+    return { registration: null, error };
+  }
+}
+
+// TODO: Implement updateRegistrationById if needed
+// TODO: Implement fetchRegistrationByEmail if needed for linking during OTP flow

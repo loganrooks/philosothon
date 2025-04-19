@@ -1,54 +1,80 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type MockedFunction } from 'vitest';
 import { type NextRequest, NextResponse } from 'next/server';
 import { type User } from '@supabase/supabase-js';
 import { middleware, config } from '@/middleware'; // Import the middleware and config
 import { updateSession } from '@/lib/supabase/middleware'; // Import the function to mock
+import { fetchUserProfile } from '@/lib/data/profiles'; // Import the DAL function to mock
+import type { Profile } from '@/lib/data/profiles'; // Import Profile type
 
-// Mock the dependency
+// Mock the dependencies
 vi.mock('@/lib/supabase/middleware');
-
-// NOTE: Explicitly mocking 'next/server' caused issues ("NextResponse is not a constructor").
-// Using vi.spyOn for specific methods instead.
+vi.mock('@/lib/data/profiles');
+vi.mock('next/server', () => ({ // Mock NextResponse methods needed
+  NextResponse: class {
+    static next = vi.fn();
+    static redirect = vi.fn();
+    // Add other static methods if needed
+  }
+}));
 
 describe('Root Middleware (middleware.ts)', () => {
   let mockRequest: NextRequest;
   let mockResponse: NextResponse;
-  const mockUser = { id: 'user-123' } as User; // Define a mock user
+  const mockUser = { id: 'user-123', email: 'test@example.com' } as User;
+  const mockAdminProfile: Profile = { id: mockUser.id, role: 'admin', full_name: 'Admin User', team_id: null, created_at: '', updated_at: '' };
+  const mockParticipantProfile: Profile = { id: mockUser.id, role: 'participant', full_name: 'Participant User', team_id: null, created_at: '', updated_at: '' };
+
+  // Define mocks using vi.fn() before casting
+  const updateSessionMockFn = vi.fn();
+  const fetchUserProfileMockFn = vi.fn();
+
+  // Cast to MockedFunction after defining with vi.fn()
+  const mockedUpdateSession = updateSession as MockedFunction<typeof updateSessionMockFn>;
+  const mockedFetchUserProfile = fetchUserProfile as MockedFunction<typeof fetchUserProfileMockFn>;
+
 
   beforeEach(() => {
     vi.clearAllMocks();
 
-    // Spy on and mock implementations for NextResponse methods
-    vi.spyOn(NextResponse, 'redirect').mockReturnValue(new NextResponse()); // Return a simple response for redirect
-    vi.spyOn(NextResponse, 'next').mockReturnValue(new NextResponse()); // Mock .next() as well
+    // Mock environment variables (needed if real client is somehow called)
+    process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://mock-middleware-supabase.co';
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'mock-middleware-anon-key';
+
 
     // Mock NextRequest
     mockRequest = {
       headers: new Headers(),
       nextUrl: {
         pathname: '/', // Default pathname
-        origin: 'http://localhost:3000', // Add origin for redirect construction
-        clone: function() { return { ...this }; }, // Simple clone mock
+        origin: 'http://localhost:3000',
+        clone: function() { return { ...this }; },
       },
-      // Add other properties if needed
     } as NextRequest;
 
-    // Mock NextResponse.next() return value for updateSession mock
+    // Mock NextResponse and its methods
     mockResponse = new NextResponse();
-    vi.mocked(NextResponse.next).mockReturnValue(mockResponse); // Ensure .next() returns our mockResponse
+    vi.mocked(NextResponse.next).mockReturnValue(mockResponse);
+    vi.mocked(NextResponse.redirect).mockReturnValue(mockResponse); // Redirect returns a response
 
-    // Default mock for updateSession (unauthenticated)
-    vi.mocked(updateSession).mockResolvedValue({ response: mockResponse, user: null });
+    // Default mocks for dependencies
+    mockedUpdateSession.mockResolvedValue({ response: mockResponse, user: null });
+    mockedFetchUserProfile.mockResolvedValue({ profile: null, error: new Error('Profile not found by default') });
+
+  });
+
+  afterEach(() => {
+    // Clean up environment variables if necessary
+    delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+    delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   });
 
   it('should call updateSession with the request', async () => {
     await middleware(mockRequest);
-    expect(updateSession).toHaveBeenCalledTimes(1);
-    expect(updateSession).toHaveBeenCalledWith(mockRequest);
+    expect(mockedUpdateSession).toHaveBeenCalledTimes(1);
+    expect(mockedUpdateSession).toHaveBeenCalledWith(mockRequest);
   });
 
   it('should return the response object from updateSession', async () => {
-    // The middleware itself should return the response *part* of the object
     const result = await middleware(mockRequest);
     expect(result).toBe(mockResponse);
   });
@@ -62,62 +88,85 @@ describe('Root Middleware (middleware.ts)', () => {
 
 
   it('should redirect unauthenticated users from protected /admin routes to /admin/login', async () => {
-    // Arrange: Simulate request to a protected admin route
     mockRequest.nextUrl.pathname = '/admin/themes';
-    // updateSession mock already returns user: null in beforeEach
+    // Default mock returns user: null
 
-    // Act
     await middleware(mockRequest);
 
-    // Assert
     expect(NextResponse.redirect).toHaveBeenCalledTimes(1);
-    // Check the properties of the URL object passed to redirect
     const redirectArg = vi.mocked(NextResponse.redirect).mock.calls[0][0] as URL;
     expect(redirectArg.pathname).toBe('/admin/login');
     expect(redirectArg.origin).toBe(mockRequest.nextUrl.origin);
+    expect(mockedFetchUserProfile).not.toHaveBeenCalled(); // Profile fetch shouldn't happen if no user
   });
 
-   it('should allow authenticated users to access protected /admin routes', async () => {
-    // Arrange: Simulate request to a protected admin route
+   it('should allow authenticated admin users to access protected /admin routes', async () => {
     mockRequest.nextUrl.pathname = '/admin/themes';
-    // Override updateSession mock to return an authenticated user
-    vi.mocked(updateSession).mockResolvedValue({ response: mockResponse, user: mockUser });
+    // Simulate updateSession returning an authenticated user
+    mockedUpdateSession.mockResolvedValueOnce({ response: mockResponse, user: mockUser });
+    // Mock fetchUserProfile to return an admin profile
+    mockedFetchUserProfile.mockResolvedValue({ profile: mockAdminProfile, error: null });
 
-    // Act
     const result = await middleware(mockRequest);
 
-    // Assert: Should not redirect, should return the original response from updateSession
     expect(NextResponse.redirect).not.toHaveBeenCalled();
+    expect(mockedFetchUserProfile).toHaveBeenCalledWith(mockUser.id);
     expect(result).toBe(mockResponse);
   });
 
   it('should redirect authenticated users from /admin/login to /admin', async () => {
-    // Arrange: Simulate request to login page when already logged in
     mockRequest.nextUrl.pathname = '/admin/login';
-    // Override updateSession mock to return an authenticated user
-    vi.mocked(updateSession).mockResolvedValue({ response: mockResponse, user: mockUser });
+    // Simulate updateSession returning an authenticated user
+    mockedUpdateSession.mockResolvedValueOnce({ response: mockResponse, user: mockUser });
 
-    // Act
     await middleware(mockRequest);
 
-    // Assert
     expect(NextResponse.redirect).toHaveBeenCalledTimes(1);
-    // Check the properties of the URL object passed to redirect
     const redirectArg = vi.mocked(NextResponse.redirect).mock.calls[0][0] as URL;
     expect(redirectArg.pathname).toBe('/admin');
     expect(redirectArg.origin).toBe(mockRequest.nextUrl.origin);
    });
 
    it('should allow unauthenticated users to access /admin/login', async () => {
-     // Arrange: Simulate request to login page when not logged in
     mockRequest.nextUrl.pathname = '/admin/login';
-    // updateSession mock already returns user: null in beforeEach
+    // Default mock returns user: null
 
-    // Act
     const result = await middleware(mockRequest);
 
-    // Assert: Should not redirect, should return the original response
     expect(NextResponse.redirect).not.toHaveBeenCalled();
     expect(result).toBe(mockResponse);
    });
+
+  // --- RBAC Tests ---
+
+  it('should redirect authenticated users to login if profile fetch fails', async () => {
+    mockRequest.nextUrl.pathname = '/admin/dashboard';
+    // Simulate updateSession returning an authenticated user
+    mockedUpdateSession.mockResolvedValueOnce({ response: mockResponse, user: mockUser });
+    // Arrange: Mock fetchUserProfile to return an error
+    const fetchError = new Error('DB error fetching profile');
+    mockedFetchUserProfile.mockResolvedValue({ profile: null, error: fetchError });
+
+    await middleware(mockRequest);
+
+    expect(NextResponse.redirect).toHaveBeenCalledTimes(1);
+    const redirectArg = vi.mocked(NextResponse.redirect).mock.calls[0][0] as URL;
+    expect(redirectArg.pathname).toBe('/admin/login');
+    expect(mockedFetchUserProfile).toHaveBeenCalledWith(mockUser.id);
+  });
+
+  it('should redirect authenticated users with incorrect role from /admin routes', async () => {
+    mockRequest.nextUrl.pathname = '/admin/users';
+    // Simulate updateSession returning an authenticated user
+    mockedUpdateSession.mockResolvedValueOnce({ response: mockResponse, user: mockUser });
+    // Arrange: Mock fetchUserProfile to return 'participant' role
+    mockedFetchUserProfile.mockResolvedValue({ profile: mockParticipantProfile, error: null });
+
+    await middleware(mockRequest);
+
+    expect(NextResponse.redirect).toHaveBeenCalledTimes(1);
+    const redirectArg = vi.mocked(NextResponse.redirect).mock.calls[0][0] as URL;
+    expect(redirectArg.pathname).toBe('/admin/login');
+    expect(mockedFetchUserProfile).toHaveBeenCalledWith(mockUser.id);
+  });
 });

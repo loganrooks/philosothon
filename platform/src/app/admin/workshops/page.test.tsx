@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
 import { createClient } from '@/lib/supabase/server';
-import AdminWorkshopsPage, { type Workshop } from './page'; // Import page and type
+import AdminWorkshopsPage from './page';
+import type { Workshop } from '@/lib/data/workshops'; // Import page and type
 import { notFound } from 'next/navigation';
 
 // Mock dependencies
@@ -20,9 +21,10 @@ describe('Admin Workshops Page (/admin/workshops)', () => {
   let mockSelect: ReturnType<typeof vi.fn>;
   let mockOrder: ReturnType<typeof vi.fn>;
 
+  // Define mock data (aligned with DAL Workshop type)
   const mockWorkshops: Workshop[] = [
-    { id: 'ws1', created_at: '2023-01-01T10:00:00Z', title: 'Workshop Alpha', description: 'Description A', facilitator: 'Fac A', relevant_themes: ['t1'], max_capacity: 10 },
-    { id: 'ws2', created_at: '2023-01-02T11:00:00Z', title: 'Workshop Beta', description: 'Description B is long', facilitator: 'Fac B', relevant_themes: ['t1', 't2'], max_capacity: null },
+      { id: 'ws1', created_at: '2023-01-01T10:00:00Z', title: 'Workshop Alpha', description: 'Description A', speaker: 'Fac A', related_themes: ['t1'], image_url: null },
+      { id: 'ws2', created_at: '2023-01-02T11:00:00Z', title: 'Workshop Beta', description: 'Description B is long', speaker: 'Fac B', related_themes: ['t1', 't2'], image_url: null },
   ];
 
   beforeEach(() => {
@@ -51,19 +53,16 @@ describe('Admin Workshops Page (/admin/workshops)', () => {
 
     // Assert: Check table headers (adjust based on actual columns)
     expect(screen.getByRole('columnheader', { name: /title/i })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: /facilitator/i })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: /capacity/i })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: /speaker/i })).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: /actions/i })).toBeInTheDocument();
 
     // Assert: Check table rows for mock data
     expect(screen.getByRole('cell', { name: 'Workshop Alpha' })).toBeInTheDocument();
     expect(screen.getByRole('cell', { name: 'Fac A' })).toBeInTheDocument();
-    expect(screen.getByRole('cell', { name: '10' })).toBeInTheDocument(); // Capacity
     expect(screen.getByTestId('workshop-actions-ws1')).toBeInTheDocument();
 
     expect(screen.getByRole('cell', { name: 'Workshop Beta' })).toBeInTheDocument();
     expect(screen.getByRole('cell', { name: 'Fac B' })).toBeInTheDocument();
-    expect(screen.getByRole('cell', { name: 'N/A' })).toBeInTheDocument(); // Corrected: Null capacity renders as N/A
     expect(screen.getByTestId('workshop-actions-ws2')).toBeInTheDocument();
 
     expect(notFound).not.toHaveBeenCalled();

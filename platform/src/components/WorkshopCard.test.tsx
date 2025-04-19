@@ -20,8 +20,8 @@ describe('WorkshopCard Component', () => {
 
   it('should render the facilitator when provided', () => {
     const facilitatorName = 'Dr. Test Facilitator';
-    render(<WorkshopCard {...defaultProps} facilitator={facilitatorName} />);
-    expect(screen.getByText(`Facilitator: ${facilitatorName}`)).toBeInTheDocument();
+    render(<WorkshopCard {...defaultProps} speaker={facilitatorName} />);
+    expect(screen.getByText(`Speaker: ${facilitatorName}`)).toBeInTheDocument();
   });
 
   it('should not render the facilitator when not provided', () => {

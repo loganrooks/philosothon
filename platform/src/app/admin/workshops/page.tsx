@@ -1,32 +1,22 @@
 // platform/src/app/admin/workshops/page.tsx
-import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { WorkshopActions } from './components/WorkshopActions'; // Import WorkshopActions
+import { fetchWorkshops, type Workshop } from '@/lib/data/workshops'; // Import DAL function and type
 
-// TODO: Move this interface to a shared types file (e.g., @/lib/types.ts)
-// Note: Adjust based on actual DB schema if different
-export interface Workshop {
-  id: string;
-  created_at: string;
-  title: string;
-  description: string | null;
-  relevant_themes: string[] | null; // Assuming JSONB mapped to string[]
-  facilitator: string | null;
-  max_capacity: number | null;
-}
+// Removed local Workshop interface
 
 export default async function AdminWorkshopsPage() {
-  const supabase = await createClient();
-  const { data: workshops, error } = await supabase
-    .from('workshops')
-    .select('*')
-    .order('title', { ascending: true });
+  // Fetch workshops using the DAL function
+  const { workshops, error } = await fetchWorkshops();
 
   if (error) {
-    console.error('Error fetching workshops:', error);
+    // Error is already logged in fetchWorkshops
     notFound();
   }
+
+  // Use an empty array if workshops is null (e.g., due to error)
+  const workshopList = workshops ?? [];
 
   const truncateDescription = (text: string | null, maxLength: number = 80) => {
     if (!text) return 'N/A';
@@ -57,19 +47,17 @@ export default async function AdminWorkshopsPage() {
                 Description
               </th>
                <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-300">
-                Facilitator
+                Speaker
               </th>
-               <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-300">
-                Capacity
-              </th>
+              {/* Removed Capacity column header */}
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-300">
                 Actions
               </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-700">
-            {workshops && workshops.length > 0 ? (
-              workshops.map((workshop: Workshop) => (
+            {workshopList && workshopList.length > 0 ? (
+              workshopList.map((workshop: Workshop) => (
                 <tr key={workshop.id}>
                   <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-white">
                     {workshop.title}
@@ -81,12 +69,10 @@ export default async function AdminWorkshopsPage() {
                     </span>
                   </td>
                    <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-300">
-                    {workshop.facilitator ?? 'N/A'}
-                  </td>
-                   <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-300">
-                    {workshop.max_capacity ?? 'N/A'}
-                  </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm font-medium">
+                    {workshop.speaker ?? 'N/A'} {/* Changed from facilitator */}
+                   </td>
+                   {/* Removed Capacity column data */}
+                   <td className="whitespace-nowrap px-6 py-4 text-sm font-medium">
                     {/* Use WorkshopActions component */}
                     <WorkshopActions workshopId={workshop.id} workshopTitle={workshop.title} />
                   </td>
@@ -95,7 +81,7 @@ export default async function AdminWorkshopsPage() {
             ) : (
               <tr>
                 <td
-                  colSpan={5} // Adjusted colspan
+                  colSpan={4} // Adjusted colspan after removing Capacity
                   className="px-6 py-4 text-center text-sm text-gray-400"
                 >
                   No workshops found.

@@ -1,25 +1,25 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
-import { createWorkshop, updateWorkshop, deleteWorkshop, type WorkshopFormState } from './actions'; // Added deleteWorkshop
+import { createWorkshop, updateWorkshop, deleteWorkshop, type WorkshopFormState } from './actions';
+import { insertWorkshop, updateWorkshopById, deleteWorkshopById, type WorkshopInput, type Workshop } from '@/lib/data/workshops'; // Import DAL functions and types
 
 // Mock dependencies
-vi.mock('@/lib/supabase/server');
 vi.mock('next/cache');
+vi.mock('@/lib/data/workshops'); // Mock the DAL module
 
 describe('Workshop Server Actions (actions.ts)', () => {
-  let mockSupabase: any;
-  let mockInsert: ReturnType<typeof vi.fn>;
   const initialState: WorkshopFormState = { message: null, success: false, errors: {} };
+  // Mock data matching Workshop type
+  const mockWorkshop: Workshop = { id: 'ws-id-123', title: 'Test Workshop', description: 'Desc', speaker: 'Speaker', created_at: '2023-01-01T00:00:00Z', image_url: null, related_themes: ['theme1'] };
+  const mockUpdatedWorkshop: Workshop = { ...mockWorkshop, id: 'test-workshop-id-456', title: 'Updated Workshop', speaker: 'New Speaker' };
+
 
   beforeEach(() => {
     vi.clearAllMocks();
-
-    // Mock Supabase client and methods
-    mockInsert = vi.fn();
-    const mockFrom = vi.fn(() => ({ insert: mockInsert }));
-    mockSupabase = { from: mockFrom };
-    vi.mocked(createClient).mockResolvedValue(mockSupabase as any);
+    // Reset DAL mocks
+    vi.mocked(insertWorkshop).mockClear();
+    vi.mocked(updateWorkshopById).mockClear();
+    vi.mocked(deleteWorkshopById).mockClear();
   });
 
   describe('createWorkshop', () => {
@@ -30,84 +30,65 @@ describe('Workshop Server Actions (actions.ts)', () => {
       const result = await createWorkshop(initialState, formData);
 
       expect(result.success).toBe(false);
-      expect(result.errors?.title).toContain('Expected string, received null'); // Zod message
-      expect(mockInsert).not.toHaveBeenCalled();
+      expect(result.errors?.title).toContain('Expected string, received null'); // Updated expected message
+      expect(insertWorkshop).not.toHaveBeenCalled();
       expect(revalidatePath).not.toHaveBeenCalled();
     });
 
     it('should return validation error for invalid relevant_themes JSON', async () => {
       const formData = new FormData();
       formData.append('title', 'Test Workshop');
-      formData.append('relevant_themes', 'not json'); // Invalid JSON
+      formData.append('related_themes', 'not json'); // Invalid JSON
+
+      // Mock DAL to return an error for this path (though validation should catch it first)
+      vi.mocked(insertWorkshop).mockResolvedValue({ workshop: null, error: new Error('Should not be called') });
 
       const result = await createWorkshop(initialState, formData);
 
       expect(result.success).toBe(false);
-      expect(result.errors?.relevant_themes).toEqual(['Invalid JSON format for Relevant Themes (must be an array of strings like ["id1", "id2"]).']); // Expect Zod message in array
-      expect(mockInsert).not.toHaveBeenCalled();
+      expect(result.errors?.related_themes).toEqual(['Invalid JSON format for Related Themes (must be an array of strings like ["id1", "id2"]).']); // Updated field name and message check
+      expect(insertWorkshop).not.toHaveBeenCalled();
     });
 
      it('should return validation error for non-array relevant_themes JSON', async () => {
       const formData = new FormData();
       formData.append('title', 'Test Workshop');
-      formData.append('relevant_themes', '{"valid": "json", "but": "not array"}');
+      formData.append('related_themes', '{"valid": "json", "but": "not array"}');
+
+      // Mock DAL to return an error for this path (though validation should catch it first)
+      vi.mocked(insertWorkshop).mockResolvedValue({ workshop: null, error: new Error('Should not be called') });
 
       const result = await createWorkshop(initialState, formData);
 
       expect(result.success).toBe(false);
-      // Zod refine catches this case (valid JSON but not array of strings)
-      expect(result.errors?.relevant_themes).toEqual(['Invalid JSON format for Relevant Themes (must be an array of strings like ["id1", "id2"]).']); // Expect Zod message in array
-      expect(mockInsert).not.toHaveBeenCalled();
+      expect(result.errors?.related_themes).toEqual(['Invalid JSON format for Related Themes (must be an array of strings like ["id1", "id2"]).']); // Updated field name and message check
+      expect(insertWorkshop).not.toHaveBeenCalled();
     });
 
-    it('should return validation error for invalid max_capacity (non-numeric)', async () => {
+    // Removed max_capacity tests as the field is removed
+
+    it('should call insertWorkshop DAL function and revalidatePath on successful creation', async () => {
+      vi.mocked(insertWorkshop).mockResolvedValue({ workshop: mockWorkshop, error: null }); // Simulate DAL success
       const formData = new FormData();
-      formData.append('title', 'Test Workshop');
-      formData.append('max_capacity', 'abc');
-
-      const result = await createWorkshop(initialState, formData);
-
-      expect(result.success).toBe(false);
-      expect(result.errors?.max_capacity).toContain('Capacity must be a whole number.');
-      expect(mockInsert).not.toHaveBeenCalled();
-    });
-
-     it('should return validation error for invalid max_capacity (zero)', async () => {
-      const formData = new FormData();
-      formData.append('title', 'Test Workshop');
-      formData.append('max_capacity', '0');
-
-      const result = await createWorkshop(initialState, formData);
-
-      expect(result.success).toBe(false);
-      expect(result.errors?.max_capacity).toContain('Capacity must be positive if provided.');
-      expect(mockInsert).not.toHaveBeenCalled();
-    });
-
-    it('should call Supabase insert and revalidatePath on successful creation', async () => {
-      mockInsert.mockResolvedValue({ error: null }); // Simulate success
-      const formData = new FormData();
-      const title = 'New Workshop';
-      const description = 'Desc';
-      const themes = '["theme1", "theme2"]';
-      const facilitator = 'Facilitator Name';
-      const capacity = '25';
+      const title = mockWorkshop.title;
+      const description = mockWorkshop.description ?? '';
+      const themes = JSON.stringify(mockWorkshop.related_themes);
+      const speaker = mockWorkshop.speaker ?? '';
       formData.append('title', title);
       formData.append('description', description);
-      formData.append('relevant_themes', themes);
-      formData.append('facilitator', facilitator);
-      formData.append('max_capacity', capacity);
+      formData.append('related_themes', themes); // Changed field name
+      formData.append('speaker', speaker); // Changed field name
 
       const result = await createWorkshop(initialState, formData);
 
-      expect(mockInsert).toHaveBeenCalledTimes(1);
-      expect(mockInsert).toHaveBeenCalledWith({
+      expect(insertWorkshop).toHaveBeenCalledTimes(1);
+      const expectedInput: WorkshopInput = {
         title: title,
         description: description,
-        relevant_themes: ["theme1", "theme2"],
-        facilitator: facilitator,
-        max_capacity: 25,
-      });
+        related_themes: mockWorkshop.related_themes,
+        speaker: speaker,
+      };
+      expect(insertWorkshop).toHaveBeenCalledWith(expectedInput);
       expect(revalidatePath).toHaveBeenCalledTimes(1);
       expect(revalidatePath).toHaveBeenCalledWith('/admin/workshops');
       expect(result.success).toBe(true);
@@ -115,39 +96,39 @@ describe('Workshop Server Actions (actions.ts)', () => {
       expect(result.errors).toEqual({});
     });
 
-     it('should handle empty/null optional fields correctly', async () => {
-      mockInsert.mockResolvedValue({ error: null }); // Simulate success
+     it('should handle empty/null optional fields correctly during creation', async () => {
+      vi.mocked(insertWorkshop).mockResolvedValue({ workshop: { ...mockWorkshop, title: 'Minimal Workshop' }, error: null }); // Simulate DAL success
       const formData = new FormData();
       formData.append('title', 'Minimal Workshop');
-      // description, relevant_themes, facilitator, max_capacity are omitted
+      // description, related_themes, speaker omitted
 
       const result = await createWorkshop(initialState, formData);
 
-      expect(mockInsert).toHaveBeenCalledTimes(1);
-      expect(mockInsert).toHaveBeenCalledWith({
+      expect(insertWorkshop).toHaveBeenCalledTimes(1);
+      const expectedInput: WorkshopInput = {
         title: 'Minimal Workshop',
         description: null,
-        relevant_themes: null,
-        facilitator: null,
-        max_capacity: null,
-      });
+        related_themes: null,
+        speaker: null,
+      };
+      expect(insertWorkshop).toHaveBeenCalledWith(expectedInput);
       expect(revalidatePath).toHaveBeenCalledTimes(1);
       expect(result.success).toBe(true);
     });
 
-    it('should return error state on Supabase insert failure', async () => {
-      const dbError = { message: 'DB insert failed' };
-      mockInsert.mockResolvedValue({ error: dbError }); // Simulate failure
+    it('should return error state on insertWorkshop DAL failure', async () => {
+      const dalError = new Error('DAL insert failed');
+      vi.mocked(insertWorkshop).mockResolvedValue({ workshop: null, error: dalError }); // Simulate DAL failure
       const formData = new FormData();
       formData.append('title', 'Fail Workshop');
 
       const result = await createWorkshop(initialState, formData);
 
-      expect(mockInsert).toHaveBeenCalledTimes(1);
+      expect(insertWorkshop).toHaveBeenCalledTimes(1);
       expect(revalidatePath).not.toHaveBeenCalled();
       expect(result.success).toBe(false);
-      expect(result.message).toContain(dbError.message);
-      expect(result.errors?.general).toBe(dbError.message);
+      expect(result.message).toContain(dalError.message);
+      expect(result.errors?.general).toBe(dalError.message);
     });
   });
 
@@ -161,9 +142,9 @@ describe('Workshop Server Actions (actions.ts)', () => {
       const result = await updateWorkshop(initialState, formData);
 
       expect(result.success).toBe(false);
-      expect(result.message).toContain('Workshop ID is missing');
-      expect(result.errors?.general).toContain('Workshop ID missing');
-      expect(mockSupabase.from).not.toHaveBeenCalled();
+      expect(result.message).toContain('Workshop ID is missing.'); // Match exact message
+      expect(result.errors?.general).toContain('Workshop ID missing.'); // Match exact message
+      expect(updateWorkshopById).not.toHaveBeenCalled();
     });
 
     it('should return validation error if title is missing', async () => {
@@ -174,64 +155,51 @@ describe('Workshop Server Actions (actions.ts)', () => {
       const result = await updateWorkshop(initialState, formData);
 
       expect(result.success).toBe(false);
-      expect(result.errors?.title).toContain('Expected string, received null');
-      expect(mockSupabase.from).not.toHaveBeenCalled();
+      expect(result.errors?.title).toContain('Expected string, received null'); // Updated expected message
+      expect(updateWorkshopById).not.toHaveBeenCalled();
     });
 
      it('should return validation error for invalid relevant_themes JSON', async () => {
       const formData = new FormData();
       formData.append('id', workshopId);
       formData.append('title', 'Updated Title');
-      formData.append('relevant_themes', 'invalid');
+      formData.append('related_themes', 'invalid');
+
+      // Mock DAL to return an error for this path (though validation should catch it first)
+      vi.mocked(updateWorkshopById).mockResolvedValue({ workshop: null, error: new Error('Should not be called') });
 
       const result = await updateWorkshop(initialState, formData);
 
       expect(result.success).toBe(false);
-      expect(result.errors?.relevant_themes).toEqual(['Invalid JSON format for Relevant Themes (must be an array of strings like ["id1", "id2"]).']);
-      expect(mockSupabase.from).not.toHaveBeenCalled();
+      expect(result.errors?.related_themes).toEqual(['Invalid JSON format for Related Themes (must be an array of strings like ["id1", "id2"]).']); // Updated field name
+      expect(updateWorkshopById).not.toHaveBeenCalled();
     });
 
-     it('should return validation error for invalid max_capacity', async () => {
-      const formData = new FormData();
-      formData.append('id', workshopId);
-      formData.append('title', 'Updated Title');
-      formData.append('max_capacity', '-5'); // Invalid capacity
+    // Removed max_capacity validation test
 
-      const result = await updateWorkshop(initialState, formData);
-
-      expect(result.success).toBe(false);
-      expect(result.errors?.max_capacity).toContain('Capacity must be positive if provided.');
-      expect(mockSupabase.from).not.toHaveBeenCalled();
-    });
-
-
-    it('should call Supabase update and revalidate paths on successful update', async () => {
-      const mockUpdate = vi.fn().mockReturnThis();
-      const mockEq = vi.fn().mockResolvedValue({ error: null });
-      mockSupabase.from.mockReturnValue({ update: mockUpdate, eq: mockEq });
+    it('should call updateWorkshopById DAL function and revalidate paths on successful update', async () => {
+      vi.mocked(updateWorkshopById).mockResolvedValue({ workshop: mockUpdatedWorkshop, error: null }); // Simulate DAL success
 
       const formData = new FormData();
-      const title = 'Updated Workshop';
-      const themes = '["theme3"]';
-      const capacity = '30';
-      formData.append('id', workshopId);
+      const title = mockUpdatedWorkshop.title;
+      const themes = JSON.stringify(mockUpdatedWorkshop.related_themes);
+      const speaker = mockUpdatedWorkshop.speaker ?? '';
+      formData.append('id', mockUpdatedWorkshop.id);
       formData.append('title', title);
-      formData.append('relevant_themes', themes);
-      formData.append('max_capacity', capacity);
-      // description and facilitator omitted
+      formData.append('related_themes', themes); // Changed field name
+      formData.append('speaker', speaker); // Changed field name
+      // description omitted
 
       const result = await updateWorkshop(initialState, formData);
 
-      expect(mockUpdate).toHaveBeenCalledTimes(1);
-      expect(mockUpdate).toHaveBeenCalledWith({
+      expect(updateWorkshopById).toHaveBeenCalledTimes(1);
+      const expectedInput: Partial<WorkshopInput> = {
         title: title,
         description: null, // Omitted fields should be null
-        relevant_themes: ["theme3"],
-        facilitator: null,
-        max_capacity: 30,
-      });
-      expect(mockEq).toHaveBeenCalledTimes(1);
-      expect(mockEq).toHaveBeenCalledWith('id', workshopId);
+        related_themes: mockUpdatedWorkshop.related_themes,
+        speaker: speaker,
+      };
+      expect(updateWorkshopById).toHaveBeenCalledWith(mockUpdatedWorkshop.id, expectedInput);
       expect(revalidatePath).toHaveBeenCalledTimes(2);
       expect(revalidatePath).toHaveBeenCalledWith('/admin/workshops');
       expect(revalidatePath).toHaveBeenCalledWith(`/admin/workshops/edit?id=${workshopId}`);
@@ -240,11 +208,9 @@ describe('Workshop Server Actions (actions.ts)', () => {
       expect(result.errors).toEqual({});
     });
 
-     it('should return error state on Supabase update failure', async () => {
-      const dbError = { message: 'DB update failed' };
-      const mockUpdate = vi.fn().mockReturnThis();
-      const mockEq = vi.fn().mockResolvedValue({ error: dbError });
-      mockSupabase.from.mockReturnValue({ update: mockUpdate, eq: mockEq });
+     it('should return error state on updateWorkshopById DAL failure', async () => {
+      const dalError = new Error('DAL update failed');
+      vi.mocked(updateWorkshopById).mockResolvedValue({ workshop: null, error: dalError }); // Simulate DAL failure
 
       const formData = new FormData();
       formData.append('id', workshopId);
@@ -252,12 +218,11 @@ describe('Workshop Server Actions (actions.ts)', () => {
 
       const result = await updateWorkshop(initialState, formData);
 
-      expect(mockUpdate).toHaveBeenCalledTimes(1);
-      expect(mockEq).toHaveBeenCalledTimes(1);
+      expect(updateWorkshopById).toHaveBeenCalledTimes(1);
       expect(revalidatePath).not.toHaveBeenCalled();
       expect(result.success).toBe(false);
-      expect(result.message).toContain(dbError.message);
-      expect(result.errors?.general).toBe(dbError.message);
+      expect(result.message).toContain(dalError.message);
+      expect(result.errors?.general).toBe(dalError.message);
     });
   });
 
@@ -266,33 +231,28 @@ describe('Workshop Server Actions (actions.ts)', () => {
 
     it('should throw error if ID is missing', async () => {
       await expect(deleteWorkshop('')).rejects.toThrow('Workshop ID is required.');
-      expect(mockSupabase.from).not.toHaveBeenCalled();
+      expect(deleteWorkshopById).not.toHaveBeenCalled();
     });
 
-    it('should call Supabase delete and revalidatePath on successful deletion', async () => {
-      const mockDelete = vi.fn().mockReturnThis();
-      const mockEq = vi.fn().mockResolvedValue({ error: null });
-      mockSupabase.from.mockReturnValue({ delete: mockDelete, eq: mockEq });
+    it('should call deleteWorkshopById DAL function and revalidatePath on successful deletion', async () => {
+      vi.mocked(deleteWorkshopById).mockResolvedValue({ error: null }); // Simulate DAL success
 
       await deleteWorkshop(workshopId);
 
-      expect(mockDelete).toHaveBeenCalledTimes(1);
-      expect(mockEq).toHaveBeenCalledTimes(1);
-      expect(mockEq).toHaveBeenCalledWith('id', workshopId);
+      expect(deleteWorkshopById).toHaveBeenCalledTimes(1);
+      expect(deleteWorkshopById).toHaveBeenCalledWith(workshopId);
       expect(revalidatePath).toHaveBeenCalledTimes(1);
       expect(revalidatePath).toHaveBeenCalledWith('/admin/workshops');
     });
 
-     it('should throw error on Supabase delete failure', async () => {
-      const dbError = { message: 'DB delete failed' };
-      const mockDelete = vi.fn().mockReturnThis();
-      const mockEq = vi.fn().mockResolvedValue({ error: dbError });
-      mockSupabase.from.mockReturnValue({ delete: mockDelete, eq: mockEq });
+     it('should throw error on deleteWorkshopById DAL failure', async () => {
+      const dalError = new Error('DAL delete failed');
+      vi.mocked(deleteWorkshopById).mockResolvedValue({ error: dalError }); // Simulate DAL failure
 
-      await expect(deleteWorkshop(workshopId)).rejects.toThrow(dbError.message);
+      await expect(deleteWorkshop(workshopId)).rejects.toThrow(dalError.message);
 
-      expect(mockDelete).toHaveBeenCalledTimes(1);
-      expect(mockEq).toHaveBeenCalledTimes(1);
+      expect(deleteWorkshopById).toHaveBeenCalledTimes(1);
+      expect(deleteWorkshopById).toHaveBeenCalledWith(workshopId);
       expect(revalidatePath).not.toHaveBeenCalled();
     });
   });
