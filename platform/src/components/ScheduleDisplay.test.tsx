@@ -2,7 +2,7 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import ScheduleDisplay from './ScheduleDisplay'; // This import will fail initially
-import { ScheduleItem } from '@/lib/types'; // Assuming type definition exists/will exist
+import { ScheduleItem } from '@/lib/data/schedule'; // Corrected import path
 
 // Mock data with different dates for grouping test
 const mockScheduleItems: ScheduleItem[] = [
@@ -66,8 +66,10 @@ describe('ScheduleDisplay', () => {
     expect(screen.getByText('Day 1 - Opening')).toBeInTheDocument();
     expect(screen.getByText('Day 2 - Keynote')).toBeInTheDocument();
     expect(screen.getByText('Day 1 - Session 1')).toBeInTheDocument();
-    expect(screen.getByText('09:00')).toBeInTheDocument(); // Check for start time rendering (adjust format)
-    expect(screen.getByText('Dr. Keynote')).toBeInTheDocument(); // Check for speaker
+    // Use regex to match start time within the time range string
+    expect(screen.getByText(/09:00/)).toBeInTheDocument();
+    // Use regex to match speaker name within the text node
+    expect(screen.getByText(/Dr\. Keynote/)).toBeInTheDocument();
   });
 
   it('should group items by date', async () => {

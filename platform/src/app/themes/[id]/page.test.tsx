@@ -1,9 +1,10 @@
+// platform/src/app/themes/[id]/page.test.tsx
 import { vi, describe, it, expect, beforeEach, Mock } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { notFound } from 'next/navigation';
 import ThemeDetailPage from './page'; // Adjust the import path as necessary
 import { createClient } from '@/lib/supabase/server';
-import { type Theme } from '@/lib/types'; // Import Theme type
+import { type Theme } from '@/lib/data/themes'; // Corrected import path
 
 // Mock the Supabase server client
 vi.mock('@/lib/supabase/server', () => ({
@@ -31,8 +32,8 @@ const mockTheme: Theme = {
   analytic_tradition: null,
   continental_tradition: null,
   relevant_themes: null,
-  relevant_thinkers: null,
-  relevant_works: null,
+  // relevant_thinkers: null, // Typo: Removed, Theme type doesn't have this
+  // relevant_works: null, // Typo: Removed, Theme type doesn't have this
   image_url: null,
   description_expanded: '## Expanded Content\n\nThis is the *detailed* description.\n\n- Point 1\n- Point 2', // Added field
 };
@@ -83,14 +84,12 @@ describe('ThemeDetailPage', () => {
         expect(screen.getByRole('heading', { name: /Mock Theme Title/i })).toBeInTheDocument();
     });
 
-    // Check if the basic description text exists somewhere in the rendered output
-    expect(screen.getByText((content, element) => {
-      // Allow matching even if text is split across nodes, ignore extra whitespace
-      const hasText = (node: Element | null) => node?.textContent === 'Mock theme description.';
-      const nodeHasText = hasText(element);
-      const childrenDontHaveText = Array.from(element?.children || []).every(child => !hasText(child));
-      return nodeHasText && childrenDontHaveText;
-    })).toBeInTheDocument();
+    // Basic description is NOT rendered because expanded description exists in mock data
+    // expect(screen.getByText('Mock theme description.')).toBeInTheDocument(); // REMOVED
+
+    // Check for expanded description rendering (via mock)
+    expect(screen.getByTestId('mock-react-markdown')).toBeInTheDocument(); // Check ReactMarkdown mock rendered
+
     expect(mockSupabaseClient.from).toHaveBeenCalledWith('themes');
     expect(mockSupabaseClient.from('themes').select).toHaveBeenCalledWith('*');
     expect(mockSupabaseClient.from('themes').select('*').eq).toHaveBeenCalledWith('id', 'mock-theme-id');
@@ -173,8 +172,9 @@ describe('ThemeDetailPage', () => {
 
     // Check that the mock-react-markdown component was NOT rendered
     expect(screen.queryByTestId('mock-react-markdown')).not.toBeInTheDocument();
-    // Check that the prose container div was NOT rendered (or is empty if it always exists)
-    // This depends on component structure; querySelector might be better if the div might exist but be empty
-    expect(container.querySelector('.prose')).toBeNull(); // Assuming the container is only added if needed
+    // Check that the specific inner div containing ReactMarkdown is not rendered
+    // The outer article still has .prose, so we need a more specific selector.
+    // Let's assume the inner div is the only direct child div of the article.
+    expect(container.querySelector('article > div.prose')).toBeNull();
   });
 });

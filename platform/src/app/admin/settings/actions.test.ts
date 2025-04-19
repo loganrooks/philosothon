@@ -1,13 +1,15 @@
 /// <reference types="vitest/globals" />
+import { vi, describe, it, expect, beforeEach } from 'vitest'; // Explicit import
 import { updateEventSettings } from './actions'; // This import will fail initially
-import { createClient } from '@/lib/supabase/server'; // Assuming DAL or direct client usage
+import { updateEventDetails } from '@/lib/data/event'; // Import the DAL function to mock
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 
 // Mock dependencies
-vi.mock('@/lib/supabase/server', () => ({
-  createClient: vi.fn(),
+// Remove direct Supabase client mock
+vi.mock('@/lib/data/event', () => ({
+  updateEventDetails: vi.fn(), // Mock the DAL function
 }));
 vi.mock('next/cache', () => ({
   revalidatePath: vi.fn(),
@@ -16,18 +18,12 @@ vi.mock('next/navigation', () => ({
   redirect: vi.fn(),
 }));
 
-// Mock Supabase client methods
-const mockUpdate = vi.fn();
-const mockEq = vi.fn().mockReturnValue({ update: mockUpdate });
-const mockFrom = vi.fn().mockReturnValue({ eq: mockEq });
-
-const supabase = { from: mockFrom };
+// Remove Supabase client method mocks
 
 describe('updateEventSettings Server Action', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Mock the createClient to return our mock Supabase instance
-    (createClient as vi.Mock).mockReturnValue(supabase);
+    // No need to mock createClient anymore
   });
 
   const validFormData = {
@@ -45,15 +41,13 @@ describe('updateEventSettings Server Action', () => {
 
   it('should call Supabase update with correct data on valid input', async () => {
     // TDD Anchor: Test Supabase update call (Spec Line 147)
-    mockUpdate.mockResolvedValueOnce({ error: null }); // Simulate successful update
+    // Simulate successful DAL update
+    vi.mocked(updateEventDetails).mockResolvedValueOnce({ data: {}, error: null });
 
-    // This test will fail because updateEventSettings doesn't exist yet
     await updateEventSettings(prevState, validFormData);
 
-    expect(createClient).toHaveBeenCalled();
-    expect(supabase.from).toHaveBeenCalledWith('event_details');
-    expect(mockEq).toHaveBeenCalledWith('id', 1); // Assuming singleton table with id=1
-    expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({
+    // Assert DAL function was called
+    expect(updateEventDetails).toHaveBeenCalledWith(expect.objectContaining({
       event_name: validFormData.event_name,
       location: validFormData.location,
       contact_email: validFormData.contact_email,
@@ -70,15 +64,15 @@ describe('updateEventSettings Server Action', () => {
 
     expect(result.success).toBe(false);
     expect(result.errors?.contact_email).toBeDefined();
-    expect(mockUpdate).not.toHaveBeenCalled();
+    expect(updateEventDetails).not.toHaveBeenCalled();
   });
 
    it('should return error state on Supabase update failure', async () => {
     // TDD Anchor: Test error handling (Spec Line 147)
     const dbError = { message: 'Database update failed' };
-    mockUpdate.mockResolvedValueOnce({ error: dbError }); // Simulate DB error
+    // Simulate DAL error
+    vi.mocked(updateEventDetails).mockResolvedValueOnce({ data: null, error: dbError });
 
-    // This test will fail because updateEventSettings doesn't exist yet
     const result = await updateEventSettings(prevState, validFormData);
 
     expect(result.success).toBe(false);
@@ -88,9 +82,9 @@ describe('updateEventSettings Server Action', () => {
 
   it('should call revalidatePath on successful update', async () => {
     // TDD Anchor: Test revalidation (Spec Line 147)
-    mockUpdate.mockResolvedValueOnce({ error: null }); // Simulate successful update
+    // Simulate successful DAL update
+    vi.mocked(updateEventDetails).mockResolvedValueOnce({ data: {}, error: null });
 
-    // This test will fail because updateEventSettings doesn't exist yet
     await updateEventSettings(prevState, validFormData);
 
     // Expect revalidation for relevant paths (e.g., homepage, schedule, admin settings)
