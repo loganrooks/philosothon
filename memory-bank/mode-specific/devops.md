@@ -1,6 +1,13 @@
 # DevOps Specific Memory
 
 ## Deployment History Log
+### Git Commit: [2025-04-19 05:22:35] - feat(spec): Draft P0 specifications (RBAC, Registration, Content Mgmt)
+- **Branch**: feature/architecture-v2
+- **Commit ID**: 3ff6f14 (from git output)
+- **Files**: `docs/specs/p0_rbac_spec.md`, `docs/specs/p0_registration_spec.md`, `docs/specs/p0_content_mgmt_spec.md`
+- **Notes**: Committed initial drafts of P0 feature specifications.
+
+
 <!-- Append deployment details using the format below -->
 <!-- ### Deployment: [YYYY-MM-DD HH:MM:SS] -->
 <!-- - **Env**: [Staging/Prod] / **Comps**: [List/All] / **Version**: [ID] / **Trigger**: [Manual/CI] / **Status**: [Success/Fail/Rollback] / **Duration**: [time] / **Rollback**: [ID] / **Notes**: [link/details] -->

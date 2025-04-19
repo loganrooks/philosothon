@@ -8,7 +8,114 @@
 - Status: Specified
 
 
+    ### Feature: Enhanced Admin Security
+    - Added: [2025-04-19 03:20:00]
+    - Description: Review and enhance/replace the current admin authentication mechanism (Magic Link) for improved security.
+    - Acceptance criteria: 1. Chosen mechanism implemented. 2. Mechanism provides security level appropriate for admin access.
+    - Dependencies: Authentication provider (e.g., Supabase Auth), potentially MFA service.
+    - Status: Specified (Method TBD)
+
+    ### Feature: Role-Based Access Control (RBAC)
+    - Added: [2025-04-19 03:20:00]
+    - Description: Implement distinct user roles (Admin, Judge, Applicant/Registrant, Accepted Team Member) with specific permissions controlling access to different platform sections and functionalities.
+    - Acceptance criteria: 1. Roles defined in the system. 2. Permissions correctly enforced for each role (e.g., Admins manage all, Judges view submissions, Members submit, Applicants register). 3. Role assignment mechanism exists.
+    - Dependencies: User management system, Authentication system, potentially middleware for route protection.
+    - Status: Specified (Assignment Mechanism TBD)
+
+    ### Feature: Built-in Registration Form
+    - Added: [2025-04-19 03:20:00]
+    - Description: Replace the embedded Google Form with a native platform registration form. Successful submission creates an "Applicant/Registrant" user account.
+    - Acceptance criteria: 1. Registration form exists on the platform. 2. Form collects all required fields (based on v1.1 spec + TBD additions). 3. Basic validation applied (TBD specifics). 4. Successful submission creates a user account with the correct role.
+    - Dependencies: UI framework, User management system, Database (for storing registration data).
+    - Status: Specified (Fields/Validation TBD)
+
+    ### Feature: Team Formation Support
+    - Added: [2025-04-19 03:20:00]
+    - Description: Provide functionality to sort accepted applicants into teams and notify them upon acceptance.
+    - Acceptance criteria: 1. System allows grouping accepted applicants into teams. 2. Accepted applicants receive a notification (e.g., email).
+    - Dependencies: User data (registration status), Notification service (e.g., email).
+    - Status: Specified (Formation Method TBD, Notification Details TBD)
+
+    ### Feature: Automated Team Introduction Email
+    - Added: [2025-04-19 03:20:00]
+    - Description: Automatically send an introductory email to members of a newly formed team, including member blurbs.
+    - Acceptance criteria: 1. Email is triggered upon team finalization. 2. Email includes blurbs for each team member. 3. Email sent to all team members.
+    - Dependencies: Team data, User data (for blurbs - source TBD), Email service.
+    - Status: Specified (Blurb Source TBD)
+
+    ### Feature: Team Naming
+    - Added: [2025-04-19 03:20:00]
+    - Description: Allow accepted teams to register or set their team name.
+    - Acceptance criteria: 1. Mechanism exists for teams to set their name. 2. Team name is stored and associated with the team.
+    - Dependencies: Team data structure, UI for name input.
+    - Status: Specified (Mechanism/Timing TBD)
+
+    ### Feature: Submission Portal
+    - Added: [2025-04-19 03:20:00]
+    - Description: Provide a portal accessible only to "Accepted Team Members" for uploading deliverables. Supports multiple submissions per team and sends email receipts to the whole team.
+    - Acceptance criteria: 1. Portal accessible only by team members. 2. Allows file uploads (types/size TBD). 3. Handles multiple submissions (versioning/grouping TBD). 4. Any team member can submit. 5. Email receipt sent to all team members upon submission (incl. timestamp, submitter, team, filenames).
+    - Dependencies: RBAC system, File storage service, Database (to track submissions), Email service.
+    - Status: Specified (File Types/Size TBD, Multi-submission Handling TBD)
+
+    ### Feature: Judge Portal
+    - Added: [2025-04-19 03:20:00]
+    - Description: Provide a dedicated portal for Judges to access and view/download assigned submissions.
+    - Acceptance criteria: 1. Portal accessible only by Judges. 2. Displays list of assigned submissions. 3. Allows viewing/downloading submission files.
+    - Dependencies: RBAC system, Submission data, File storage service.
+    - Status: Specified (Filtering/Scoring/Export TBD)
+
+    ### Feature: Gamification (Puzzle Element)
+    - Added: [2025-04-19 03:20:00]
+    - Description: Integrate a Cicada 3301-style puzzle element involving hidden clues and challenges within the platform.
+    - Acceptance criteria: 1. Puzzle concept implemented at a high level.
+    - Dependencies: TBD based on specific puzzle design.
+    - Status: Specified (High-Level Concept; Access, Delivery, Location, Tracking, Goal TBD)
+
+    ### Feature: Theme Description Expansion (AI Generation)
+    - Added: [2025-04-19 03:20:00]
+    - Description: Expand theme descriptions using AI generation guided by philosophy documents (via `vectorize` tool), followed by human review.
+    - Acceptance criteria: 1. Process uses `vectorize` tool for draft generation. 2. Generated drafts are reviewed/edited by humans. 3. Expanded descriptions are stored (location TBD).
+    - Dependencies: `vectorize` MCP tool, Philosophy documents source, Content storage mechanism, Admin review workflow.
+    - Status: Specified (Method Clarified)
+
+    ### Feature: Theme Content Storage & Management
+    - Added: [2025-04-19 03:20:00]
+    - Description: Provide a way for Admins to manage theme content (e.g., descriptions, associated philosophers).
+    - Acceptance criteria: 1. Admin interface allows managing theme content. 2. Content is stored persistently.
+    - Dependencies: Admin UI, Content storage mechanism (Markdown files or DB - TBD).
+    - Status: Specified (Storage Preference TBD)
+
+    ### Feature: Date/Schedule Management
+    - Added: [2025-04-19 03:20:00]
+    - Description: Provide an easy way for Admins to update key event dates and schedules displayed site-wide.
+    - Acceptance criteria: 1. Mechanism exists for updating dates/schedules. 2. Updates are reflected across the site.
+    - Dependencies: Admin UI or Configuration file (TBD), Frontend components displaying dates/schedules.
+    - Status: Specified (Mechanism TBD)
+
+
 ## Functional Requirements
+### Feature: P0 Content Management (Event Info, Expanded Themes)
+- Added: [2025-04-19 05:16:00]
+- Description: Manage core event info (dates, schedule) via new Supabase tables (`event_details`, `schedule_items`) and admin CRUD. Manage expanded theme descriptions (Markdown) via new `description_expanded` column in `themes` table and updated admin form. Render expanded descriptions on frontend using `react-markdown`.
+- Acceptance criteria: 1. New tables exist. 2. Admin UI allows CRUD for event info/schedule. 3. Admin theme form includes textarea for expanded description. 4. Theme detail page fetches and renders Markdown from `description_expanded` using `react-markdown` and `prose` styling.
+- Dependencies: Supabase DB, Admin UI framework, Server Actions, `react-markdown`.
+- Status: Specified (Draft)
+
+### Feature: P0 Registration System (Built-in)
+- Added: [2025-04-19 05:16:00]
+- Description: Implement a multi-step registration form at `/register` for authenticated users, collecting enhanced V2 fields (Req 3.2.4). Use Server Action (`createRegistration`) for validation and saving data to extended `registrations` table in Supabase. Trigger confirmation email.
+- Acceptance criteria: 1. Multi-step form exists at `/register`. 2. Form collects all specified fields with basic validation. 3. Requires authentication. 4. Server Action validates and saves data, preventing duplicates. 5. User redirected on success. 6. Confirmation email triggered.
+- Dependencies: Supabase DB (`registrations` table), Supabase Auth, Server Actions, Client Components (form state), Email service.
+- Status: Specified (Draft)
+
+### Feature: P0 Authentication & RBAC
+- Added: [2025-04-19 05:16:00]
+- Description: Implement authentication using Supabase Magic Link and Role-Based Access Control (RBAC) using a `profiles` table linked to `auth.users` with a `role` enum (`admin`, `participant`, `judge`, `team_member`). Enforce access via Next.js Middleware and Supabase RLS.
+- Acceptance criteria: 1. Magic Link login flow works. 2. Roles defined in `profiles` table (default 'participant'). 3. P0 role assignment is manual (Supabase Studio). 4. Middleware protects routes (e.g., `/admin`). 5. RLS policies restrict data access (e.g., `submissions`, `profiles`).
+- Dependencies: Supabase Auth, Supabase DB (`profiles` table, RLS), Next.js Middleware.
+- Status: Specified (Draft)
+
+
 ### Feature: Admin Section Rebuild (CRUD for Themes, Workshops, FAQs)
 - Added: [2025-04-18 07:35:00]
 - Description: Rebuild the admin section (/admin) to allow authenticated users (via Supabase Magic Link) to perform Create, Read, Update, and Delete operations on Themes, Workshops, and FAQ items stored in the Supabase database.
@@ -52,6 +159,44 @@
 - Description: The embedded Google Form iframe has a large, fixed height determined by Google. This height cannot be reliably controlled or dynamically adjusted from the parent page due to cross-origin restrictions.
 - Impact: The embedding page must accommodate this fixed height, typically resulting in vertical scrolling. CSS aspect-ratio techniques are not suitable.
 - Mitigation strategy: Use a container with appropriate width constraints (`w-full`, `max-w-2xl`, `mx-auto`) and allow the natural vertical scrolling of the page or a designated scrollable parent element.
+
+
+    ### Constraint: AI Generation Quality (Theme Expansion)
+    - Added: [2025-04-19 03:20:00]
+    - Description: The quality and relevance of AI-generated theme description drafts depend heavily on the `vectorize` tool's capabilities and the quality of the source documents/prompts.
+    - Impact: Generated drafts may require significant human editing or be unsuitable.
+    - Mitigation strategy: Implement a robust human review and editing workflow. Refine prompts/queries used with the `vectorize` tool.
+
+    ### Constraint: File Upload Handling (Submissions)
+    - Added: [2025-04-19 03:20:00]
+    - Description: Implementing file uploads requires handling storage, security (scanning, access control), potential large file sizes, and associating uploads with the correct team/submission version.
+    - Impact: Complexity in backend implementation, potential storage costs, security risks if not handled properly.
+    - Mitigation strategy: Use a managed file storage service (e.g., Supabase Storage, S3). Implement strict validation, security scanning, and access controls. Define clear limits (file types, size).
+
+    ### Constraint: RBAC Implementation Complexity
+    - Added: [2025-04-19 03:20:00]
+    - Description: Implementing multiple roles with distinct permissions across various platform features requires careful design and consistent enforcement (e.g., in UI, API routes, database policies).
+    - Impact: Potential for security vulnerabilities or incorrect access if not implemented correctly. Increased development effort.
+    - Mitigation strategy: Clearly define permissions for each role. Use middleware and database Row Level Security (RLS) where appropriate. Implement thorough testing of access controls.
+
+
+### Constraint: P0 Content Mgmt - Admin UI Effort
+- Added: [2025-04-19 05:16:00]
+- Description: Building new admin interfaces for `event_details` and `schedule_items` requires frontend development effort (forms, tables, actions).
+- Impact: Increases P0 implementation time.
+- Mitigation strategy: Reuse existing admin CRUD patterns and components where possible.
+
+### Constraint: P0 Registration - Auth Requirement
+- Added: [2025-04-19 05:16:00]
+- Description: The specified registration flow requires users to be authenticated *before* accessing the form.
+- Impact: If anonymous registration is desired later, this flow needs significant changes.
+- Mitigation strategy: Confirm requirement. If anonymous needed, redesign flow (e.g., create user during registration).
+
+### Constraint: P0 RBAC - Manual Role Assignment
+- Added: [2025-04-19 05:16:00]
+- Description: Assigning `admin` and `judge` roles in P0 requires manual intervention via Supabase Studio.
+- Impact: Operational overhead for administrators.
+- Mitigation strategy: Accept for P0. Plan for automated role assignment or admin UI for role management in future phases.
 
 
 ## System Constraints
@@ -104,6 +249,50 @@
 - Scenario: Screen width is significantly smaller than the form's inherent minimum usable width (though the iframe itself scales down).
 - Expected behavior: The iframe content might require horizontal scrolling *within the iframe itself* (handled by Google Forms), while the page scrolls vertically. The container respects `max-w-2xl` but shrinks below that on small screens due to `w-full`.
 - Testing approach: Manual testing on various small device emulators/physical devices.
+
+
+    ### Edge Case: Registration - Duplicate Email
+    - Identified: [2025-04-19 03:20:00]
+    - Scenario: A user attempts to register with an email address that already exists in the system.
+    - Expected behavior: Prevent duplicate registration. Inform the user that the email is already registered. Potentially offer a login link or password reset if applicable (depends on auth flow).
+    - Testing approach: Attempt registration with an existing email.
+
+    ### Edge Case: Submission - Concurrent Submissions (Same Team)
+    - Identified: [2025-04-19 03:20:00]
+    - Scenario: Two members of the same team attempt to upload a submission simultaneously.
+    - Expected behavior: Depends on multi-submission handling (TBD). If replacing, the last successful upload wins. If versioning, both might be accepted as separate versions. The system should handle this gracefully without data corruption. Email receipts should reflect the final state.
+    - Testing approach: Difficult to automate reliably. Manual test consideration.
+
+    ### Edge Case: Gamification - Clue Access Race Condition
+    - Identified: [2025-04-19 03:20:00]
+    - Scenario: If puzzle progress unlocks content or features, ensure that access control updates correctly and prevents users from accessing clues out of order or before meeting prerequisites.
+    - Expected behavior: Access control is strictly enforced based on puzzle progress state.
+    - Testing approach: Test accessing clues/features directly via URL manipulation without meeting prerequisites.
+
+    ### Edge Case: AI Generation Failure (Theme Expansion)
+    - Identified: [2025-04-19 03:20:00]
+    - Scenario: The `vectorize` tool fails to generate a draft description (e.g., API error, no relevant context found).
+    - Expected behavior: Log the error. The system should gracefully handle the missing draft (e.g., notify admin, allow manual creation).
+    - Testing approach: Simulate failure from the `vectorize` tool during testing.
+
+
+### Edge Case: P0 Content Mgmt - Markdown Rendering Issues
+- Identified: [2025-04-19 05:16:00]
+- Scenario: Invalid Markdown syntax in `description_expanded` or conflicts between `react-markdown` and Tailwind `prose` styles.
+- Expected behavior: `react-markdown` should handle invalid syntax gracefully (render as text or skip). Style conflicts should be resolved via CSS specificity or configuration.
+- Testing approach: Test with invalid Markdown. Inspect rendered HTML/CSS for style conflicts.
+
+### Edge Case: P0 Registration - Duplicate Submission Attempt
+- Identified: [2025-04-19 05:16:00]
+- Scenario: User attempts to submit the registration form after already having a registration record associated with their user ID.
+- Expected behavior: Server Action detects existing registration and returns an error message to the user, preventing duplicate insertion.
+- Testing approach: Test `createRegistration` action with a user ID that already has a registration record.
+
+### Edge Case: P0 RBAC - Middleware Profile Fetch Failure
+- Identified: [2025-04-19 05:16:00]
+- Scenario: The middleware fails to fetch the user's profile (e.g., network error, temporary DB issue, profile doesn't exist yet for a new user).
+- Expected behavior: Middleware should handle the error gracefully, likely redirecting the user to login or an error page, and log the error.
+- Testing approach: Mock Supabase client in middleware tests to simulate profile fetch errors.
 
 
 ## Edge Cases
@@ -222,6 +411,171 @@ export default FormEmbed;
 - Test that container div has max-width computed style (e.g., 672px for max-w-2xl).
 - Test that container div has margin-left/right: auto computed style.
 - Test (Optional/Difficult): iframe height/scrolling behavior at small viewport width.
+
+
+### Pseudocode: P0 Content Mgmt - Theme Detail Page Rendering (`/themes/[id]/page.tsx` Snippet)
+- Created: [2025-04-19 05:16:00]
+- Updated: [2025-04-19 05:16:00]
+```typescript
+// Conceptual rendering part in ThemeDetailPage component
+import ReactMarkdown from 'react-markdown';
+
+// ... inside component, assuming `theme.description_expanded` contains Markdown string ...
+{theme.description_expanded &amp;&amp; (
+  <div className="prose prose-invert max-w-none"> {/* Apply Tailwind Typography */}
+    <ReactMarkdown>{theme.description_expanded}</ReactMarkdown>
+  </div>
+)}
+```
+#### TDD Anchors:
+- Test ReactMarkdown renders when description_expanded exists.
+- Test container div has 'prose' classes.
+- Test nothing renders if description_expanded is null/empty.
+
+### Pseudocode: P0 Content Mgmt - Admin Theme Form Modification (`ThemeForm.tsx` Snippet)
+- Created: [2025-04-19 05:16:00]
+- Updated: [2025-04-19 05:16:00]
+```typescript
+// Conceptual addition to ThemeForm.tsx
+<div>
+  <label htmlFor="description_expanded">Expanded Description (Markdown)</label>
+  <textarea
+    id="description_expanded"
+    name="description_expanded"
+    rows={10}
+    defaultValue={theme?.description_expanded || ''} // Populate if editing
+  />
+  {/* Display validation errors: state.errors?.description_expanded */}
+</div>
+```
+#### TDD Anchors:
+- Test textarea renders with default value.
+- Test Server Actions handle the new field.
+
+### Pseudocode: P0 Registration - Server Action (`src/app/register/actions.ts`)
+- Created: [2025-04-19 05:16:00]
+- Updated: [2025-04-19 05:16:00]
+```typescript
+// src/app/register/actions.ts (Conceptual Pseudocode)
+'use server';
+import { createServerClient } from '@/lib/supabase/server';
+import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
+import { z } from 'zod';
+
+// Define Zod schema matching FR-REG-005...
+const RegistrationSchema = z.object({ /* ... fields ... */ });
+
+export type RegistrationState = { /* ... errors, message, success ... */ };
+
+export async function createRegistration(
+  previousState: RegistrationState,
+  formData: FormData
+): Promise<RegistrationState> {
+  const supabase = createServerClient();
+  // 1. Get user session
+  // 2. Check if user already registered (return error if yes)
+  // 3. Extract/process data from formData (handle arrays)
+  // 4. Validate data using RegistrationSchema (return errors if invalid)
+  // 5. Prepare data for DB (add user_id)
+  // 6. Insert into 'registrations' table
+  // 7. Handle DB errors
+  // 8. Revalidate paths if needed
+  // 9. Redirect on success
+}
+```
+#### TDD Anchors:
+- Test auth check.
+- Test duplicate registration check.
+- Test validation failure/success.
+- Test data processing (arrays).
+- Test DB insertion success/error.
+- Test redirect.
+
+### Pseudocode: P0 Registration - Multi-Step Form Component (`RegistrationForm.tsx`)
+- Created: [2025-04-19 05:16:00]
+- Updated: [2025-04-19 05:16:00]
+```typescript
+// src/app/register/components/RegistrationForm.tsx (Conceptual Pseudocode)
+'use client';
+import React, { useState } from 'react';
+import { useFormState, useFormStatus } from 'react-dom';
+import { createRegistration } from '../actions';
+
+type FormData = { /* ... all fields ... */ };
+const initialState = { /* ... message, errors, success ... */ };
+
+function SubmitButton() { /* ... uses useFormStatus ... */ }
+
+export function RegistrationForm() {
+  const [currentStep, setCurrentStep] = useState(1);
+  const [formData, setFormData] = useState<Partial<FormData>>({});
+  const [state, formAction] = useFormState(createRegistration, initialState);
+  const totalSteps = 4; // Example
+
+  const handleNext = () => { /* ... increment step ... */ };
+  const handlePrevious = () => { /* ... decrement step ... */ };
+  const handleChange = (e) => { /* ... update formData state, handle checkboxes/arrays ... */ };
+  const renderStepContent = () => { /* ... switch(currentStep) to render field sections ... */ };
+
+  return (
+    <form action={formAction}>
+      {/* Display messages */} 
+      {renderStepContent()}
+      {/* Render hidden inputs for all formData on final step */} 
+      {/* Navigation buttons (Previous, Next, Submit) */} 
+    </form>
+  );
+}
+```
+#### TDD Anchors:
+- Test handleChange updates state correctly.
+- Test renderStepContent shows correct fields per step.
+- Test navigation buttons enable/disable/function correctly.
+- Test display of server errors.
+
+### Pseudocode: P0 RBAC - Middleware (`src/middleware.ts`)
+- Created: [2025-04-19 05:16:00]
+- Updated: [2025-04-19 05:16:00]
+```typescript
+// src/middleware.ts (Conceptual Pseudocode)
+import { type NextRequest, NextResponse } from 'next/server';
+import { createServerClient } from '@/lib/supabase/middleware';
+
+const protectedPaths = { '/admin': ['admin'], /* ... other paths ... */ };
+
+export async function middleware(request: NextRequest) {
+  const { supabase, response } = createServerClient(request);
+  const { data: { session } } = await supabase.auth.getSession();
+  const pathname = request.nextUrl.pathname;
+
+  // Check if path is protected
+  const requiredRoles = /* ... find required roles for pathname ... */;
+
+  if (requiredRoles) {
+    if (!session) {
+      return NextResponse.redirect(new URL('/admin/login', request.url));
+    }
+    // Fetch profile role for session.user.id
+    const { data: profile, error } = await supabase.from('profiles').select('role').eq('id', session.user.id).single();
+    if (error || !profile || !requiredRoles.includes(profile.role)) {
+       console.warn(/* ... log details ... */);
+       return NextResponse.redirect(new URL('/admin/login', request.url)); // Or /unauthorized
+    }
+  }
+  // Optional: Redirect logged-in from /admin/login
+  // ...
+  return response;
+}
+
+export const config = { matcher: [ /* ... paths to include/exclude ... */ ] };
+```
+#### TDD Anchors:
+- Test redirect if no session.
+- Test redirect if role mismatch.
+- Test redirect if profile fetch fails.
+- Test successful access with correct role.
+- Test redirect from login if session exists.
 
 
 ## Pseudocode Library
