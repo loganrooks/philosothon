@@ -44,7 +44,7 @@ export default function DashboardClient({ initialRegistrations }: DashboardClien
         onFilterChange={handleFilterChange}
       />
       
-      <div className="p-4 border rounded bg-gray-50 mt-4">
+      <div className="p-4 border bg-gray-50 mt-4">
         {/* Pass filtered data to DataTable */}
         <DataTable registrations={filteredRegistrations} />
         {initialRegistrations.length === 0 && <p className="text-center text-gray-500 mt-2">No registrations found.</p>}

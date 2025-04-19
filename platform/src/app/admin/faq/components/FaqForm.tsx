@@ -38,7 +38,7 @@ export function FaqForm({ action, initialData }: FaqFormProps) {
   const isEditing = !!initialData;
 
   return (
-    <form action={formAction} className="space-y-4 rounded bg-gray-800 p-6 shadow">
+    <form action={formAction} className="space-y-4 bg-gray-800 p-6 shadow">
       {/* Hidden input for ID when editing */}
       {initialData?.id && <input type="hidden" name="id" value={initialData.id} />}
 
@@ -52,7 +52,7 @@ export function FaqForm({ action, initialData }: FaqFormProps) {
           rows={3}
           required
           defaultValue={initialData?.question ?? ''}
-          className="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 px-3 py-2 text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+          className="mt-1 block w-full border-gray-600 bg-gray-700 px-3 py-2 text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
           aria-describedby="question-error"
         ></textarea>
         {state.errors?.question && (
@@ -72,7 +72,7 @@ export function FaqForm({ action, initialData }: FaqFormProps) {
           rows={6}
            required
           defaultValue={initialData?.answer ?? ''}
-          className="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 px-3 py-2 text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+          className="mt-1 block w-full border-gray-600 bg-gray-700 px-3 py-2 text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
           aria-describedby="answer-error"
         ></textarea>
          {state.errors?.answer && (
@@ -91,7 +91,7 @@ export function FaqForm({ action, initialData }: FaqFormProps) {
           name="category"
           type="text"
           defaultValue={initialData?.category ?? ''}
-          className="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 px-3 py-2 text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+          className="mt-1 block w-full border-gray-600 bg-gray-700 px-3 py-2 text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
           aria-describedby="category-error"
         />
         {state.errors?.category && (
@@ -111,7 +111,7 @@ export function FaqForm({ action, initialData }: FaqFormProps) {
           type="number"
            min="0"
           defaultValue={initialData?.display_order ?? ''}
-          className="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 px-3 py-2 text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+          className="mt-1 block w-full border-gray-600 bg-gray-700 px-3 py-2 text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
           aria-describedby="display_order-error"
         />
         {state.errors?.display_order && (

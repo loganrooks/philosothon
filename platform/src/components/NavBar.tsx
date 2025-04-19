@@ -17,52 +17,52 @@ const NavBar = () => {
   ];
 
   return (
-    <> {/* Use fragment to wrap nav and mobile menu */}
-      <nav className="py-4 border-b border-hacker-green"> {/* Vertical padding and border on nav */}
-        {/* Updated padding to match layout */}
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center">
-          {/* Logo/Brand */}
-          <Link href="/" className="text-xl font-bold font-mono text-hacker-green hover:text-white transition">
-            Philosothon UofT
-          </Link>
+    // Use relative positioning context for the absolute dropdown
+    <nav className="relative py-4 border-b border-hacker-green">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center">
+        {/* Logo/Brand - Use Philosopher font */}
+        <Link href="/" className="text-xl font-bold font-philosopher text-hacker-green hover:text-white transition">
+          Philosothon UofT
+        </Link>
 
-          {/* Hamburger Menu Button (visible on small screens) */}
-          <button
-            className="md:hidden text-hacker-green focus:outline-none"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            aria-label="Toggle menu"
-          >
-            {/* Simple Hamburger Icon (can be replaced with SVG) */}
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={isMobileMenuOpen ? 'M6 18L18 6M6 6l12 12' : 'M4 6h16M4 12h16M4 18h16'} />
-            </svg>
-          </button>
+        {/* Hamburger Menu Button (visible on small screens) */}
+        <button
+          className="md:hidden text-hacker-green focus:outline-none"
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          aria-label="Toggle menu"
+        >
+          {/* Simple Hamburger Icon */}
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={isMobileMenuOpen ? 'M6 18L18 6M6 6l12 12' : 'M4 6h16M4 12h16M4 18h16'} />
+          </svg>
+        </button>
 
-          {/* Hide desktop links on small screens */}
-          <ul className="hidden md:flex space-x-6">
-            {navItems.map((item) => (
-              <li key={item.name}>
-                <Link
-                  href={item.href}
-                  className="text-hacker-green hover:text-white font-mono text-sm font-medium transition"
-                >
-                  {item.name}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </nav>
+        {/* Desktop Links (hidden on small screens) */}
+        <ul className="hidden md:flex md:items-center md:space-x-4 lg:space-x-6"> {/* Ensure flex alignment */}
+          {navItems.map((item) => (
+            <li key={item.name}>
+              <Link
+                href={item.href}
+                className="text-hacker-green hover:text-white font-mono text-sm font-medium transition"
+              >
+                {item.name}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </div>
 
-      {/* Mobile Menu (conditionally rendered) */}
+      {/* Mobile Menu (Hanging Dropdown - absolutely positioned) */}
       {isMobileMenuOpen && (
-        <div className="md:hidden bg-dark-base border-t border-hacker-green">
-          <ul className="flex flex-col items-center space-y-4 py-4">
+        // Position absolute, below nav, full width, dark background, padding, bottom
+        <div className="absolute top-full right-4 z-10 md:hidden bg-black border-t border-hacker-green px-6 py-4 w-48">
+          <ul className="flex flex-col space-y-2"> {/* Vertical list, basic spacing */}
             {navItems.map((item) => (
               <li key={item.name}>
                 <Link
                   href={item.href}
-                  className="text-hacker-green hover:text-white font-mono text-sm font-medium transition"
+                  // Block display, vertical padding, consistent styling
+                  className="block py-2 text-hacker-green hover:text-white font-mono text-sm font-medium transition"
                   onClick={() => setIsMobileMenuOpen(false)} // Close menu on click
                 >
                   {item.name}
@@ -72,8 +72,8 @@ const NavBar = () => {
           </ul>
         </div>
       )}
-    </> // Closing fragment tag
-  ); // Closing parenthesis for return statement
+    </nav>
+  );
 };
 
 export default NavBar;

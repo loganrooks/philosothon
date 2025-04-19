@@ -1,6 +1,27 @@
 # Code Specific Memory
 <!-- Entries below should be added reverse chronologically (newest first) -->
 
+### [2025-04-19 00:56:32] Styling Fix: NavBar Mobile Dropdown Padding (Task 70 Follow-up)
+- **Purpose**: Increase left spacing within the mobile navigation dropdown after user reported it looked "wonky" post-Task 70.
+- **Files Modified**: `platform/src/components/NavBar.tsx` (Changed `p-4-md` to `px-6 py-4` on dropdown div).
+- **Status**: Implemented & Verified (Build/Test Pass). Awaiting user visual verification.
+- **Notes**: Addresses visual feedback received after removing rounded corners.
+
+
+### [2025-04-19 00:50:56] Styling Update: Remove Rounded Corners (Task 70)
+- **Purpose**: Remove Tailwind rounded corner utility classes (e.g., `rounded`, `rounded-md`) for a sharper aesthetic.
+- **Files Modified**: All `.tsx` files within `platform/src` (via `find` and `sed`).
+- **Status**: Implemented & Verified (Build/Test Pass). Awaiting user visual verification.
+- **Notes**: Used `find src -name '*.tsx' -exec sed -i 's/ rounded\\(-\\w\\+\\)\\?\\b//g' {} +` command in `platform` directory.
+
+
+### [2025-04-19 00:41:00] Styling Update: Refine Navbar Mobile Dropdown (Task 69)
+- **Purpose**: Adjust mobile dropdown background color and position based on user feedback.
+- **Files Modified**: `platform/src/components/NavBar.tsx` (Changed `bg-dark-base` to `bg-black`, `right-0` to `right-4` in dropdown div).
+- **Status**: Implemented & Verified (Build/Test Pass)
+- **Notes**: Addresses visual feedback from Task 23 intervention.
+
+
 ### [2025-04-19 00:06:16] Styling Update: Set Default Font to Monospace (Task 67)
 - **Purpose**: Apply `font-mono` (JetBrains Mono) as the default body font, correcting the previous application of 'Inter'.
 - **Files Modified**:
@@ -21,6 +42,24 @@
 
 
 ## Intervention Log
+### [2025-04-19 00:21:34] Intervention Fix: NavBar Visual Issues (Task 23)
+- **Trigger**: User visual review (Intervention: [2025-04-19 00:18:51])
+- **Context**: Mobile dropdown was aligned left and perceived as transparent.
+- **Action Taken**: Modified `NavBar.tsx` dropdown `div` class: changed `left-0 right-0` to `right-0 w-48` for alignment, removed `shadow-lg` to ensure opacity.
+- **Rationale**: Align dropdown with trigger button and ensure readability.
+- **Outcome**: Build and tests passed. Awaiting user visual confirmation.
+- **Follow-up**: Request user visual confirmation.
+
+
+### [2025-04-19 00:18:51] Intervention: NavBar Visual Feedback (Task 23)
+- **Trigger**: User visual review
+- **Context**: After implementing the hanging dropdown in Task 23, user observed incorrect mobile menu alignment (left instead of right) and perceived background transparency.
+- **Action Taken**: Will adjust Tailwind positioning classes (`left-0 right-0` to `right-0`) and verify background class (`bg-dark-base`) for opacity.
+- **Rationale**: Align mobile dropdown with the trigger button and ensure readability against page content.
+- **Outcome**: Pending code modification and verification.
+- **Follow-up**: Request user visual confirmation after fix.
+
+
 <!-- Append intervention details using the format below -->
 
 ### [2025-04-18 23:03:24] Styling Update: Replace Dark Text Classes (Task 59)
@@ -63,6 +102,16 @@
 - **Status**: Implemented
 - **Notes**: Applied changes iteratively across key components and pages. Focused on consistent use of theme colors (`hacker-green`, `dark-base`, `light-text`, `medium-gray`) and `font-mono`. Used subtle gray borders for a minimal look. `NavBar` already aligned well.
 
+
+
+### [2025-04-19 00:16:20] Component Refactor: NavBar (Task 23)
+- **Purpose**: Refactor NavBar for responsive horizontal layout, hanging mobile dropdown, and hacker aesthetic.
+- **Files Modified**: `platform/src/components/NavBar.tsx`
+- **Status**: Implemented & Verified (Build/Test Pass)
+- **Dependencies**: `useState` (React)
+- **API Surface**: None changed.
+- **Tests**: Existing tests in `NavBar.test.tsx` passed.
+- **Notes**: Implemented horizontal desktop links (`md:flex`), hanging absolute dropdown (`absolute`, `top-full`), `useState` for toggle, `font-philosopher` for logo, `font-mono` for links.
 
 
 ## Components Implemented

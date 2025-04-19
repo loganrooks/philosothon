@@ -31,7 +31,7 @@ const ThemeCard: React.FC<ThemeCardProps> = ({
   return (
     // Wrap the entire card structure in a Link
     <Link href={`/themes/${id}`} className="block mb-6 group"> {/* Added group for hover effects */}
-      <div className="border border-medium-gray rounded-lg p-8 bg-dark-base group-hover:border-hacker-green transition-colors duration-200"> {/* Use subtle gray border, apply styling here, use group-hover */}
+      <div className="border border-medium-gray p-8 bg-dark-base group-hover:border-hacker-green transition-colors duration-200"> {/* Use subtle gray border, apply styling here, use group-hover */}
         <h3 className="text-xl font-semibold mb-2 text-hacker-green">{title}</h3> {/* Updated color */}
         <p className="text-light-text mb-4">{description}</p> {/* Updated color */}
 

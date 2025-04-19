@@ -15,7 +15,7 @@ const Timeline = () => {
       <div className="space-y-6">
         {timelineEvents.map((item) => (
           <div key={item.year} className="relative">
-            <div className="absolute -left-[30px] top-1 h-4 w-4 rounded-full bg-hacker-green border-2 border-dark-base"></div> {/* Updated dot colors */}
+            <div className="absolute -left-[30px] top-1 h-4 w-4 bg-hacker-green border-2 border-dark-base"></div> {/* Updated dot colors */}
             <p className="text-sm font-semibold text-hacker-green opacity-80">{item.year}</p> {/* Updated year color */}
             <p className="">{item.event}</p> {/* Removed explicit text color to inherit */}
           </div>

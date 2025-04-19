@@ -2,7 +2,7 @@ import React from 'react';
 
 const ScheduleDisplay = () => {
   return (
-    <div className="bg-medium-gray rounded-lg p-8 mb-16 border border-dark-green"> {/* Updated bg, padding, margin, border */}
+    <div className="bg-medium-gray p-8 mb-16 border border-dark-green"> {/* Updated bg, padding, margin, border */}
       <h2 className="text-2xl font-semibold text-hacker-green mb-6 border-b border-dark-green pb-3 font-philosopher">Event Schedule</h2> {/* Updated color, margin, border, font */}
 
       <div className="mb-6">

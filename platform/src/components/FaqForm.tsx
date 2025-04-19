@@ -46,7 +46,7 @@ const FaqForm: React.FC<FaqFormProps> = ({ initialData, action, state }) => {
           rows={3}
           required
           defaultValue={initialData?.question ?? ''}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white sm:text-sm"
+          className="mt-1 block w-full border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white sm:text-sm"
         />
       </div>
 
@@ -63,7 +63,7 @@ const FaqForm: React.FC<FaqFormProps> = ({ initialData, action, state }) => {
           rows={5}
           required
           defaultValue={initialData?.answer ?? ''}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white sm:text-sm"
+          className="mt-1 block w-full border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white sm:text-sm"
         />
       </div>
 
@@ -79,7 +79,7 @@ const FaqForm: React.FC<FaqFormProps> = ({ initialData, action, state }) => {
           id="category"
           name="category"
           defaultValue={initialData?.category ?? ''}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white sm:text-sm"
+          className="mt-1 block w-full border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white sm:text-sm"
         />
       </div>
 
@@ -95,7 +95,7 @@ const FaqForm: React.FC<FaqFormProps> = ({ initialData, action, state }) => {
           id="display_order"
           name="display_order"
           defaultValue={initialData?.display_order ?? ''}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white sm:text-sm"
+          className="mt-1 block w-full border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white sm:text-sm"
         />
       </div>
 
@@ -113,7 +113,7 @@ const FaqForm: React.FC<FaqFormProps> = ({ initialData, action, state }) => {
       <div className="flex justify-end">
         <button
           type="submit"
-          className="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:bg-indigo-500 dark:hover:bg-indigo-600 dark:focus:ring-offset-gray-800"
+          className="inline-flex justify-center border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:bg-indigo-500 dark:hover:bg-indigo-600 dark:focus:ring-offset-gray-800"
         >
           {/* Conditionally render button text */}
           {initialData ? 'Update FAQ Item' : 'Save FAQ Item'}

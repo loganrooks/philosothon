@@ -46,24 +46,24 @@ const Countdown = () => {
   const formatTime = (time: number) => time.toString().padStart(2, '0');
 
   return (
-    <div className="bg-medium-gray p-8 md:p-10 rounded-lg text-center mb-16 border border-dark-green"> {/* Updated bg, padding, margin, border */}
+    <div className="bg-medium-gray p-8 md:p-10 text-center mb-16 border border-dark-green"> {/* Updated bg, padding, margin, border */}
       <h2 className="text-2xl md:text-3xl font-semibold text-hacker-green mb-6 font-philosopher">Event Starts In:</h2> {/* Updated color, margin, font */}
       {/* Render countdown or message directly */}
       {timeLeft ? (
           <div className="grid grid-cols-4 gap-2 md:gap-4 max-w-md mx-auto">
-            <div className="bg-dark-base p-3 md:p-4 rounded-lg border border-dark-green">
+            <div className="bg-dark-base p-3 md:p-4 border border-dark-green">
               <div data-testid="countdown-days" className="text-3xl md:text-4xl font-bold text-hacker-green">{formatTime(timeLeft.days)}</div>
               <div className="text-xs md:text-sm text-light-text opacity-70 uppercase">Days</div>
             </div>
-            <div className="bg-dark-base p-3 md:p-4 rounded-lg border border-dark-green">
+            <div className="bg-dark-base p-3 md:p-4 border border-dark-green">
               <div data-testid="countdown-hours" className="text-3xl md:text-4xl font-bold text-hacker-green">{formatTime(timeLeft.hours)}</div>
               <div className="text-xs md:text-sm text-light-text opacity-70 uppercase">Hours</div>
             </div>
-            <div className="bg-dark-base p-3 md:p-4 rounded-lg border border-dark-green">
+            <div className="bg-dark-base p-3 md:p-4 border border-dark-green">
               <div data-testid="countdown-minutes" className="text-3xl md:text-4xl font-bold text-hacker-green">{formatTime(timeLeft.minutes)}</div>
               <div className="text-xs md:text-sm text-light-text opacity-70 uppercase">Minutes</div>
             </div>
-            <div className="bg-dark-base p-3 md:p-4 rounded-lg border border-dark-green">
+            <div className="bg-dark-base p-3 md:p-4 border border-dark-green">
               <div data-testid="countdown-seconds" className="text-3xl md:text-4xl font-bold text-hacker-green">{formatTime(timeLeft.seconds)}</div>
               <div className="text-xs md:text-sm text-light-text opacity-70 uppercase">Seconds</div>
             </div>

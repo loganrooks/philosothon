@@ -13,7 +13,7 @@ const AccordionGroup: React.FC<AccordionGroupProps> = ({ items }) => {
   return (
     <div>
       {items.map((item, index) => (
-        <div key={index} className="border border-medium-gray rounded-lg mb-4 overflow-hidden bg-dark-base"> {/* Use subtle gray border, Updated bg */}
+        <div key={index} className="border border-medium-gray mb-4 overflow-hidden bg-dark-base"> {/* Use subtle gray border, Updated bg */}
           {/* Using native <details> element for basic accordion functionality */}
           <details className="group">
             <summary className="flex justify-between items-center p-5 cursor-pointer font-semibold text-hacker-green"> {/* Updated padding, color, removed group-open bg */}

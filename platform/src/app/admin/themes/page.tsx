@@ -50,7 +50,7 @@ export default async function AdminThemesPage() {
       </div>
 
       {/* TODO: Consider refactoring platform/src/components/DataTable.tsx to be generic */}
-      <div className="overflow-x-auto rounded shadow">
+      <div className="overflow-x-auto shadow">
         <table className="min-w-full divide-y divide-gray-700 bg-gray-800">
           <thead>
             <tr>

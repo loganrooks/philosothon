@@ -3,7 +3,7 @@ import Link from 'next/link';
 const Hero = () => {
   return (
     // Added responsive padding
-    <div className="bg-medium-gray p-8 md:p-16 rounded-lg text-center mb-16 border border-dark-green">
+    <div className="bg-medium-gray p-8 md:p-16 text-center mb-16 border border-dark-green">
       <h1 className="text-4xl md:text-5xl font-bold text-hacker-green mb-4 font-philosopher"> {/* Updated color, added font */}
         Philosothon: Where Philosophy Meets Hackathon Culture
       </h1>
@@ -19,7 +19,7 @@ const Hero = () => {
         </p>
         <Link
           href="/register"
-          className="bg-hacker-green hover:bg-dark-green text-dark-base hover:text-hacker-green font-bold py-3 px-6 rounded-full transition duration-300 ease-in-out border border-hacker-green hover:border-dark-green" /* Updated button style */
+          className="bg-hacker-green hover:bg-dark-green text-dark-base hover:text-hacker-green font-bold py-3 px-6 transition duration-300 ease-in-out border border-hacker-green hover:border-dark-green" /* Updated button style */
         >
           Register Now
         </Link>
