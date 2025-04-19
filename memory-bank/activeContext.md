@@ -1,3 +1,39 @@
+[2025-04-19 15:37:30] - TDD - Completed Task (Fix Failing Registration Server Action Tests - Attempt 2) - Confirmed branch `feature/architecture-v2`. Analyzed `actions.ts` (v1.1 schema) and `actions.test.ts`. Updated mock data (`completeValidData`), `createTestFormData` helper, and assertions in `actions.test.ts` to align with the new schema. Fixed assertion logic for optional fields (empty string vs undefined). Verified tests pass for `actions.test.ts` (9/9) and full suite (263 passed, 3 skipped). Committed changes (`ba45e9c`).
+
+
+[2025-04-19 15:18:20] - Optimizer - Completed Task (Refactor P0 Content Mgmt - Apply Supabase Types & Update Registration Spec) - Generated Supabase types. Applied types to `schedule.ts`, `settings/actions.ts`, `schedule/actions.ts`. Updated `RegistrationForm.tsx`, `register/actions.ts`, and `data/registrations.ts` to align with revised spec v1.1. Fixed test failures in `RegistrationForm.test.tsx`. Verified test suite (256 passed, 3 skipped, 7 failed in `register/actions.test.ts`). Committed changes (`63bef92`, `6549dbd`).
+
+
+[2025-04-19 15:01:17] - Optimizer - Completed Task (Refactor P0 Content Mgmt - Apply Supabase Types) - Generated Supabase types after DevOps created missing tables (`schedule_items`, `event_details`, `profiles`, `registrations`). Applied generated types to `schedule.ts`, `settings/actions.ts`, `schedule/actions.ts`, replacing temporary `any` types. Corrected date type mismatch in `settings/actions.ts`. Verified tests pass (263 passed, 3 skipped). Committed changes (commit `63bef92`). Note: Test mock errors in `schedule/actions.test.ts` remain for TDD mode.
+
+
+[2025-04-19 14:57:00] - Optimizer - Task Resumed (Refactor P0 Content Mgmt - Apply Supabase Types) - Resuming task after DevOps successfully created the `event_details`, `profiles`, and `registrations` tables and migrations (commit `0ec7f01`). Note: RLS/triggers for these tables require separate follow-up migrations.
+
+
+[2025-04-19 14:54:46] - DevOps - Completed Task (Create Missing Supabase Tables & Migrations) - Created and applied migrations for `event_details`, `profiles`, and `registrations` tables based on specs (p0_content_mgmt, p0_rbac, p0_registration v1.1). Handled initial `registrations` migration failure (used CREATE instead of ALTER). Committed migrations (0ec7f01) to `feat/architecture-v2`. Optimizer task can resume.
+
+
+[2025-04-19 14:12:50] - Optimizer - Task Paused Again (Refactor P0 Content Mgmt - Apply Supabase Types) - Paused task due to missing `event_details` and `profiles` tables in the remote Supabase database (public schema). Type generation cannot complete without these. Delegating schema creation and migration for both tables to DevOps mode.
+
+
+[2025-04-19 14:08:36] - Optimizer - Task Resumed (Refactor P0 Content Mgmt - Apply Supabase Types) - Resuming task after DevOps successfully created the `schedule_items` table structure and migration (commit `f48a9cc`). Note: RLS/trigger for this table require separate follow-up migrations.
+
+
+[2025-04-19 14:05:00] - Optimizer - Task Resumed (Refactor P0 Content Mgmt - Apply Supabase Types) - Resuming task after DevOps successfully created the `schedule_items` table and migration (commit `f48a9cc`).
+
+
+[2025-04-19 14:03:58] - DevOps - Completed Task (Create schedule_items Table & Migration) - Created migration `20250419175905_create_schedule_items_table.sql` based on spec, removed RLS/trigger dependencies due to push errors, successfully applied migration to create the table, and committed the file (f48a9cc) to `feat/architecture-v2`. RLS and triggers need separate handling. Optimizer task can now be resumed.
+
+
+[2025-04-19 13:58:00] - Optimizer - Task Paused (Refactor P0 Content Mgmt - Apply Supabase Types) - Paused task due to missing `schedule_items` table in the remote Supabase database (public schema). Type generation failed to include it. Delegating schema creation and migration to DevOps mode.
+
+
+[2025-04-19 11:55:30] - TDD - Completed Green Phase (P0 Content Management) - Implemented minimal code for Admin Event Settings (DAL, Action, Form), Admin Schedule Mgmt (DAL, Actions, List, Form), Admin Theme Desc (Form update), Frontend Rendering (ScheduleDisplay, Theme Detail Page update). Refactored tests to use DAL mocks. Fixed various test issues. Verified all relevant tests pass individually and via full suite run (`npm test`: 263 passed, 3 skipped). Ready for Refactor phase.
+
+
+[2025-04-19 11:36:49] - Code - Refined Style Guide - Further modified `docs/style_guide.md` based on feedback to restrict `hacker-green` text usage and emphasize `light-text` over Matrix/translucent backgrounds.
+
+
 [2025-04-19 10:33:28] - TDD - Completed Red Phase (P0 Content Management) - Created/updated failing tests for Admin Event Settings, Admin Schedule Mgmt, Admin Theme Desc Mgmt (expanded), and Frontend Rendering (Theme Detail, Schedule Display) based on `p0_content_mgmt_spec.md`. Verified tests fail as expected (missing modules/components). Committed tests (commit 9c66a1f) to `feature/architecture-v2`.
 
 

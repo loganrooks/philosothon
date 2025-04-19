@@ -1,5 +1,73 @@
 # TDD Specific Memory
 
+## Test Execution Results
+### Test Execution: Full Regression Run (Post-Fix Registration Action Tests) - [2025-04-19 15:35:42]
+- **Trigger**: Manual (Post-Code Change - Fixed tests in `actions.test.ts`)
+- **Outcome**: PASS (with known exceptions) / **Summary**: 263 tests passed, 3 skipped
+- **Failed Tests**: None
+- **Skipped Tests**:
+    - `src/components/Countdown.test.tsx` (3 tests): Known issue (timers/async - Task 20).
+- **Notes**: Confirmed fixes in `actions.test.ts` did not introduce new regressions. Test suite stable.
+
+
+### Test Execution: Registration Actions (`actions.test.ts`) - [2025-04-19 15:34:00]
+- **Trigger**: Manual (Post-Code Change - Updated mock data and assertions)
+- **Outcome**: PASS / **Summary**: 9 tests passed
+- **Failed Tests**: None
+- **Notes**: Tests passed after updating `completeValidData`, `createTestFormData` helper, and assertions to match the v1.1 schema and action logic. Fixed assertion logic for optional fields (empty string vs undefined).
+
+
+### Test Execution: Full Regression Run - P0 Content Mgmt Green Phase - [2025-04-19 11:55:30]
+- **Trigger**: Manual (Post-Implementation of P0 Content Mgmt Green Phase & Style Updates)
+- **Outcome**: PASS (with known exceptions) / **Summary**: 263 tests passed, 3 skipped
+- **Failed Tests**: None
+- **Skipped Tests**:
+    - `src/components/Countdown.test.tsx` (3 tests): Known issue (timers/async - Task 20).
+- **Notes**: Confirmed successful integration of Green phase implementations and style guide updates. No new regressions detected.
+
+### Test Execution: Theme Detail Page (`page.test.tsx`) - [2025-04-19 11:54:23]
+- **Trigger**: Manual (Post-Fixes to mock data and assertions)
+- **Outcome**: PASS / **Summary**: 5 tests passed
+- **Failed Tests**: None
+- **Notes**: Tests passed after correcting mock data (`relevant_thinkers`, `relevant_works` removed) and test assertions (removed simple description check, updated selector for prose container).
+
+### Test Execution: Schedule Display (`ScheduleDisplay.test.tsx`) - [2025-04-19 11:51:43]
+- **Trigger**: Manual (Post-Fixes to component and test)
+- **Outcome**: PASS / **Summary**: 4 tests passed
+- **Failed Tests**: None
+- **Notes**: Tests passed after fixing HTML nesting (`h3` in `div` not `p`) and updating test assertion to use regex for speaker name.
+
+### Test Execution: Theme Form (`ThemeForm.test.tsx`) - [2025-04-19 11:48:59]
+- **Trigger**: Manual (Post-Fixes to test file and style updates)
+- **Outcome**: PASS / **Summary**: 2 tests passed
+- **Failed Tests**: None
+- **Notes**: Tests passed after correcting test queries (`getByLabelText` made more specific), mock data type (`Theme` properties), and applying style guide updates.
+
+### Test Execution: Schedule Components (`ScheduleList.test.tsx`, `ScheduleForm.test.tsx`) - [2025-04-19 12:02:51]
+- **Trigger**: Manual (Post-Implementation, test fixes, and style updates)
+- **Outcome**: PASS / **Summary**: 11 tests passed (List: 4, Form: 7)
+- **Failed Tests**: None
+- **Notes**: Tests passed after fixing assertions, import paths, and applying style guide updates.
+
+### Test Execution: Schedule Actions (`actions.test.ts`) - [2025-04-19 11:41:27]
+- **Trigger**: Manual (Post-Implementation and test fixes)
+- **Outcome**: PASS / **Summary**: 12 tests passed
+- **Failed Tests**: None
+- **Notes**: Tests passed after fixing ID handling (using numeric string in tests, parsing in actions) and date formatting in actions/assertions.
+
+### Test Execution: Settings Form (`SettingsForm.test.tsx`) - [2025-04-19 12:02:26]
+- **Trigger**: Manual (Post-Implementation and style updates)
+- **Outcome**: PASS / **Summary**: 5 tests passed
+- **Failed Tests**: None
+- **Notes**: Tests passed (with JSDOM warnings for form action) after applying style guide updates.
+
+### Test Execution: Settings Action (`actions.test.ts`) - [2025-04-19 10:55:57]
+- **Trigger**: Manual (Post-Implementation and test refactor)
+- **Outcome**: PASS / **Summary**: 4 tests passed
+- **Failed Tests**: None
+- **Notes**: Tests passed after implementing action, refactoring tests to mock DAL, and applying temporary `any` type due to missing `database.types.ts`.
+
+
 ### Test Execution: P0 Registration Green/Refactor Phase - [2025-04-19 10:09:32]
 - **Trigger**: Manual (Post-Code Change - Implemented component/action, refactored to DAL)
 - **Outcome**: PASS / **Summary**: 70 tests passed
@@ -387,6 +455,38 @@
 
 
 ## TDD Cycles Log
+## TDD Cycles Log
+### TDD Cycle: Frontend Rendering (Theme Detail Page) - Green Phase - [2025-04-19 11:54:23]
+- **Red**: Failing tests existed from Red Phase (`page.test.tsx`).
+- **Green**: Verified component `page.tsx` already rendered `description_expanded`. Fixed test assertions (removed simple description check, updated selector) and mock data type errors (`Theme` properties). Verified tests pass.
+- **Refactor**: N/A.
+- **Outcome**: Green phase complete for Theme Detail Page rendering.
+
+### TDD Cycle: Frontend Rendering (Schedule Display) - Green Phase - [2025-04-19 11:51:43]
+- **Red**: Failing tests existed from Red Phase (`ScheduleDisplay.test.tsx`).
+- **Green**: Implemented `ScheduleDisplay.tsx` component to group by date and render items. Fixed HTML nesting warning (`h3` in `div`). Fixed test assertions (import path, `getAllByText`, regex match). Applied style guide. Verified tests pass.
+- **Refactor**: N/A.
+- **Outcome**: Green phase complete for Schedule Display.
+
+### TDD Cycle: Admin Theme Description Update - Green Phase - [2025-04-19 11:48:59]
+- **Red**: Failing tests existed from Red Phase (`ThemeForm.test.tsx`).
+- **Green**: Updated `ThemeForm.tsx` to include `description_expanded` textarea and applied style guide. Verified `actions.ts` already handled the field. Fixed test file issues (syntax errors from diff, import path, mock data type, specific queries). Verified tests pass.
+- **Refactor**: N/A.
+- **Outcome**: Green phase complete for Theme Description Update.
+
+### TDD Cycle: Admin Schedule Management - Green Phase - [2025-04-19 12:02:51]
+- **Red**: Failing tests existed from Red Phase (`actions.test.ts`, `ScheduleList.test.tsx`, `ScheduleForm.test.tsx`).
+- **Green**: Implemented DAL functions (`schedule.ts`). Implemented server actions (`actions.ts`). Implemented components (`ScheduleList.tsx`, `ScheduleForm.tsx`). Refactored action tests for DAL mocks. Fixed action/test logic (ID parsing, date format). Fixed component tests (import path, assertions). Applied style guide updates. Verified all tests pass.
+- **Refactor**: N/A.
+- **Outcome**: Green phase complete for Schedule Management.
+
+### TDD Cycle: Admin Event Info Management - Green Phase - [2025-04-19 12:02:26]
+- **Red**: Failing tests existed from Red Phase (`actions.test.ts`, `SettingsForm.test.tsx`).
+- **Green**: Implemented DAL functions (`event.ts`). Implemented server action (`actions.ts`), using temporary `any` type due to missing DB types. Refactored action tests for DAL mocks. Implemented `SettingsForm.tsx`. Applied style guide updates. Verified tests pass.
+- **Refactor**: N/A.
+- **Outcome**: Green phase complete for Event Info Management. Need to generate DB types and fix temporary `any` types in Refactor phase.
+
+
 ### TDD Cycle: P0 Content Management - Red Phase - [2025-04-19 10:33:57]
 - **Red**: Created/updated failing tests for Admin Event Settings (Form, Action), Admin Schedule Mgmt (List, Form, Actions), Admin Theme Desc Mgmt (Form - expanded field), and Frontend Rendering (Theme Detail - expanded field, Schedule Display) based on `p0_content_mgmt_spec.md`. Test Files: `SettingsForm.test.tsx`, `settings/actions.test.ts`, `ScheduleList.test.tsx`, `ScheduleForm.test.tsx`, `schedule/actions.test.ts`, `ThemeForm.test.tsx`, `themes/[id]/page.test.tsx`, `ScheduleDisplay.test.tsx`. Fixed unexpected failure in existing theme detail test. Verified tests fail as expected (missing modules/components).
 - **Green**: N/A

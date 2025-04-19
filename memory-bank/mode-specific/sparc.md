@@ -2,8 +2,58 @@
 <!-- Entries below should be added reverse chronologically (newest first) -->
 
 ## Intervention Log
+### [2025-04-19 15:40:08] Intervention: Workflow Reprioritization - Handle Git Status & Test PR/Vercel Workflow
+- **Trigger**: User cancellation of P1 TDD task delegation and explicit instruction.
+- **Context**: SPARC was about to delegate the Red phase for P1 Team Management after P0 refactoring and test fixes were completed and committed on `feature/architecture-v2`. User intervened to prioritize checking Git status and testing the PR/Vercel deployment process for the completed P0 work.
+- **Action Taken**: Halted P1 task delegation. Logging intervention. Will delegate task to `devops` to check Git status, ensure branch is pushed, and guide user through PR creation and Vercel check monitoring.
+- **Rationale**: Address user's priority to validate the deployment workflow for the completed P0 features before starting P1 development. Ensure clean Git state.
+- **Outcome**: Intervention logged. Workflow reprioritized. Next step is delegating Git/PR task to `devops`.
+- **Follow-up**: Resume P1 TDD cycle only after PR/Vercel checks are satisfactory and the `feature/architecture-v2` branch is potentially merged (or user advises otherwise).
+
+
+### [2025-04-19 15:25:52] Intervention: Insufficient Detail in Task Delegation (TDD Test Fix)
+- **Trigger**: User denial of `new_task` (Fix Failing Registration Tests) due to lack of detail, assumed knowledge, and missing Early Return Clause text.
+- **Context**: SPARC delegated test fixing task to `tdd` mode but failed to provide enough explanation of *why* tests failed (schema/logic mismatch) and omitted the full Early Return Clause text.
+- **Action Taken**: Halted delegation. Logging intervention. Will re-delegate task with more explicit context and the full Early Return Clause.
+- **Rationale**: Ensure delegated modes receive all necessary context and instructions directly within their starting message, including mandatory clauses, to avoid ambiguity and ensure proper execution. Address SPARC's failure to provide adequate context.
+- **Outcome**: Intervention logged. Task delegation will be re-attempted with improved detail.
+- **Follow-up**: SPARC must always include full context, explicit instructions, and verbatim mandatory clauses in `new_task` messages.
+
+
+### [2025-04-19 13:18:14] Intervention: Incomplete Context Reading Before Delegation
+- **Trigger**: User denial of `new_task` (Refactor P0 Content Mgmt) due to missing context file reads.
+- **Context**: SPARC read standard MB files but missed project-specific files listed in handover message (`project_specifications_v2.md`, `p0_*.md`, `git_workflow.md`, ADRs, architecture docs).
+- **Action Taken**: Halted delegation. Logging intervention. Will read missed files before re-attempting delegation.
+- **Rationale**: Ensure full context is understood before delegating tasks to prevent errors and align with handover instructions.
+- **Outcome**: Intervention logged. Corrective action (reading files) initiated.
+- **Follow-up**: SPARC must carefully read *all* files listed in task descriptions/handovers, not just standard MB files.
+
+
+### [2025-04-19 12:47:02] Intervention: Context Window Saturation & Workflow Tracking Failure
+- **Trigger**: User feedback identifying repeated errors in workflow tracking (attempting to re-delegate completed TDD Green phase for Content Management) and high context window usage (60%+).
+- **Context**: SPARC instance failed multiple times to correctly update or recognize the current workflow state after task completions, leading to redundant delegations.
+- **Action Taken**: Halted incorrect delegation. Acknowledged context saturation issue. Preparing for handover to a new SPARC instance as per user's invocation of the delegate clause.
+- **Rationale**: High context window is degrading orchestration performance and reliability, necessitating a handover for effective continuation.
+- **Outcome**: Intervention logged. Proceeding with pre-handover steps (Memory Bank Doctor check).
+- **Follow-up**: Ensure handover message to the new SPARC instance includes this intervention, emphasizes context management strategies (proactive delegation via Delegate Clause), and provides clear instructions.
+
+
 ### [2025-04-18 16:38:00] Intervention: Reprioritization due to UI Issues & Git Debt
 - **Trigger**: User feedback reporting persistent UI issues (fonts, spacing), dissatisfaction with Navbar/hyperlinks, and highlighting large amount of unstaged changes violating Git workflow. User also noted build error with `font-philosopher` class.
+# Workflow State (Current - Overwrite this section)
+- Current phase: Implementation (TDD - P1 Team Management)
+- Phase start: [2025-04-19 15:38:15]
+- Current focus: Initiate TDD cycle for P1 Team Management features (Req 3.4).
+- Next actions: Delegate TDD task (Red phase) for Team Management.
+- Last Updated: [2025-04-19 15:38:15]
+# Workflow State (Current - Overwrite this section)
+- Current phase: Integration & Deployment Testing (P0)
+- Phase start: [2025-04-19 15:40:08]
+- Current focus: Verify Git status, push `feature/architecture-v2`, guide user through PR creation, monitor Vercel checks.
+- Next actions: Delegate Git/PR task to `devops`.
+- Last Updated: [2025-04-19 15:40:08]
+
+
 - **Context**: Multiple tasks completed (public page fixes, admin rebuild, dynamic themes, build fixes, dependency downgrade, testing) but UI state regressed/remained unsatisfactory, and Git hygiene was neglected. Build error with `@apply font-philosopher` persisted despite downgrade.
 - **Action Taken**: Halted planned task (Task 24: Re-enable Global Font Rule). Reprioritized workflow: 1) Log intervention. 2) Address Git debt. 3) Systematically debug UI/font/spacing issues. 4) Refactor Navbar. 5) Refactor hyperlinks.
 - **Rationale**: Essential to establish a stable codebase state (clean Git history, working build, reliable styling foundation) before adding more features or complex refactors. Adheres to best practices and user's explicit concerns.
@@ -11,15 +61,63 @@
 - **Follow-up**: Ensure subsequent tasks adhere strictly to the defined Git workflow. Add build verification step to standard post-code/post-test workflow.
 
 ## Workflow State
+### [2025-04-19 15:38:15] Task: Fix Failing Registration Server Action Tests
+- Assigned to: tdd
+- Description: Update and fix 7 failing tests in `platform/src/app/register/actions.test.ts` to align with refactored `createRegistration` action (spec v1.1).
+- Expected deliverable: Passing tests in `actions.test.ts`, passing full suite (263/3), committed changes.
+- Status: completed
+- Completion time: [2025-04-19 15:38:15]
+- Outcome: Successfully updated mock data and assertions in `actions.test.ts`. All tests in the file pass. Full suite passes (263 passed, 3 skipped). Changes committed (`ba45e9c`).
+- Link to Progress Entry: [See TDD completion message 2025-04-19 15:38:15]
+
+
+### [2025-04-19 13:15:09] Task: Pre-Handover Memory Bank Health Check & Summary
+- Assigned to: memory-bank-doctor
+# Workflow State (Current - Overwrite this section)
+- Current phase: Implementation (TDD - Test Fixes)
+- Phase start: [2025-04-19 15:22:44]
+- Current focus: Fix 7 failing tests in `platform/src/app/register/actions.test.ts` after registration system refactor.
+- Next actions: Delegate test fixing task to `tdd` mode.
+- Last Updated: [2025-04-19 15:22:44]
+
+- Description: Perform health check and summary before SPARC handover.
+- Expected deliverable: Summary report via attempt_completion.
+- Status: completed
+- Completion time: [2025-04-19 13:15:09]
+- Outcome: Health check completed. Repairs applied to `globalContext.md` (header, placeholders, stray chars, duplicates, entry relocation, timestamp format), `sparc.md` (duplicate delegation), and `devops-feedback.md` (reordering). Memory Bank deemed suitable for handover.
+- Link to Progress Entry: [See Memory Bank Doctor completion message 2025-04-19 13:15:09]
+
+### [2025-04-19 15:22:44] Task: Refactor P0 Content Management - Apply Supabase Types
+- Assigned to: refinement-optimization-mode
+- Description: Generate Supabase types and apply them to P0 Content Management files, refactor Registration system per spec v1.1.
+- Expected deliverable: Typed code, updated registration form/action, passing tests, committed changes.
+- Status: completed
+- Completion time: [2025-04-19 15:22:44]
+- Outcome: Supabase types generated and applied. Registration form/action/types updated per spec v1.1. Commits `63bef92`, `6549dbd` made to `feature/architecture-v2`. **Test suite run resulted in 256 passed, 3 skipped, 7 failed (in `register/actions.test.ts`).**
+- Link to Progress Entry: [See Refinement completion message 2025-04-19 15:22:44]
+
+
+
 # Workflow State (Current - Overwrite this section)
 - Current phase: Implementation (TDD)
-- Phase start: [2025-04-19 10:44:00] <!-- Starting Content Mgmt Red phase -->
-- Current focus: P0 Registration System implementation complete. Starting TDD Red phase for P0 Content Management (Req 3.3).
-- Next actions: Delegate TDD task (Red phase) for Content Management to `tdd` mode.
-- Last Updated: [2025-04-19 10:44:00]
+- Phase start: [2025-04-19 12:43:20] <!-- Starting Content Mgmt Green phase -->
+- Current focus: P0 Content Management Red phase complete (failing tests exist). Proceeding with Green phase.
+- Next actions: Delegate TDD task (Green phase) for Content Management (Req 3.3).
+- Last Updated: [2025-04-19 12:43:20]
 
 ## Delegations Log
 <!-- Append new delegation records here -->
+### [2025-04-19 12:42:22] Task: Philosothon Platform V2 - P0 Content Management TDD (Red Phase)
+- Assigned to: tdd
+- Description: Implement Red phase TDD for P0 Content Management features.
+- Expected deliverable: Failing tests committed (or confirmation they exist).
+- Status: completed
+- Completion time: [2025-04-19 12:42:22]
+- Outcome: Confirmed Red phase tests for Content Management already exist from commit `9c66a1f`. No new tests needed.
+- Link to Progress Entry: [See TDD completion message 2025-04-19 12:42:22]
+
+
+
 ### [2025-04-19 10:14:17] Task: Philosothon Platform V2 - P0 Registration System TDD (Green Phase)
 - Assigned to: tdd
 - Description: Implement minimal code for Registration Form and Server Action to pass existing tests.
