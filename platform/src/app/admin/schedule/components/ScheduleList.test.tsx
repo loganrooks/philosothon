@@ -2,7 +2,7 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import ScheduleList from './ScheduleList'; // This import will fail initially
-import { ScheduleItem } from '@/lib/types'; // Assuming type definition exists/will exist
+import { ScheduleItem } from '@/lib/data/schedule'; // Corrected import path
 
 // Mock data
 const mockScheduleItems: ScheduleItem[] = [
@@ -40,7 +40,8 @@ describe('ScheduleList', () => {
     // Check if key data points from the mock items are rendered
     expect(screen.getByText('Opening Ceremony')).toBeInTheDocument();
     expect(screen.getByText('Workshop Session 1')).toBeInTheDocument();
-    expect(screen.getByText('2025-10-26')).toBeInTheDocument(); // Check if date is rendered
+    // Use getAllByText because the date appears multiple times
+    expect(screen.getAllByText('2025-10-26').length).toBeGreaterThan(0);
     // Add more specific checks if using a table (e.g., check for table headers, rows)
   });
 
