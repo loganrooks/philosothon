@@ -2,6 +2,22 @@
 
 ## Issue History
 <!-- Append new issue details using the format below -->
+### Issue: VISUAL-PROSE-001 - Tailwind Typography (`prose`) styles not applied - [Status: Blocked] - [2025-04-18 20:26:37]
+- **Reported**: 2025-04-18 20:07:12 (Task 52) / **Severity**: Medium / **Symptoms**: Markdown content rendered by `react-markdown` on `/proposal` page lacks expected styling (headings, lists, spacing) despite `prose prose-invert max-w-none` classes being applied in `ContentBlock.tsx`.
+- **Investigation**:
+  1. Verified `@tailwindcss/typography` plugin present in `tailwind.config.ts`. (2025-04-18 20:08:21)
+  2. Verified `proposal/page.tsx` uses `ContentBlock` correctly. (2025-04-18 20:08:29)
+  3. Verified `ContentBlock.tsx` applies `prose` classes to wrapper around `children` (`ReactMarkdown` output). (2025-04-18 20:08:38)
+  4. Checked `globals.css` for conflicts; found `ul { list-style: none; }` but no other major overrides. (2025-04-18 20:08:58)
+  5. Inspected compiled CSS output: Confirmed `.prose` styles (e.g., `.prose h2`) are **missing**. (2025-04-18 20:19:33)
+  6. Verified `postcss.config.js` is correct for Tailwind v4. (2025-04-18 20:26:37)
+  7. Performed clean build (`rm -rf .next`, `rm -rf node_modules`, `npm install`, `npm run dev`). Result: No change, issue persists. (2025-04-18 20:26:22)
+- **Root Cause Hypothesis**: Build process failure preventing `@tailwindcss/typography` plugin styles from being generated/included in the final CSS bundle. Similar to previous Preflight issue (VISUAL-PREFLIGHT-001).
+- **Fix Applied**: None.
+- **Verification**: N/A.
+- **Related Issues**: VISUAL-PREFLIGHT-001 (Tasks 31-36).
+
+
 ### Issue: VISUAL-PREFLIGHT-001 - Tailwind Preflight Not Applied (Task 34 Inspection) - [Status: Analysis Complete] - [2025-04-18 18:31:00]
 - **Investigation (Task 34)**:
   1. User provided content of compiled `layout.css` file from browser DevTools. (2025-04-18 18:31:25)
