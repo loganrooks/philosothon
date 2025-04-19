@@ -34,6 +34,14 @@ This file logs feedback received specifically for the DevOps mode, including iss
 - **Context**: Workspace diagnostics provided by user.
 - **Action Taken**: Wrapped `targetDate` initialization in `useMemo` in `Countdown.tsx`.
 - **Learning**: Dependencies of memoized callbacks (`useCallback`) must also be stable; use `useMemo` for objects/arrays depended upon by `useCallback`.
+## Feedback Entry - 2025-04-19 08:32:37
+- **Source**: Tool (`execute_command` - supabase db push)
+- **Issue/Suggestion**: The `supabase db push` command failed *again* with the error "Cannot find project ref. Have you run supabase link?". This occurred despite the user confirming the project ref and the assumption that `supabase link` had been run previously. The linking does not appear to be effective in the execution environment.
+- **Context**: Retry attempt for applying the `20250419121817_add_profile_trigger.sql` migration.
+- **Action Taken**: Task halted as per Early Return Clause. Memory Bank updated. Reporting blockage via `attempt_completion`.
+- **Learning**: Need to verify the *persistence* and *context* of the `supabase link` command. It might need to be run within the same terminal session or environment where subsequent commands like `db push` are executed, especially in containerized or ephemeral environments.
+
+
 ## Feedback Entry - 2025-04-18 18:56:51
 - **Source**: Tool (`execute_command` - git status)
 - **Issue/Suggestion**: Task 38 (Clean `main` Branch) failed. After creating `fix/tailwind-integration`, committing specified changes, and checking out `main`, `git status` shows `memory-bank/mode-specific/sparc.md` is still modified and unstaged. The `main` branch is not clean as expected.
@@ -46,3 +54,9 @@ This file logs feedback received specifically for the DevOps mode, including iss
 - **Context**: Task 32 aimed to fix potential build cache/processing problems preventing Tailwind's base style reset.
 - **Action Taken**: Executed clean build steps successfully, but the visual issue persists. Invoking Early Return Clause for Task 32.
 - **Learning**: The root cause of the Tailwind Preflight issue is likely not related to build cache or dependency installation state. Further debugging is required, potentially focusing on CSS import order, `@layer` directives, or conflicts within `globals.css` or `layout.tsx`.
+## Feedback Entry - 2025-04-19 08:24:18
+- **Source**: Tool (`execute_command` - supabase db push)
+- **Issue/Suggestion**: The `supabase db push` command failed with the error "Cannot find project ref. Have you run supabase link?". This indicates the local Supabase CLI is not linked to a remote Supabase project, preventing the migration from being applied.
+- **Context**: Attempting to apply the `20250419121817_add_profile_trigger.sql` migration.
+- **Action Taken**: Task halted as per Early Return Clause. Memory Bank updated. `attempt_completion` will be used to report the issue and recommend next steps.
+- **Learning**: Ensure Supabase CLI is linked to the target project (`supabase link`) before attempting database operations like `db push`.

@@ -1,3 +1,21 @@
+[2025-04-19 08:56:16] - DevOps - Completed Supabase Migration (Profile Trigger) - Successfully applied migration `20250419121817_add_profile_trigger.sql` using `supabase db push` after user confirmed CLI linking. Committed migration file to `feature/architecture-v2` branch (commit fe73a49).
+
+
+[2025-04-19 08:24:18] - DevOps - Task Blocked (Supabase Migration) - Created migration file `supabase/migrations/20250419121817_add_profile_trigger.sql` with profile creation trigger SQL. Attempt to apply migration via `supabase db push` failed with "Cannot find project ref. Have you run supabase link?". Local CLI is not linked to a remote project. Invoking Early Return Clause.
+
+
+[2025-04-19 06:30:10] - TDD - Completed Green Phase (Middleware RBAC & Profile Creation) - Verified middleware tests pass against existing code. Provided SQL for profile creation trigger. Updated profile creation test to assert 'participant' role and confirmed it passes with mock simulating trigger.
+
+
+[2025-04-19 06:25:49] - Optimizer - Completed Refactoring for RLS Testability - Introduced DAL in `platform/src/lib/data/` abstracting Supabase calls. Refactored Server Actions, Server Components, Middleware, and Tests (themes, workshops, faq, profiles, auth, rls, middleware) to use DAL. Test suite passed (211 passed, 3 skipped), confirming RLS test timeouts resolved and no regressions.
+
+
+[2025-04-19 05:43:47] - Debug - Task Blocked (RLS Test Timeouts) - Investigated persistent timeouts in `platform/src/lib/supabase/rls.test.ts`. Confirmed timeouts occur specifically for tests awaiting promise chains ending in implicit `.then()`. Multiple attempts to refine the `vi.mock` implementation for `createClient` (simplifying structure, removing async, isolating mocks) failed to resolve the `.then()` timeouts, although `.single()` calls now work. Root cause likely complex interaction between Vitest/JSDOM async handling and the Supabase client mock. Invoking Early Return Clause due to intractable mocking issue. [See Debug Issue RLS-TEST-TIMEOUT-001]
+
+
+[2025-04-19 05:35:17] - TDD - Completed Red Phase (Auth/RBAC - Middleware, Profile Creation) - Added failing tests for middleware RBAC checks (profile fetch error, incorrect role) in `platform/src/middleware.test.ts`. Created basic test structure for profile creation check in `platform/src/lib/supabase/profiles.test.ts`. RLS testing in `platform/src/lib/supabase/rls.test.ts` blocked due to persistent test timeouts related to async mocks. Existing auth action tests confirmed. Test run shows expected failures for middleware and timeouts for RLS.
+
+
 [2025-04-19 05:22:35] - DevOps - Committed P0 Specification Drafts - Staged and committed `docs/specs/p0_rbac_spec.md`, `docs/specs/p0_registration_spec.md`, `docs/specs/p0_content_mgmt_spec.md` to the `feature/architecture-v2` branch.
 
 

@@ -12,14 +12,64 @@
 
 ## Workflow State
 # Workflow State (Current - Overwrite this section)
-- Current phase: Architecture
-- Phase start: [2025-04-19 04:34:50]
-- Current focus: Initiate Architecture phase based on V2 specification (`docs/project_specifications_v2.md`).
-- Next actions: Delegate architecture review and proposal task to `architect` mode.
-- Last Updated: [2025-04-19 04:34:50]
+- Current phase: Implementation (DevOps)
+- Phase start: [2025-04-19 08:31:00] <!-- Resuming after user linked Supabase CLI -->
+- Current focus: Re-attempt applying Supabase SQL trigger/function for automatic profile creation now that CLI should be linked.
+- Next actions: Re-delegate SQL migration task to `devops` mode.
+- Last Updated: [2025-04-19 08:31:00]
 
 ## Delegations Log
 <!-- Append new delegation records here -->
+### [2025-04-19 08:24:59] Task: Apply Supabase Profile Creation Trigger
+- Assigned to: devops
+- Description: Create and apply Supabase migration for profile creation trigger/function.
+- Expected deliverable: Applied migration, committed migration file.
+- Status: blocked
+- Completion time: [2025-04-19 08:24:59]
+- Outcome: Blocked. Migration file `supabase/migrations/20250419121817_add_profile_trigger.sql` created, but `supabase db push` failed due to unlinked project (`Cannot find project ref`).
+- Link to Progress Entry: [See DevOps completion message 2025-04-19 08:24:59]
+
+
+### [2025-04-19 06:30:55] Task: Philosothon Platform V2 - P0 Auth/RBAC TDD (Green Phase - Middleware & Profile Creation)
+- Assigned to: tdd
+- Description: Implement minimal code for Middleware RBAC and Profile Creation to pass existing tests.
+- Expected deliverable: Passing tests, committed code/test updates.
+- Status: completed
+- Completion time: [2025-04-19 06:30:55]
+- Outcome: Green phase complete. Middleware tests passed without changes. Profile creation tests passed with updated mocks simulating SQL trigger. Recommended applying SQL trigger/function to database.
+- Link to Progress Entry: [See TDD completion message 2025-04-19 06:30:55]
+
+
+### [2025-04-19 06:26:44] Task: Refactor for RLS Unit Testability
+- Assigned to: refinement-optimization-mode
+- Description: Refactor code interacting with Supabase RLS touchpoints to improve unit testability and resolve test timeouts.
+- Expected deliverable: Refactored code (DAL introduced), updated tests (timeouts resolved), committed to `feature/architecture-v2`.
+- Status: completed
+- Completion time: [2025-04-19 06:26:44]
+- Outcome: Successfully refactored code using a Data Access Layer (`platform/src/lib/data/`). RLS test timeouts in `rls.test.ts` resolved. Test suite passes (211 passed, 3 skipped).
+- Link to Progress Entry: [See Refinement completion message 2025-04-19 06:26:44]
+
+
+### [2025-04-19 05:44:50] Task: Debug RLS Test Timeouts
+- Assigned to: debug
+- Description: Diagnose and resolve persistent test timeouts in `platform/src/lib/supabase/rls.test.ts`.
+- Expected deliverable: Fixed test file or diagnosis and recommendations.
+- Status: blocked
+- Completion time: [2025-04-19 05:44:50]
+- Outcome: Blocked. Debugger confirmed intractable issue mocking async Supabase client promise chains (`.then()`) in Vitest, causing timeouts. Tests using `.single()` were fixed. Issue logged as RLS-TEST-TIMEOUT-001.
+- Link to Progress Entry: [See Debugger completion message 2025-04-19 05:44:50]
+
+
+### [2025-04-19 05:36:09] Task: Philosothon Platform V2 - P0 Auth/RBAC TDD (Red Phase)
+- Assigned to: tdd
+- Description: Implement Red phase TDD for P0 Auth/RBAC features.
+- Expected deliverable: Failing tests committed to `feature/architecture-v2`.
+- Status: blocked
+- Completion time: [2025-04-19 05:36:09]
+- Outcome: Red phase completed for Middleware RBAC and Profile Creation logic (tests added/failing as expected). Blocked on writing tests for RLS policies due to async Supabase client mocking timeouts in `platform/src/lib/supabase/rls.test.ts`.
+- Link to Progress Entry: [See TDD completion message 2025-04-19 05:36:09]
+
+
 ### [2025-04-19 05:09:30] Task: Philosothon Platform V2 - Architecture Design
 - Assigned to: architect
 - Description: Design V2 architecture based on spec, investigate options, propose updates.

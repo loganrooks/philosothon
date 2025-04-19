@@ -33,6 +33,9 @@ This file consolidates less frequently updated global project information, inclu
 
 # System Patterns
 
+
+*   **[2025-04-19] Data Access Layer (DAL):** Introduced a DAL (`platform/src/lib/data/`) to abstract direct Supabase client interactions (data fetching, auth calls) from Server Components, Server Actions, and Middleware. Improves testability by allowing mocks of specific DAL functions instead of the complex Supabase client. Applied to themes, workshops, faq, profiles, auth.
+
 ## Coding Patterns
 
 -   **Framework:** Next.js (App Router) with TypeScript.
@@ -372,6 +375,15 @@ Added `libnss3` to the `apt-get install -y` command list within the `RUN` instru
 
 
 # Progress
+[2025-04-19 08:56:16] - [DevOps Task] Apply Supabase Profile Trigger Migration [Completed] - Successfully applied and committed the database migration for automatic profile creation.
+
+
+[2025-04-19 05:43:47] - [Debug Task] Debug RLS Test Timeouts (`rls.test.ts`) [Blocked] - Investigated persistent Vitest timeouts for tests involving implicit `.then()` calls after Supabase client method chains. Multiple mock refinement attempts failed. Root cause likely complex async mock resolution issue. Invoking Early Return Clause. [See Debug Issue RLS-TEST-TIMEOUT-001]
+
+
+[2025-04-19 06:26:00] - [Optimizer Task] Refactor for RLS Testability [Completed] - Introduced DAL, refactored Supabase calls, updated tests. RLS test timeouts resolved.
+
+
 [2025-04-19 01:50:05] - [Code Task] Apply Fixes for Admin 404s (Task 75) [Blocked] - Created `admin/page.tsx`, refined middleware matcher. Clean build/restart command (`rm -rf .next && npm run dev`) was terminated before completion. Early Return Clause invoked. [Related to Task 74 Analysis - 2025-04-19 01:27:22]
 
 
