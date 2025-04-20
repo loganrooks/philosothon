@@ -89,46 +89,47 @@ const {
 describe('Registration Server Actions', () => {
   let previousState: RegistrationState;
 
-  // Define complete valid data based on the V2 schema
-  const completeValidData = {
-    email: 'valid@example.com',
-    full_name: 'Valid Test User V2',
-    pronouns: 'they/them',
-    student_id: '100987654', // Corrected ID
-    university: 'University of Testing V2',
-    academic_year: '3rd Year' as const, // Corrected ID
-    program: 'Test Philosophy V2',
-    philosophy_coursework: 'PHI303, PHI404', // Renamed, optional
-    philosophy_interests: 'AI Ethics, Phenomenology', // Renamed, optional
-    event_expectations: 'Learn new things and meet people V2', // Renamed
-    attendance_preference: 'In-Person' as const, // Renamed
-    workshop_preference: 'Workshop A, Workshop B', // Renamed, optional
-    dietary_restrictions: 'Vegan', // Renamed, optional
-    accessibility_needs: 'None', // Renamed, optional
-    code_of_conduct_agreement: 'true', // Use string for FormData boolean
-    photo_consent: 'true', // Use string for FormData boolean
-    data_privacy_consent: 'true', // Use string for FormData boolean
-  };
-
-  // Expected data structure after Zod parsing (V2)
-  const expectedParsedData = {
-    email: 'valid@example.com',
-    full_name: 'Valid Test User V2',
-    pronouns: 'they/them',
-    student_id: '100987654',
-    university: 'University of Testing V2',
-    academic_year: '3rd Year',
-    program: 'Test Philosophy V2',
-    philosophy_coursework: 'PHI303, PHI404',
-    philosophy_interests: 'AI Ethics, Phenomenology',
-    event_expectations: 'Learn new things and meet people V2',
-    attendance_preference: 'In-Person',
-    workshop_preference: 'Workshop A, Workshop B',
-    dietary_restrictions: 'Vegan',
-    accessibility_needs: 'None',
-    code_of_conduct_agreement: true, // Zod parses boolean
-    photo_consent: true, // Zod parses boolean
-    data_privacy_consent: true, // Zod parses boolean
+  // Define complete valid data based on the V3 schema from config/registrationSchema.ts
+  const completeValidDataV3 = {
+    // Section 1
+    fullName: 'Valid Test User V3', // Q1
+    email: 'valid-v3@example.com', // Q2
+    // password/confirmPassword skipped (handled by auth)
+    pronouns: 'they/them', // Q3 (Optional)
+    studentId: '1001234567', // Q4
+    university: 'University of Testing V3', // Q5
+    academicYear: '3rd Year', // Q6
+    programOfStudy: 'Philosophy V3', // Q7
+    // Section 2
+    philosophyCoursework: 'PHI101, PHI202', // Q8 (Optional)
+    philosophyInterests: 'Ethics of Technology, AI Alignment', // Q9 (Optional)
+    philosophyExpertise: '3', // Q10 (Scale 1-5) -> string for FormData
+    attendedPhilosothonBefore: 'false', // Q11 (Boolean) -> string for FormData
+    // previousPhilosothonDetails: '', // Q12 (Skipped as Q11 is false)
+    // Section 3
+    themeRanking: ['3', '1', '4'], // Q13 (Ranking - Array of numbers as strings for FormData)
+    workshopPreference: ['1', '3'], // Q14 (Multi-select - Array of numbers as strings for FormData)
+    teamFormationPreference: 'Assign me to a team', // Q15
+    preformedTeamMembers: '', // Q16 (Add field, even if empty for this case)
+    availability: 'true', // Q17 (Boolean) -> string for FormData
+    // availabilityDetails: '', // Q18 (Skipped as Q17 is true)
+    // Section 4
+    technicalSkills: '4', // Q19 (Scale 1-5) -> string for FormData
+    codingExperience: 'true', // Q20 (Boolean) -> string for FormData
+    codingLanguages: 'Python, JavaScript', // Q21 (Optional, shown as Q20 is true)
+    specificTools: 'Figma, VS Code', // Q22 (Optional)
+    // Section 5
+    dietaryRestrictions: 'None', // Q23 (Optional)
+    accessibilityNeeds: 'None', // Q24 (Optional)
+    emergencyContactName: 'Jane Doe', // Q25 (Optional)
+    emergencyContactPhone: '555-123-4567', // Q26 (Optional)
+    preferredCommunication: 'Email', // Q27
+    preferredCommunicationOther: '', // Q28 (Add field, even if empty for this case)
+    // Section 6
+    codeOfConductAgreement: 'true', // Q29 (Boolean) -> string for FormData
+    photoConsent: 'true', // Q30 (Boolean) -> string for FormData
+    dataPrivacyConsent: 'true', // Q31 (Boolean) -> string for FormData
+    finalConfirmation: 'true', // Q32 (Boolean) -> string for FormData
   };
 
 
@@ -158,7 +159,7 @@ describe('Registration Server Actions', () => {
 
     it('should return error if user cannot be retrieved', async () => { // Renamed test slightly
       mockGetUser.mockResolvedValue({ data: { user: null }, error: new Error('User fetch failed') }); // Mock getUser error
-      const formData = createTestFormData(completeValidData);
+      const formData = createTestFormData(completeValidDataV3); // Use V3 data
       const result = await submitRegistration(previousState, formData);
       expect(result.success).toBe(false);
       expect(result.message).toContain('Authentication error: Could not retrieve user.'); // Updated expected message
@@ -167,7 +168,7 @@ describe('Registration Server Actions', () => {
 
     it('should return error if user is not authenticated', async () => {
       mockGetUser.mockResolvedValue({ data: { user: null }, error: null }); // Mock getUser returning null user
-      const formData = createTestFormData(completeValidData);
+      const formData = createTestFormData(completeValidDataV3); // Use V3 data
       const result = await submitRegistration(previousState, formData);
       expect(result.success).toBe(false);
       expect(result.message).toContain('Authentication error: Could not retrieve user.'); // Updated expected message
@@ -182,15 +183,15 @@ describe('Registration Server Actions', () => {
         error: null,
       });
 
-      // Create data missing a required field (e.g., university)
-      const { university, ...incompleteData } = completeValidData;
+      // Create data missing a required field (e.g., university) from V3 data
+      const { university, ...incompleteData } = completeValidDataV3;
       const formData = createTestFormData(incompleteData);
       const result = await submitRegistration(previousState, formData);
 
       expect(result.success).toBe(false);
       expect(result.message).toContain('Validation failed');
       expect(result.errors).toBeDefined();
-      // Check for a specific missing field based on V2 schema
+      // Check for a specific missing field based on V3 schema
       expect(result.errors?.university).toBeDefined();
       // expect(true).toBe(false); // Placeholder failure - REMOVED
     });
@@ -206,7 +207,7 @@ describe('Registration Server Actions', () => {
       mockFetchReg.mockResolvedValue({ registration: null, error: null });
       mockInsertReg.mockResolvedValue({ registration: null, error: new Error('DB insert failed') }); // Insert fails
 
-      const formData = createTestFormData(completeValidData);
+      const formData = createTestFormData(completeValidDataV3); // Use V3 data
       const result = await submitRegistration(previousState, formData);
 
       expect(result.success).toBe(false);
@@ -223,7 +224,7 @@ describe('Registration Server Actions', () => {
       });
       mockInsertReg.mockResolvedValue({ registration: { id: 'new-reg-id' } as any, error: null }); // Successful insert
 
-      const formData = createTestFormData(completeValidData);
+      const formData = createTestFormData(completeValidDataV3); // Use V3 data
       // Mock getUser to return the authenticated user
       mockGetUser.mockResolvedValue({ // Use direct mock
           data: { user: { id: userId, email: 'valid@example.com' } },
@@ -234,51 +235,52 @@ describe('Registration Server Actions', () => {
 
       await submitRegistration(previousState, formData);
 
-      // Check against the V1.1 structure expected by the DAL mock
-      const expectedInsertData = {
+      // Check against the V1.1 structure expected by the DAL mock, mapped from V3 data
+      const expectedInsertDataV3 = {
           user_id: userId,
-          email: completeValidData.email,
-          full_name: completeValidData.full_name,
-          university: completeValidData.university,
-          program: completeValidData.program,
-          year_of_study: 3, // Mapped from academic_year
-          // Default values for V1.1 fields not in V2 form data
-          can_attend_may_3_4: 'maybe',
+          email: completeValidDataV3.email, // V3
+          full_name: completeValidDataV3.fullName, // V3
+          university: completeValidDataV3.university, // V3
+          program: completeValidDataV3.programOfStudy, // V3
+          year_of_study: 3, // Mapped from V3 academicYear
+          // V1.1 fields not in V3 schema - provide defaults or handle nulls
+          can_attend_may_3_4: 'maybe', // Default value
           may_3_4_comment: null,
-          prior_courses: [completeValidData.philosophy_coursework], // Mapped
-          discussion_confidence: 5,
-          writing_confidence: 5,
-          familiarity_analytic: 3,
-          familiarity_continental: 3,
-          familiarity_other: 3,
-          areas_of_interest: completeValidData.philosophy_interests, // Mapped
-          philosophical_traditions: [],
-          philosophical_interests: [],
-          theme_rankings: {},
+          prior_courses: completeValidDataV3.philosophyCoursework ? [completeValidDataV3.philosophyCoursework] : null, // Map V3 coursework
+          discussion_confidence: 5, // Default value
+          writing_confidence: 5, // Default value
+          familiarity_analytic: 3, // Default value
+          familiarity_continental: 3, // Default value
+          familiarity_other: 3, // Default value
+          areas_of_interest: completeValidDataV3.philosophyInterests, // Map V3 interests
+          philosophical_traditions: [], // Default empty array for V1.1 field
+          philosophical_interests: [], // Default empty array for V1.1 field
+          theme_rankings: completeValidDataV3.themeRanking.map(Number), // Map V3 ranking (convert strings to numbers)
           theme_suggestion: null,
-          workshop_rankings: {},
-          preferred_working_style: 'balanced',
-          teammate_similarity: 5,
-          skill_writing: 3,
-          skill_speaking: 3,
-          skill_research: 3,
-          skill_synthesis: 3,
-          skill_critique: 3,
-          preferred_teammates: null,
+          workshop_rankings: completeValidDataV3.workshopPreference.map(Number), // Map V3 preference (convert strings to numbers)
+          preferred_working_style: 'balanced', // Default value
+          teammate_similarity: 5, // Default value
+          skill_writing: 3, // Default value
+          skill_speaking: 3, // Default value
+          skill_research: 3, // Default value
+          skill_synthesis: 3, // Default value
+          skill_critique: 3, // Default value
+          preferred_teammates: completeValidDataV3.teamFormationPreference === 'I have a pre-formed team' ? completeValidDataV3.preformedTeamMembers : null, // Map V3 preformedTeamMembers if applicable
           complementary_perspectives: null,
-          mentorship_preference: 'no_preference',
+          mentorship_preference: 'no_preference', // Default value
           mentorship_areas: null,
-          familiarity_tech_concepts: 3,
-          prior_hackathon_experience: false,
-          prior_hackathon_details: null,
-          dietary_restrictions: completeValidData.dietary_restrictions, // V2 field matches V1.1
-          accessibility_needs: completeValidData.accessibility_needs, // V2 field matches V1.1
+          familiarity_tech_concepts: parseInt(completeValidDataV3.technicalSkills) || 3, // Map V3 technicalSkills
+          prior_hackathon_experience: completeValidDataV3.codingExperience === 'true', // Map V3 codingExperience
+          prior_hackathon_details: completeValidDataV3.codingLanguages, // Map V3 codingLanguages (approximate)
+          dietary_restrictions: completeValidDataV3.dietaryRestrictions, // V3 field matches V1.1
+          accessibility_needs: completeValidDataV3.accessibilityNeeds, // V3 field matches V1.1
           additional_notes: null,
-          how_heard: 'other',
-          how_heard_other: null,
+          how_heard: 'other', // Default value
+          how_heard_other: completeValidDataV3.preferredCommunication === 'Other (please specify)' ? completeValidDataV3.preferredCommunicationOther : null, // Map V3 how_heard_other
+          // V3 fields like pronouns, studentId, consents are ignored as they are not in V1.1 RegistrationInput
       };
       expect(mockInsertReg).toHaveBeenCalledWith(
-        expect.objectContaining(expectedInsertData)
+        expect.objectContaining(expectedInsertDataV3) // Use updated expected data
       );
       expect(revalidatePath).toHaveBeenCalledWith('/admin/registrations'); // Check revalidation
       expect(redirect).toHaveBeenCalledWith('/register/success'); // Check redirect path
@@ -291,7 +293,7 @@ describe('Registration Server Actions', () => {
     // --- TDD Anchors for updateRegistration ---
      it('should return error if user is not authenticated', async () => {
         mockGetUser.mockResolvedValue({ data: { user: null }, error: null }); // Mock getUser failing
-        const formData = createTestFormData(completeValidData);
+        const formData = createTestFormData(completeValidDataV3); // Use V3 data
        const result = await updateRegistration(previousState, formData);
        expect(result.success).toBe(false);
        expect(result.message).toContain('Authentication error: Could not retrieve user.');
@@ -303,12 +305,12 @@ describe('Registration Server Actions', () => {
         data: { user: { id: 'user-123', email: 'valid@example.com' } },
         error: null,
       });
-       const { university, ...incompleteData } = completeValidData;
+       const { university, ...incompleteData } = completeValidDataV3; // Use V3 data
        const formData = createTestFormData(incompleteData);
        const result = await updateRegistration(previousState, formData);
        expect(result.success).toBe(false);
        expect(result.message).toContain('Validation failed');
-       expect(result.errors?.university).toBeDefined();
+       expect(result.errors?.university).toBeDefined(); // Check V3 field
        // expect(true).toBe(false); // Placeholder failure - REMOVED
    });
 
@@ -320,7 +322,7 @@ describe('Registration Server Actions', () => {
       });
        mockUpdateReg.mockResolvedValue({ registration: null, error: new Error('DB update failed') }); // Update fails
 
-       const formData = createTestFormData(completeValidData);
+       const formData = createTestFormData(completeValidDataV3); // Use V3 data
        const result = await updateRegistration(previousState, formData);
        expect(result.success).toBe(false);
        expect(result.message).toContain('Database Error: Failed to update registration. DB update failed');
@@ -335,7 +337,7 @@ describe('Registration Server Actions', () => {
       });
        mockUpdateReg.mockResolvedValue({ registration: { id: 'reg-id-to-update' } as any, error: null }); // Successful update
 
-       const formData = createTestFormData(completeValidData);
+       const formData = createTestFormData(completeValidDataV3); // Use V3 data
        // Mock getUser to return the authenticated user
        mockGetUser.mockResolvedValue({ // Use direct mock variable
            data: { user: { id: userId, email: 'valid@example.com' } },
@@ -344,23 +346,28 @@ describe('Registration Server Actions', () => {
 
        await updateRegistration(previousState, formData);
 
-       // Adjust expected data for update (V1.1 structure)
-       const expectedUpdateData = {
-           email: completeValidData.email,
-           full_name: completeValidData.full_name,
-           university: completeValidData.university,
-           program: completeValidData.program,
-           year_of_study: 3, // Mapped from academic_year
-           prior_courses: [completeValidData.philosophy_coursework], // Mapped
-           areas_of_interest: completeValidData.philosophy_interests, // Mapped
-           dietary_restrictions: completeValidData.dietary_restrictions, // V2 field matches V1.1
-           accessibility_needs: completeValidData.accessibility_needs, // V2 field matches V1.1
-           // Other V1.1 fields are not included in the V2 form/schema, so they won't be in the update payload
+       // Adjust expected data for update (V1.1 structure mapped from V3)
+       const expectedUpdateDataV3 = {
+           email: completeValidDataV3.email, // V3
+           full_name: completeValidDataV3.fullName, // V3
+           university: completeValidDataV3.university, // V3
+           program: completeValidDataV3.programOfStudy, // V3
+           year_of_study: 3, // Mapped from V3 academicYear
+           prior_courses: completeValidDataV3.philosophyCoursework ? [completeValidDataV3.philosophyCoursework] : null, // Map V3 coursework
+           areas_of_interest: completeValidDataV3.philosophyInterests, // Map V3 interests
+           theme_rankings: completeValidDataV3.themeRanking.map(Number), // Map V3 ranking
+           workshop_rankings: completeValidDataV3.workshopPreference.map(Number), // Map V3 preference
+           familiarity_tech_concepts: parseInt(completeValidDataV3.technicalSkills) || undefined, // Map V3 technicalSkills
+           prior_hackathon_experience: completeValidDataV3.codingExperience === 'true', // Map V3 codingExperience
+           prior_hackathon_details: completeValidDataV3.codingLanguages, // Map V3 codingLanguages
+           dietary_restrictions: completeValidDataV3.dietaryRestrictions, // V3 field matches V1.1
+           accessibility_needs: completeValidDataV3.accessibilityNeeds, // V3 field matches V1.1
+           // Other V1.1 fields not present in V3 schema will not be in the update payload unless explicitly added
        };
 
        expect(mockUpdateReg).toHaveBeenCalledWith(
-         userId, // Assuming action gets userId from session
-         expect.objectContaining(expectedUpdateData) // Check data passed
+         userId,
+         expect.objectContaining(expectedUpdateDataV3) // Use updated expected data
        );
        expect(revalidatePath).toHaveBeenCalledWith('/register'); // Check revalidation
        expect(redirect).toHaveBeenCalledWith('/register/success?updated=true'); // Check redirect path

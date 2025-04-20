@@ -66,11 +66,11 @@ describe('SSOT Registration Generation Script', () => {
       // Decide if cleanup is needed - for now, let's leave it if it was created
     }
 
-    // Clean up generated frontend file
-    if (fs.existsSync(generatedFrontendFile)) {
-        fs.unlinkSync(generatedFrontendFile);
-        console.log(`Cleaned up generated ${path.basename(generatedFrontendFile)}`);
-    }
+    // Clean up generated frontend file - COMMENTED OUT TO PREVENT DELETION
+    // if (fs.existsSync(generatedFrontendFile)) {
+    //     fs.unlinkSync(generatedFrontendFile);
+    //     console.log(`Cleaned up generated ${path.basename(generatedFrontendFile)}`);
+    // }
     // Clean up generated migration file
     if (generatedMigrationFile && fs.existsSync(generatedMigrationFile)) {
         fs.unlinkSync(generatedMigrationFile);
@@ -99,8 +99,8 @@ describe('SSOT Registration Generation Script', () => {
    it('should update actions.ts with schema import and usage', () => {
      expect(fs.existsSync(actionsPath)).toBe(true); // Ensure file exists
      const content = fs.readFileSync(actionsPath, 'utf-8');
-     // Check for import (adjust path as needed based on script logic)
-     expect(content).toContain("import { generateRegistrationSchema } from '../config/registrationSchema';");
+     // Check for import (adjust path as needed based on script logic - using the actual generated path)
+     expect(content).toContain("import { generateRegistrationSchema } from '../../../config/registrationSchema';");
      // Check for schema usage
      expect(content).toContain('export const RegistrationSchema = generateRegistrationSchema();');
    });

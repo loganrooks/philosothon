@@ -2,6 +2,19 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // Import actions
 import { signInWithPassword, signUpUser, signOut, requestPasswordReset } from './actions';
 
+
+// Mock headers from next/headers
+vi.mock('next/headers', () => ({
+  headers: vi.fn(() => ({
+    get: vi.fn((headerName: string) => {
+      if (headerName === 'origin') {
+        return 'http://localhost:3000'; // Mock origin
+      }
+      return null;
+    }),
+  })),
+}));
+
 // Mock Supabase client and auth methods
 const mockSignInWithPassword = vi.fn();
 const mockSignUp = vi.fn();
