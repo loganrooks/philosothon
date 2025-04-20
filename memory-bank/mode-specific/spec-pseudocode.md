@@ -93,6 +93,14 @@
     - Status: Specified (Mechanism TBD)
 
 
+### Feature: Terminal Registration UI V2
+- Added: [2025-04-19 20:09:00]
+- Description: Redesigned terminal-style UI for user registration with distinct modes (Main, Registration, Auth), command-driven interaction, local storage for progress saving, and site-wide password-based authentication (replacing Magic Link). Incorporates SSOT + Code Generation for question synchronization.
+- Acceptance criteria: 1. UI implements specified modes and commands. 2. Registration flow collects email/password early, then remaining questions. 3. SSOT strategy implemented for question definition and generation. 4. Password auth works site-wide (sign-up, sign-in, reset via email link, sign-out). 5. Authenticated users can view/edit/delete their registration. 6. Local storage uses basic obfuscation.
+- Dependencies: Supabase Auth (Password), Supabase DB (`registrations`, `profiles`), SSOT generation script, Frontend UI framework.
+- Status: Specified (Final Draft)
+
+
 ## Functional Requirements
 ### Feature: P0 Content Management (Event Info, Expanded Themes)
 - Added: [2025-04-19 05:16:00]
@@ -183,6 +191,19 @@
 ### Constraint: P0 Content Mgmt - Admin UI Effort
 - Added: [2025-04-19 05:16:00]
 - Description: Building new admin interfaces for `event_details` and `schedule_items` requires frontend development effort (forms, tables, actions).
+### Constraint: Site-Wide Auth Change Impact
+- Added: [2025-04-19 20:09:00]
+- Description: Replacing Magic Link/OTP with password authentication site-wide requires updating not only the new registration flow but also the existing Admin login mechanism.
+- Impact: Requires coordinated changes across different parts of the application (Terminal UI, Admin UI, backend actions, middleware).
+- Mitigation strategy: Update Admin login flow in a separate task/branch after implementing the core password auth actions.
+
+### Constraint: Local Storage Security (Basic Obfuscation)
+- Added: [2025-04-19 20:09:00]
+- Description: In-progress registration data stored in local storage requires basic obfuscation (e.g., Base64) as per P0 requirements. Sensitive data like plain text passwords should not be stored locally after initial use.
+- Impact: Adds minor complexity to local storage read/write operations.
+- Mitigation strategy: Implement simple reversible obfuscation function within `useLocalStorage` or wrapper.
+
+
 - Impact: Increases P0 implementation time.
 - Mitigation strategy: Reuse existing admin CRUD patterns and components where possible.
 
@@ -266,6 +287,25 @@
     ### Edge Case: Gamification - Clue Access Race Condition
     - Identified: [2025-04-19 03:20:00]
     - Scenario: If puzzle progress unlocks content or features, ensure that access control updates correctly and prevents users from accessing clues out of order or before meeting prerequisites.
+### Edge Case: Terminal Auth - Magic Link Fallback Failure
+- Identified: [2025-04-19 20:09:00]
+- Scenario: User attempts `magiclink` command during sign-in, but the backend fails to send the email (e.g., email service down, invalid email format missed by client validation).
+- Expected behavior: Display an error message ("Failed to send sign-in link. Please try again later or use password."). Remain in Auth Mode.
+- Testing approach: Mock backend email sending failure.
+
+### Edge Case: Terminal Registration - User Creation Failure
+- Identified: [2025-04-19 20:09:00]
+- Scenario: Backend `signUpUser` action fails after email/password collection (e.g., temporary DB issue, unexpected Supabase error).
+- Expected behavior: Display an error message ("Failed to create account. Please try again."). Remain at the password creation step, allowing retry.
+- Testing approach: Mock `signUpUser` action failure.
+
+### Edge Case: Terminal Registration - Resume After Auth Change
+- Identified: [2025-04-19 20:09:00]
+- Scenario: User starts registration anonymously, exits, then signs in using an existing account (created previously or via another method) with the same email.
+- Expected behavior: The `register continue` command should ideally detect the existing *server-side* registration status for the logged-in user and prompt appropriately (e.g., "Existing registration found. View/Edit?"), rather than just relying on potentially outdated local storage.
+- Testing approach: Manual test flow: start anonymous, exit, sign in, attempt continue.
+
+
     - Expected behavior: Access control is strictly enforced based on puzzle progress state.
     - Testing approach: Test accessing clues/features directly via URL manipulation without meeting prerequisites.
 

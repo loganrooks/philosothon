@@ -13,6 +13,13 @@ This file logs feedback received specifically for the DevOps mode, including iss
 -->
 
 
+## Feedback Entry - 2025-04-20 05:30:43
+- **Source**: User
+- **Issue/Suggestion**: The `attempt_completion` message lacked sufficient detail.
+- **Context**: After completing the 'Run Registration SSOT Generation Script (Attempt 2)' task.
+- **Action Taken**: Acknowledged feedback. Will provide a more detailed completion summary adhering to the DevOps mode's structured format.
+- **Learning**: Ensure `attempt_completion` messages follow the mode-specific structure (Summary, Files Affected, MB Updates, Status/Next Steps) and provide adequate detail.
+
 ## Feedback Entry - 2025-04-19 08:32:37
 - **Source**: Tool (`execute_command` - supabase db push)
 - **Issue/Suggestion**: The `supabase db push` command failed *again* with the error "Cannot find project ref. Have you run supabase link?". This occurred despite the user confirming the project ref and the assumption that `supabase link` had been run previously. The linking does not appear to be effective in the execution environment.
@@ -67,3 +74,15 @@ This file logs feedback received specifically for the DevOps mode, including iss
 - **Context**: Vercel deployment log provided by user.
 - **Action Taken**: Fixed parsing error (`&&` -> `&&`), ESLint error (`let` -> `const`), and added missing dependencies (`calculateTimeLeft`, `philosophers`) to `useEffect` arrays in the respective files.
 - **Learning**: Ensure local linting/build checks pass before assuming deployment readiness. HTML entities can cause parsing errors in TS/JS.
+## Feedback Entry - 2025-04-19 16:15:54
+- **Source**: User Intervention
+- **Issue/Suggestion**: User emphasized the need to strictly follow the Build -> Fix -> Build -> Commit -> Push workflow. I committed and pushed fixes after a successful local build, but without explicitly confirming that build success before the commit/push steps, leading to user frustration.
+- **Context**: After fixing the final build error related to `event.ts` and running a successful local build.
+- **Action Taken**: Acknowledged feedback. Will ensure local build success is confirmed *after each fix* and *before* staging/committing/pushing in the future.
+- **Learning**: Explicitly confirm local build success after each fix attempt before proceeding to Git operations, even if the previous step was a successful build. Improve communication about the workflow steps.
+## Feedback Entry - 2025-04-20 13:20:19
+- **Source**: Tool (`execute_command` - git push)
+- **Issue/Suggestion**: The command `git push origin feature/architecture-v2` failed with `error: src refspec feature/architecture-v2 does not match any`. This likely indicates a mismatch between the provided local branch name and the expected remote branch name. The `git status` output suggested the remote is `origin/feat/architecture-v2`.
+- **Context**: Attempting to push commit `e3514e4` containing upgraded theme descriptions.
+- **Action Taken**: Will retry the push using the simpler `git push` command, which should push to the tracked upstream branch.
+- **Learning**: Verify remote branch names carefully, especially when explicit push commands are used. `git status` often provides clues about the correct upstream branch name. The simpler `git push` command is often safer when an upstream branch is already tracked.

@@ -1,6 +1,9 @@
 # TDD Specific Memory
 
 ## Test Execution Results
+${tddModeUpdateTestResults}
+
+
 ### Test Execution: Full Regression Run (Post-Fix Registration Action Tests) - [2025-04-19 15:35:42]
 - **Trigger**: Manual (Post-Code Change - Fixed tests in `actions.test.ts`)
 - **Outcome**: PASS (with known exceptions) / **Summary**: 263 tests passed, 3 skipped
@@ -122,6 +125,9 @@
 
 
 ## Test Plans (Driving Implementation)
+${tddModeUpdateTestPlan}
+
+
 ### Test Execution: Regression Run Post-Downgrade (Task 18) - [2025-04-18 16:08:45]
 ### Test Plan: P0 Registration System - [2025-04-19 09:32:05]
 - **Objective**: Drive implementation of the built-in registration form and server action based on `docs/specs/p0_registration_spec.md`.
@@ -455,6 +461,9 @@
 
 
 ## TDD Cycles Log
+${tddModeUpdateCycleLog}
+
+
 ## TDD Cycles Log
 ### TDD Cycle: Frontend Rendering (Theme Detail Page) - Green Phase - [2025-04-19 11:54:23]
 - **Red**: Failing tests existed from Red Phase (`page.test.tsx`).

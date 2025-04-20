@@ -2,6 +2,32 @@
 <!-- Entries below should be added reverse chronologically (newest first) -->
 
 
+## Components Implemented
+
+### [2025-04-20 13:38:00] Dynamic Theme Page Update (Markdown Source)
+- **Purpose**: Modify the dynamic theme detail page to fetch and render content from individual Markdown files instead of Supabase.
+- **Files**: 
+    - `platform/src/app/themes/[id]/page.tsx` (Modified)
+    - `platform/src/app/themes/[id]/page.test.tsx` (Modified)
+- **Status**: Implemented & Verified (Build/Test Pass)
+- **Dependencies**: `fs/promises`, `path`, `react-markdown`
+- **API Surface**: None changed.
+- **Tests**: Updated existing tests to mock `fs.readFile` and verify rendering based on file content or fallback.
+- **Notes**: Component now reads `docs/event_info/themes/[id].md`. Parses content before/after `## Suggested Readings`. Falls back to `theme.description` from DB if file read fails. Basic theme info (title) still fetched from DB via DAL.
+
+
+## Documentation Refactoring
+
+### [2025-04-20 06:08:00] Split Theme Descriptions
+- **Purpose**: Reorganize expanded theme descriptions from a single file into individual files per theme for better management.
+- **Files**: 
+    - `docs/event_info/theme_descriptions_expanded.md` (Source, now obsolete)
+    - `docs/event_info/themes/` (Created directory)
+    - `docs/event_info/themes/*.md` (Created 8 files)
+- **Status**: Implemented & Committed (7bca2b5)
+- **Notes**: Split based on L1 headings. Generated URL-friendly slugs for filenames. Recommended archiving the original source file.
+
+
 ## Documentation / Standards
 
 ### [2025-04-19 11:05:48] Style Guide Created

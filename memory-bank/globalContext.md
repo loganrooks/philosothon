@@ -373,6 +373,16 @@ Added `libnss3` to the `apt-get install -y` command list within the `RUN` instru
 # Progress
 ${globalContextUpdate}
 
+[2025-04-20 13:38:00] - [Code Task] Update Dynamic Theme Page to Use Markdown [Completed] - Refactored `platform/src/app/themes/[id]/page.tsx` to fetch detailed content from `docs/event_info/themes/*.md` instead of Supabase `description_expanded`. Includes parsing for 'Suggested Readings' and fallback logic. Tests updated and passing. Build successful. Changes committed (5eb3646) and pushed to `feat/architecture-v2`.
+
+[2025-04-20 13:19:39] - [DevOps Task] Commit Upgraded Theme Descriptions [Completed] - Staged and committed changes to 7 theme description files (`docs/event_info/themes/*.md`) with commit `e3514e4` on branch `feature/architecture-v2`.
+[2025-04-20 13:17:45] - [DocsWriter Task] Upgrade Theme Descriptions & Add Readings [Completed] - Enhanced all 8 theme descriptions in `docs/event_info/themes/` using corresponding research reports and added suggested readings sections.
+[2025-04-20 09:44:08] - [DevOps Task] Archive original consolidated theme descriptions file [Completed] - Renamed and committed file archive (4567b43).
+
+[2025-04-20 06:08:00] - [Code Task] Refactor Theme Descriptions [Completed] - Split consolidated `theme_descriptions_expanded.md` into individual files in `docs/event_info/themes/` directory. Committed changes (7bca2b5).
+
+[2025-04-20 05:30:00] - [DevOps Task] Run Registration SSOT Generation Script (Attempt 2) [Completed] - Ran script, verified file creation, fixed resulting build errors in actions.ts, verified build, committed changes (f5d241e).
+
 [2025-04-20 03:10:00] - [Optimizer Task] Refactor RegistrationForm Boot Sequence for Testability [Blocked] - Implemented conditional synchronous boot logic for test env. Fixed initial render tests (3/17 pass). Remaining 14 tests fail due to state update timing issues post-input. Invoking Early Return Clause. Recommend debug mode or integration tests.
 
 [2025-04-20 02:49:00] - [Debug Task] Investigate Vitest/JSDOM Test Stalling Issue (REG-TEST-STALL-001) [Blocked] - Diagnosed issue as component async initialization failure in test environment, not stalling. Cache clear, config review, mock removal ineffective. Invoking Early Return Clause. Recommend component refactor or alternative testing.

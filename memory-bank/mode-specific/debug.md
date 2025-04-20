@@ -1,6 +1,74 @@
 # Debug Specific Memory
 
 ## Issue History
+### Issue: REG-TEST-STALL-001 - Tests fail due to component async init - [Status: Blocked] - [2025-04-20 02:49:00]
+- **Reported**: 2025-04-20 02:00:00 (Task Context) / **Severity**: High / **Symptoms**: Tests in `RegistrationForm.test.tsx` fail quickly (`Unable to find element...`), not stall, because component doesn't transition past async boot sequence.
+- **Investigation**:
+    1. Confirmed branch `feature/architecture-v2`. (2025-04-20 02:43:58)
+    2. Ran test verbose: Confirmed tests fail fast, not stall, due to missing main prompt `[guest@philosothon]$`. (2025-04-20 02:44:27)
+    3. Cleared Vite cache (`rm -rf node_modules/.vite && npm install`). Result: No change. (2025-04-20 02:44:39 - 02:45:12)
+    4. Reviewed `vitest.config.ts`: No obvious issues. (2025-04-20 02:45:20)
+    5. Reviewed `vitest.setup.ts`: Identified global `react-dom` mock. (2025-04-20 02:45:30)
+    6. Reviewed `RegistrationForm.test.tsx`: Mocks/setup seem okay (`vi.spyOn` used correctly). (2025-04-20 02:45:41)
+    7. Commented out global `react-dom` mock in `vitest.setup.ts`. Result: No change in test failures. (2025-04-20 02:46:20 - 02:47:04)
+    8. Reviewed `RegistrationForm.tsx`: Identified async `bootSequence` with `setTimeout` in `useEffect` as likely cause. (2025-04-20 02:47:19)
+    9. Modified first test to wait for last boot message. Result: Test failed earlier (couldn't find last boot message). (2025-04-20 02:47:52 - 02:48:35)
+    10. Reverted changes to test and setup files. (2025-04-20 02:48:54 - 02:49:09)
+- **Root Cause Hypothesis**: Component's async `bootSequence` (`useEffect` + `setTimeout`) is incompatible with Vitest/JSDOM timing, preventing state update (`setCurrentMode('main')`) before assertions run.
+- **Fix Applied**: None (Changes reverted).
+- **Verification**: Tests consistently fail to find main mode prompt.
+- **Related Issues**: REG-TERM-UI-001, VITEST-MOCK-HOIST-001.
+
+
+### Issue: REG-TEST-STALL-001 - Tests stall indefinitely after component/test modifications - [Status: Blocked] - [2025-04-20 02:26:00]
+- **Reported**: 2025-04-20 02:00:00 (Task Context) / **Severity**: High / **Symptoms**: Tests in `RegistrationForm.test.tsx` run indefinitely without completing or timing out predictably after attempts to fix async issues (simplifying boot sequence, using fake timers, modifying test helpers).
+- **Investigation**:
+  1. Confirmed branch `feature/architecture-v2`. (2025-04-19 23:58:26)
+  2. Analyzed component boot sequence (`useEffect`), identified potential async timing issue in tests. (2025-04-19 23:58:35)
+  3. Applied fix: Moved `setCurrentMode('main')` outside async `bootSequence`. Result: Tests failed differently (`Unable to find prompt`). (2025-04-19 23:59:15 - 23:59:45)
+  4. Applied test fix: Added fake timers (`vi.useFakeTimers`, `vi.runAllTimers`). Result: Tests timed out (5s). (2025-04-20 00:00:57 - 00:01:08)
+  5. Applied test fix: Removed `setTimeout` from `enterInput` helper. Result: Tests still timed out (5s). (2025-04-20 00:03:09 - 00:04:58)
+  6. Applied test fix: Increased timeout for first test to 30s. Result: Test still timed out (30s). (2025-04-20 00:07:50 - 00:09:58)
+  7. Applied test fix: Used `waitFor` with `vi.advanceTimersByTime`. Result: First test timed out in `waitFor`. (2025-04-20 00:10:30 - 00:12:12)
+  8. Reverted test timer/waitFor changes. (2025-04-20 00:12:49)
+  9. Applied component fix: Simplified boot sequence (removed async/setTimeout). Result: Tests failed (`Unable to find role="textbox"`). (2025-04-20 00:13:10 - 00:14:18)
+  10. Applied test fix: Changed `findByRole('textbox')` to `waitFor(() => getByDisplayValue(''))`. Result: Tests stalled indefinitely. (2025-04-20 00:16:47 - 00:32:15)
+  11. Reverted all component/test changes from this session. Result: Tests *still* stalled indefinitely. (2025-04-20 02:23:21 - 02:25:34)
+- **Root Cause Hypothesis**: Intractable interaction between component's async logic (`useEffect`, `useTransition`, possibly mocked actions) and the Vitest/JSDOM test environment. The exact cause of the stalling, even after reverting changes, is unclear.
+- **Fix Applied**: All changes reverted.
+- **Verification**: Tests stall indefinitely.
+- **Related Issues**: REG-TERM-UI-001, VITEST-MOCK-HOIST-001.
+
+
+### Issue: VITEST-MOCK-HOIST-001 - `ReferenceError` mocking modules with top-level variables - [Status: Resolved] - [2025-04-19 23:23:00]
+- **Reported**: 2025-04-19 23:15:16 (Task Context) / **Severity**: High / **Symptoms**: Tests fail immediately with `ReferenceError: Cannot access '...' before initialization` when `vi.mock` factory references top-level variables (`const`, `let`, `class`).
+- **Investigation**:
+  1. Confirmed branch `feature/architecture-v2`. (2025-04-19 23:16:32)
+  2. Read test file (`RegistrationForm.test.tsx`). Identified `vi.mock` calls using top-level `const mock... = vi.fn()` variables. (2025-04-19 23:16:44)
+  3. Attempt 1: Moved `mockQuestions` definition just before `vi.mock` call. Result: Failed, same error. (2025-04-19 23:17:04 - 23:17:26)
+  4. Attempt 2: Defined `mockQuestions` data directly inline within `vi.mock` factory. Result: Failed, error shifted to `mockSubmitRegistration`. (2025-04-19 23:17:56 - 23:18:13)
+  5. Attempt 3: Incorrectly tried defining `vi.fn()` inline in factory while keeping top-level consts. Result: Failed, same error. (2025-04-19 23:19:16 - 23:19:52)
+  6. Attempt 4: Replaced `vi.mock` for action modules (`../actions`, `../../auth/actions`) with `vi.spyOn` in `beforeEach`. Kept other mocks (`useLocalStorage`, `supabase/server`, `registrationQuestions`) as they were correctly structured. Result: Success! `ReferenceError` resolved. Tests now run but fail due to component logic. (2025-04-19 23:21:00 - 23:22:26)
+- **Root Cause**: Vitest hoists all `vi.mock` calls and evaluates their factory functions *before* processing module-level `const`/`let`/`class` declarations, causing Temporal Dead Zone errors if the factory references those variables.
+- **Fix Applied**: Replaced `vi.mock` with `vi.spyOn(actualModule, 'funcName').mockImplementation(mockFn)` inside `beforeEach` for the affected server action modules. Imported the actual action modules. Kept top-level `mockFn = vi.fn()` for resetting/assertions.
+- **Verification**: `npm test -- RegistrationForm.test.tsx` runs without the `ReferenceError`. Component-level failures remain.
+- **Related Issues**: Global Context Pattern [2025-04-19 23:23:00] Vitest Mocking Strategy (`vi.spyOn`).
+
+
+### Issue: REG-TERM-UI-001 - Double boot messages & Unresponsiveness - [Status: Resolved (Initial Fixes)] - [2025-04-19 19:34:00]
+- **Reported**: 2025-04-19 19:15:51 (Task Context) / **Severity**: High / **Symptoms**: Boot sequence messages appear doubled. Form unresponsive after boot sequence completes.
+- **Investigation**:
+  1. Confirmed branch `feature/architecture-v2`. (2025-04-19 19:17:24)
+  2. Read relevant files (`RegistrationForm.tsx`, `registrationQuestions.ts`, `useLocalStorage.ts`). (2025-04-19 19:17:52)
+  3. Applied initial fixes based on `code` mode analysis: Added `useRef` flag to boot `useEffect`, removed `bootMessages.length` from focus/scroll `useEffect` deps, removed `<form>` `onClick`. (2025-04-19 19:18:13)
+  4. User tested: Confirmed double boot messages and initial unresponsiveness are resolved. (2025-04-19 19:32:08)
+  5. User provided feedback requesting significant redesign (menus, hints, sign-in, edit/delete/continue commands, auth). (2025-04-19 19:32:08)
+- **Root Cause**: Double boot messages likely due to React StrictMode double-invoking `useEffect`. Unresponsiveness likely due to incorrect dependency (`bootMessages.length`) in focus/scroll effect and potentially unnecessary form `onClick` handler interfering with input focus.
+- **Fix Applied**: Added `useRef` guard to boot `useEffect`. Removed `bootMessages.length` from focus/scroll `useEffect` deps. Removed `<form>` `onClick` handler. Committed as 98e7303. (2025-04-19 19:32:51)
+- **Verification**: User confirmed initial bugs resolved via manual testing.
+- **Related Issues**: Task (Debug Terminal UI).
+
+
 ### Issue: RLS-TEST-TIMEOUT-001 - Vitest timeouts mocking Supabase client for RLS tests - [Status: Blocked] - [2025-04-19 05:43:47]
 - **Reported**: 2025-04-19 05:35:17 (Task Context) / **Severity**: High / **Symptoms**: Tests in `platform/src/lib/supabase/rls.test.ts` consistently time out when awaiting Supabase client query chains ending in an implicit `.then()` (e.g., `await client.from(...).select()`, `await client.from(...).update().eq()`). Tests using `.single()` complete quickly.
 - **Investigation**:
@@ -300,4 +368,10 @@
 <!-- Append performance notes using the format below -->
 
 ## Debugging Tools & Techniques
+
+### Tool/Technique: `vi.spyOn` vs `vi.mock` for Hoisting Issues - [2025-04-19 23:23:00]
+- **Context**: Vitest tests where `vi.mock` factory functions cause `ReferenceError: Cannot access '...' before initialization` due to referencing top-level variables.
+- **Usage**: Instead of `vi.mock('../module', () => ({ func: topLevelVar }))`, import the actual module (`import * as actualModule from '../module'`), keep the top-level mock variable (`const topLevelVar = vi.fn()`), and use `vi.spyOn(actualModule, 'func').mockImplementation(topLevelVar)` within `beforeEach`. Reset mocks as usual.
+- **Effectiveness**: High. Reliably avoids `vi.mock` factory hoisting issues related to accessing top-level variables.
+
 <!-- Append tool notes using the format below -->
