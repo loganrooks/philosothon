@@ -34,6 +34,9 @@ This file consolidates less frequently updated global project information, inclu
 # System Patterns
 
 
+*   **[2025-04-19 23:23:00] Vitest Mocking Strategy (`vi.spyOn`):** When mocking modules (especially server actions) that are used within React components tested with Vitest, if the mock factory needs to reference variables defined outside the factory, `vi.mock` can cause hoisting-related `ReferenceError`s. A reliable pattern is to import the actual module, define mock function variables (`const myMock = vi.fn()`), and then use `vi.spyOn(actualModule, 'functionName').mockImplementation(myMock)` within `beforeEach` to apply the mock. This avoids the hoisting issue while allowing mock control and assertion. [See Debug Issue VITEST-MOCK-HOIST-001]
+
+
 *   **[2025-04-19 00:00:00] Style Guide:** Defined and refined a formal style guide (`docs/style_guide.md`) for the minimalist hacker aesthetic. Covers color palette (emphasizing `light-text` over Matrix/translucent backgrounds, restricting green text), typography, spacing, borders, common component styles (buttons, forms, cards, timeline), and specifies the `MatrixBackground` component as the default background, all using Tailwind CSS where applicable.
 
 
@@ -95,6 +98,38 @@ This file consolidates less frequently updated global project information, inclu
 *   **[2025-04-18] Admin CRUD Pattern:** Implemented using Server Components for list/edit page shells, Client Components for forms (`useFormState`), and Server Actions (`actions.ts`) for data mutation (create, update, delete). Edit pages use query parameters (`?id=...`) instead of dynamic route segments to avoid previous build issues.
 
 # Decision Log
+## Decision
+[2025-04-19 20:09:00] Adopt Site-Wide Password Authentication (Replacing Magic Link/OTP).
+
+## Rationale
+Consolidates authentication mechanism across the platform (including Admin) for consistency. Addresses user requirement for password-based flow during registration.
+
+## Implementation Details
+Configure Supabase Auth for email/password. Implement Server Actions for sign-in, sign-up, sign-out, password reset. Update terminal UI (Auth Mode, Registration Mode) and Admin login UI accordingly. Leverage Supabase SSR helpers for session management via HttpOnly cookies.
+
+
+## Decision
+[2025-04-19 20:09:00] Implement Registration Sign-Up Flow with Early Password Creation.
+
+## Rationale
+Collect email and create password immediately after starting registration (`register new`). This creates the user account early, allowing users to sign in and resume (`register continue`) even if they abandon the registration partway through. Magic Link retained as a recovery/alternative sign-in method.
+
+## Implementation Details
+Modify Registration Mode flow: Prompt for email, then password/confirm password. Call `signUpUser` backend action immediately. Store user verification status locally. Proceed to remaining questions. `submitRegistration` action links data to the pre-existing user.
+
+
+
+## Decision
+[2025-04-19 19:49:00] Adopt SSOT + Code Generation for Registration Question Synchronization.
+
+## Rationale
+Ensures consistency across frontend definitions (`registrationQuestions.ts`), backend validation (`actions.ts` Zod schema), and DB schema (`registrations` table migration drafts) by deriving them from a single central configuration file. Reduces manual errors and simplifies modifications compared to manual synchronization or DB-driven definitions (which don't solve DB schema sync).
+
+## Implementation Details
+Define questions in a central config (e.g., `config/registrationSchema.ts`). Create a script (`scripts/generate-registration.ts`) to read the config and generate/overwrite `registrationQuestions.ts`, the Zod schema in `actions.ts`, and draft SQL migration files for review.
+
+
+
 [2025-04-19 04:37:30] Adopt Supabase Profiles Table + Middleware/RLS for RBAC.
 
 ## Rationale
@@ -322,6 +357,9 @@ The previous attempt to fix permissions using `postCreateCommand` failed because
 ## Implementation Details
 Added `RUN mkdir -p /home/node/.vscode-server && chown -R 1000:1000 /home/node/.vscode-server` to `Dockerfile`. Reverted `postCreateCommand` in `.devcontainer/devcontainer.json` to its original state (`cd platform && npm install`).
 
+[2025-04-19 19:51:00] - [Architect Task - Future] Define & Implement General Supabase Schema Synchronization Strategy - Investigate and propose a strategy for maintaining a Single Source of Truth (SSOT) for *all* Supabase database schemas (tables, types, RLS policies). The SSoT should ideally be local (e.g., TypeScript/JSON files in the repo) and easily editable. This strategy should facilitate generating Supabase migrations and potentially TypeScript types (`supabase gen types local`) to ensure consistency between the local definition and the remote database, minimizing manual synchronization efforts across the project.
+
+
 
 
 ## Decision
@@ -333,6 +371,15 @@ Puppeteer was failing with a missing shared library error (`libnss3.so`) within 
 ## Implementation Details
 Added `libnss3` to the `apt-get install -y` command list within the `RUN` instruction in `Dockerfile`.
 # Progress
+${globalContextUpdate}
+
+[2025-04-20 03:10:00] - [Optimizer Task] Refactor RegistrationForm Boot Sequence for Testability [Blocked] - Implemented conditional synchronous boot logic for test env. Fixed initial render tests (3/17 pass). Remaining 14 tests fail due to state update timing issues post-input. Invoking Early Return Clause. Recommend debug mode or integration tests.
+
+[2025-04-20 02:49:00] - [Debug Task] Investigate Vitest/JSDOM Test Stalling Issue (REG-TEST-STALL-001) [Blocked] - Diagnosed issue as component async initialization failure in test environment, not stalling. Cache clear, config review, mock removal ineffective. Invoking Early Return Clause. Recommend component refactor or alternative testing.
+
+[2025-04-19 19:34:00] - [Debug Task] Debug Terminal UI (RegistrationForm) [Completed] - Applied fixes for double boot messages (StrictMode/useEffect) and initial unresponsiveness (focus/scroll effect dependencies, form onClick). User confirmed fixes resolved original issues. Committed fixes (98e7303). New feature requests (menus, sign-in, edit/delete/continue) identified, requiring redesign.
+
+
 [2025-04-19 15:18:20] - [Optimizer Task] Refactor P0 Content Mgmt & Update Registration Spec [Completed] - Applied Supabase types to relevant files. Updated registration form/action/DAL based on spec v1.1. Fixed form tests. Committed changes. Note: 7 action tests failing due to outdated mocks.
 
 [2025-04-19 15:01:17] - [Optimizer Task] Refactor P0 Content Management - Apply Supabase Types [Completed] - Generated types after DB tables created. Applied types to relevant DAL/Action files. Verified tests pass. Committed changes.

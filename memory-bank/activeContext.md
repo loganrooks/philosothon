@@ -1,3 +1,51 @@
+${activeContextUpdate}
+
+
+[2025-04-20 03:10:00] - Optimizer - Task Blocked (Refactor RegistrationForm for Testability - REG-TEST-STALL-001 Follow-up) - Implemented conditional synchronous boot logic in `RegistrationForm.tsx` for test environment. This fixed initial render tests (3/17 pass). Remaining 14 tests fail due to timing issues with state updates post-input simulation (`findByText` timeouts). Making component fully testable in JSDOM seems intractable without deeper debugging/architecture changes. Invoking Early Return Clause. Feedback logged. [See Feedback Log 2025-04-20 03:09:00]
+
+[2025-04-20 02:49:00] - Debug - Task Blocked (Investigate Vitest/JSDOM Test Stalling Issue - REG-TEST-STALL-001) - Investigated reported stalling in `RegistrationForm.test.tsx`. Found tests are actually *failing* quickly because component's async `bootSequence` (using `setTimeout` in `useEffect`) doesn't complete reliably in Vitest/JSDOM, preventing transition to main mode. Cache clearing and removing global `react-dom` mock had no effect. Modifying test waits also failed. Root cause is component's async init logic incompatibility with test env. Invoking Early Return Clause. [See Debug Issue REG-TEST-STALL-001 Update 2025-04-20 02:49:00]
+[2025-04-20 02:27:00] - Debug - Task Blocked (Debug RegistrationForm Logic Failures - Test Stalling) - Attempts to fix failing tests in `RegistrationForm.test.tsx` (related to component boot sequence/async logic) resulted in intractable test stalling, even after reverting changes. Root cause likely complex interaction between component async logic (`useEffect`, `useTransition`) and Vitest/JSDOM environment. Invoking Early Return Clause. [See Debug Issue REG-TEST-STALL-001]
+
+
+[2025-04-19 23:22:00] - Debug - Task Partially Completed (Debug Vitest Mocking Error - RegistrationForm.test.tsx) - Successfully resolved `ReferenceError: Cannot access '...' before initialization` by replacing `vi.mock` with `vi.spyOn` for server action modules, addressing Vitest hoisting issues. Original mocking error fixed. Tests now run but fail due to component logic errors (stuck in boot sequence). Invoking Early Return Clause as component debugging is out of scope. Fix applied to `platform/src/app/register/components/RegistrationForm.test.tsx`.
+
+
+[2025-04-19 20:09:00] - SpecPseudo - Completed Task (Define Specifications for Redesigned Terminal Registration UI V2) - Drafted detailed specification in `docs/specs/p0_registration_terminal_ui_spec_v2.md`. Incorporated architect analysis (SSOT strategy, auth impact). Gathered user clarifications via `ask_followup_question`. Updated spec with decisions: site-wide password auth (replacing Magic Link), sign-up during registration (email -> password -> questions), Magic Link as recovery option, basic local storage obfuscation, all-at-once edit flow, no P0 export. File saved.
+
+
+[2025-04-19 19:49:00] - Architect - Completed Task (Analyze Registration System & Propose Sync Strategy) - Analyzed current registration question handling across frontend (registrationQuestions.ts), backend (actions.ts Zod schema), and DB (migration SQL). Identified manual sync points. Proposed SSOT + Code Generation strategy as optimal solution. Assessed impact of planned UI/auth changes. Saved analysis to docs/specs/registration_sync_strategy.md.
+
+
+[2025-04-19 19:34:00] - Debug - Completed Task (Debug Terminal UI) - Applied fixes to `RegistrationForm.tsx` (useRef for boot effect, dependency array for focus effect, removed form onClick). User confirmed original bugs (double boot messages, initial unresponsiveness) are resolved. Identified significant new feature requests (menus, hints, sign-in, edit/delete/continue registration) requiring redesign. Committed initial fixes (98e7303). Recommending new task for spec/architect modes.
+
+
+[2025-04-19 17:38:00] - Code - Analysis of Terminal RegistrationForm Issues - Reviewed user-provided code (RegistrationForm.tsx, registrationQuestions.ts, useLocalStorage.ts). Identified potential causes for doubling boot messages (StrictMode useEffect interaction) and unresponsiveness (focus/scroll effect dependencies, command/answer handling logic, state update complexity, form onClick handler). Recommended specific fixes for next steps.
+
+
+[2025-04-19 17:40:01] - Code - Registration Form Refactor (Terminal UI - Phase 2) - Added remaining questions (Steps 2-5) to terminal UI. Implemented basic validation and type processing. Verified build and tests pass (265 passed, 3 skipped).
+
+
+[2025-04-19 17:36:31] - Code - Registration Form Refactor (Terminal UI - Phase 1) & Test Fixes - Added all questions (Steps 1-5) to terminal-style RegistrationForm. Fixed RegistrationForm.test.tsx failures by mocking scrollIntoView and adjusting test logic. Verified tests pass (265 passed, 3 skipped).
+
+
+[2025-04-19 17:26:42] - Code - Intervention: Registration UI Modification Requested - User found the current RegistrationForm appearance (commit 9c08a80) visually unacceptable. Requested modifications to create an old-school, minimalist terminal-style UI (black background, hacker green text, sequential questions), intended for reuse in gamification. Proceeding with modifying the existing component.
+
+
+[2025-04-19 17:04:26] - Code - Completed Task (Fix P0 Frontend Integration Issues) - Investigated landing, proposal, and register pages. Fixed proposal page Markdown path and refactored to fetch dynamic data (schedule, themes, workshops). Replaced FormEmbed with RegistrationForm on register page. Fixed related test failures. Verified build and tests pass. Committed changes (9c08a80).
+
+
+[2025-04-19 16:05:15] - DevOps - Fixed Vercel Build Failure 3 - Vercel deployment failed again due to TS error in `page.tsx` (incorrect function name `fetchScheduleItems` vs `fetchSchedule`, incorrect return type handling). Corrected import and data fetching logic. Committed fix (`3deb2b8`) and pushed to `feat/architecture-v2`.
+
+
+[2025-04-19 15:58:40] - DevOps - Fixed Vercel Build Failure 2 - Vercel deployment failed again due to TS error in `WorkshopForm.tsx` (incorrect type import, obsolete/renamed properties `relevant_themes`, `facilitator`, `max_capacity`). Fixed import path and corrected/removed properties. Committed fix (`e5201c1`) and pushed to `feat/architecture-v2`.
+
+
+[2025-04-19 15:54:45] - DevOps - Fixed Vercel Build Failure - Vercel deployment for PR failed due to TS error in `FaqForm.tsx` (incorrect type import, obsolete `category` field). Fixed import path and removed category field. Committed fix (`7337040`) and pushed to `feat/architecture-v2`.
+
+
+[2025-04-19 15:48:00] - DevOps - Completed Task (Prepare feature/architecture-v2 for PR) - Confirmed branch. Identified and committed unstaged changes logically (P0 Content Mgmt `d2da170`, Spec Update `abc76ed`, MB Update `2effcc1`). Skipped `git pull origin main` per user preference. Verified branch `feat/architecture-v2` is pushed and up-to-date on remote. Provided instructions for PR creation and Vercel check monitoring.
+
+
 [2025-04-19 15:37:30] - TDD - Completed Task (Fix Failing Registration Server Action Tests - Attempt 2) - Confirmed branch `feature/architecture-v2`. Analyzed `actions.ts` (v1.1 schema) and `actions.test.ts`. Updated mock data (`completeValidData`), `createTestFormData` helper, and assertions in `actions.test.ts` to align with the new schema. Fixed assertion logic for optional fields (empty string vs undefined). Verified tests pass for `actions.test.ts` (9/9) and full suite (263 passed, 3 skipped). Committed changes (`ba45e9c`).
 
 

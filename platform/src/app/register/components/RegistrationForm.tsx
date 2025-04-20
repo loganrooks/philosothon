@@ -1,582 +1,854 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useTransition } from 'react';
 import { useFormState } from 'react-dom';
-import { createRegistration } from '../actions';
+// Correct import path for useLocalStorage
 import { useLocalStorage } from '../hooks/useLocalStorage';
-import { questions, FormDataStore } from '../data/registrationQuestions';
+// Import V2 questions data
+import { questions, FormDataStore, Question } from '../data/registrationQuestions';
+import {
+    // Import V2 actions
+    submitRegistration,
+    updateRegistration,
+    deleteRegistration,
+    RegistrationState // Keep state type if actions use it
+} from '../actions';
+import {
+    // Import V2 auth actions
+    signInWithPassword,
+    signUpUser,
+    signOut,
+    requestPasswordReset,
+    AuthActionResult
+} from '../../auth/actions'; // Adjust path if needed
 
-// ASCII art for boot sequence
-const ASCII_LOGO = `
-██████╗ ██╗  ██╗██╗██╗      ██████╗ ███████╗ ██████╗ ████████╗██╗  ██╗ ██████╗ ███╗   ██╗
-██╔══██╗██║  ██║██║██║     ██╔═══██╗██╔════╝██╔═══██╗╚══██╔══╝██║  ██║██╔═══██╗████╗  ██║
-██████╔╝███████║██║██║     ██║   ██║███████╗██║   ██║   ██║   ███████║██║   ██║██╔██╗ ██║
-██╔═══╝ ██╔══██║██║██║     ██║   ██║╚════██║██║   ██║   ██║   ██╔══██║██║   ██║██║╚██╗██║
-██║     ██║  ██║██║███████╗╚██████╔╝███████║╚██████╔╝   ██║   ██║  ██║╚██████╔╝██║ ╚████║
-╚═╝     ╚═╝  ╚═╝╚═╝╚══════╝ ╚═════╝ ╚══════╝ ╚═════╝    ╚═╝   ╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═══╝
-                                                                                 
- █████╗ ██████╗  ██████╗██╗  ██╗██╗██╗   ██╗███████╗    ██╗   ██╗██████╗ ███████╗       
-██╔══██╗██╔══██╗██╔════╝██║  ██║██║██║   ██║██╔════╝    ██║   ██║██╔══██╗██╔════╝       
-███████║██████╔╝██║     ███████║██║██║   ██║█████╗      ██║   ██║██████╔╝███████╗       
-██╔══██║██╔══██╗██║     ██╔══██║██║╚██╗ ██╔╝██╔══╝      ╚██╗ ██╔╝██╔═══╝ ╚════██║       
-██║  ██║██║  ██║╚██████╗██║  ██║██║ ╚████╔╝ ███████╗     ╚████╔╝ ██║     ███████║       
-╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚═╝  ╚═══╝  ╚══════╝      ╚═══╝  ╚═╝     ╚══════╝       
-`;
+// --- Constants ---
+const LOCAL_STORAGE_KEY = 'philosothon-registration-v2';
+type TerminalMode = 'boot' | 'main' | 'auth' | 'register' | 'review' | 'edit' | 'confirm_delete' | 'confirm_new';
 
-// Define various terminal messages for boot sequence
-const BOOT_MESSAGES = [
-  { text: "Initializing archive access protocol...", delay: 500 },
-  { text: "Loading library session... Done.", delay: 800 },
-  { text: "Mounting local disks... [47 million] distributed resources found", delay: 1200 },
-  { text: "Connecting network drives...... Error: network inaccessible.", delay: 1000 },
-  { text: "Library archive session ready.", delay: 500 },
-];
+interface OutputLine {
+    id: number;
+    text: string;
+    type: 'input' | 'output' | 'error' | 'success' | 'warning' | 'info' | 'prompt' | 'question';
+    mode?: TerminalMode; // Store mode when line was added for context
+    promptText?: string; // Store the prompt text used
+}
 
+// --- Component ---
+export function RegistrationForm({ initialAuthStatus }: { initialAuthStatus?: { isAuthenticated: boolean; email?: string | null } }) {
+    const [outputLines, setOutputLines] = useState<OutputLine[]>([]);
+    const [currentInput, setCurrentInput] = useState('');
+    const [currentMode, setCurrentMode] = useState<TerminalMode>('boot');
+    // useLocalStorage hook likely returns only [value, setValue]
+    const [localData, setLocalData] = useLocalStorage<FormDataStore>(LOCAL_STORAGE_KEY, {});
+    const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
+    const [isAuthenticated, setIsAuthenticated] = useState(initialAuthStatus?.isAuthenticated ?? false);
+    const [userEmail, setUserEmail] = useState<string | null>(initialAuthStatus?.email ?? null);
+    const [registrationStatus, setRegistrationStatus] = useState<'complete' | 'incomplete' | 'not_started'>('not_started');
+    const [isPasswordInput, setIsPasswordInput] = useState(false);
+    const [passwordAttempt, setPasswordAttempt] = useState('');
+    const [isComplete, setIsComplete] = useState(false); // Ensure isComplete state exists
+    const [isSubmitting, startSubmitTransition] = useTransition();
+    const [isBooting, setIsBooting] = useState(true);
+    const [isAuthActionPending, startAuthTransition] = useTransition();
 
+    const inputRef = useRef<HTMLInputElement>(null);
+    const terminalRef = useRef<HTMLDivElement>(null);
+    const outputIdCounter = useRef(0);
+    const hasBooted = useRef(false);
 
-// Terminal command available at different stages
-const AVAILABLE_COMMANDS = {
-  boot: ['help', 'start', 'about', 'reset'],
-  form: ['help', 'list', 'edit [number]', 'clear', 'submit', 'save', 'reset'],
-  review: ['help', 'edit [number]', 'submit', 'restart', 'reset']
-};
-
-// Types for session data and history items
-type HistoryItem = {
-  question: string;
-  answer: string;
-  index: number;
-};
-
-type SessionDataType = {
-  formData: FormDataStore;
-  history: HistoryItem[];
-  completed: number[];
-};
-
-export function RegistrationForm({ userEmail }: { userEmail?: string | null }) {
-  // Local state management with persistence
-  const [sessionData, setSessionData] = useLocalStorage<SessionDataType>('philosothon-registration', {
-    formData: { email: userEmail || '' },
-    history: [],
-    completed: []
-  });
-  
-  // UI state
-  const [bootComplete, setBootComplete] = useState(false);
-  const [bootMessages, setBootMessages] = useState<string[]>([]);
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(-1); // -1 during boot
-  const [currentInput, setCurrentInput] = useState('');
-  const [currentMode, setCurrentMode] = useState<'boot' | 'form' | 'review' | 'edit'>('boot');
-  const [error, setError] = useState<string | null>(null);
-  const [isComplete, setIsComplete] = useState(false);
-  const [serverState, formAction] = useFormState(createRegistration, { 
-    message: null, 
-    errors: {}, 
-    success: false 
-  });
-
-  // Refs for focus and scrolling
-  const inputRef = useRef<HTMLInputElement>(null);
-  const terminalRef = useRef<HTMLDivElement>(null);
-    const isBooting = useRef(false); // Note: This ref seems unused, consider removing if confirmed.
-    const hasBooted = useRef(false); // Ref to prevent double boot in StrictMode
-
-  // Boot sequence effect - fixed to prevent multiple sequences
-  useEffect(() => {
-    if (hasBooted.current) return; // Prevent double execution
-    hasBooted.current = true; // Mark as booted
-
-    // Check if boot is already complete in localStorage
-    const bootCompleted = localStorage.getItem('philosothon-boot-completed') === 'true';
-    
-    // Skip full boot sequence if already completed
-    if (bootCompleted) {
-      console.log('Boot already completed, loading from cache');
-      setBootComplete(true);
-      // Just load the boot messages directly
-      setBootMessages([
-        ASCII_LOGO, 
-        ...BOOT_MESSAGES.map(m => m.text), 
-        "> Type 'start' to begin registration or 'help' for commands"
-      ]);
-      return;
-    }
-    
-    // Clear previous boot state to fix issues with stuck boot sequence
-    localStorage.removeItem('philosothon-boot-started');
-    
-    // Run boot sequence animation
-    const bootSequence = async () => {
-      try {
-        // Set boot flag after clearing it
-        localStorage.setItem('philosothon-boot-started', 'true');
-        
-        // Clear any existing messages first
-        setBootMessages([]);
-        
-        // Display logo first with initial visibility
-        setBootMessages([ASCII_LOGO]);
-        await new Promise(r => setTimeout(r, 1500));
-        
-        // Then show boot messages with typing effect
-        for (const message of BOOT_MESSAGES) {
-          setBootMessages(prev => [...prev, message.text]);
-          await new Promise(r => setTimeout(r, message.delay));
-        }
-        
-        setBootMessages(prev => [...prev, "> Type 'start' to begin registration or 'help' for commands"]);
-        setBootComplete(true);
-        // Notice we don't change currentMode here - user must type 'start'
-      } catch (error) {
-        console.error('Boot sequence error:', error);
-        // Recover from errors by completing boot
-        setBootComplete(true);
-      }
-    };
-    
-    bootSequence();
-  }, []);  // Empty dependency array - only run once
-  
-  // Add this effect to clean up the boot flag when component unmounts
-  useEffect(() => {
-    return () => {
-      // Only remove the boot flag when component is unmounted
-      // This prevents duplicate boot sequences
-      if (bootComplete) {
-        localStorage.removeItem('philosothon-boot-started');
-      }
-    };
-  }, [bootComplete]);
-  
-  // Ensure input is focused after boot and on mode changes - fixed focus issue
-  useEffect(() => {
-    if (bootComplete) {
-      // Use a timeout to ensure DOM is fully rendered before focusing
-      const timer = setTimeout(() => {
-        if (inputRef.current) {
-          inputRef.current.focus();
-        }
-      }, 100);
-      
-      // Scroll terminal to bottom
-      if (terminalRef.current) {
-        terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
-      }
-      
-      return () => clearTimeout(timer);
-    }
-  }, [bootComplete, currentQuestionIndex, currentMode]); // Removed bootMessages.length
-
-  // Command processor with debug logging
-  const processCommand = (cmd: string): boolean => {
-    const command = cmd.trim().toLowerCase();
-    
-    console.log('Processing command:', command); // Debug logging
-    
-    // Reset command available in all modes
-    if (command === 'reset') {
-      localStorage.removeItem('philosothon-registration');
-      localStorage.removeItem('philosothon-boot-started');
-      window.location.reload();
-      return true;
-    }
-    
-    // Boot mode commands
-    if (currentMode === 'boot') {
-      if (command === 'start') {
-        console.log('Starting registration...'); // Debug
-        setCurrentMode('form');
-        setCurrentQuestionIndex(0);
-        return true;
-      }
-      
-      if (command === 'help') {
-        setBootMessages(prev => [...prev, 
-          "> help", 
-          "Available commands: start (begin registration), about (information), reset (start over)"
-        ]);
-        return true;
-      }
-      
-      if (command === 'about') {
-        setBootMessages(prev => [...prev, 
-          "> about",
-          "Philosothon Registration Terminal v2.0",
-          "University of Toronto, April 2025",
-          "This terminal interface allows registration for the upcoming Philosothon event."
-        ]);
-        return true;
-      }
-      
-      setBootMessages(prev => [...prev, `> ${command}`, "Unknown command. Type 'help' for available commands."]);
-      return true;
-    }
-    
-    // Form mode commands
-    if (currentMode === 'form' || currentMode === 'review') {
-      if (command === 'list') {
-        const status = sessionData.completed.map((idx: number) => questions[idx].label);
-        setSessionData((prev: SessionDataType) => ({
-          ...prev,
-          history: [...prev.history, {
-            question: "Command: list",
-            answer: "Showing completed questions:",
-            index: -1
-          }]
-        }));
-        
-        // Add each completed question to history display
-        status.forEach((item: string, idx: number) => {
-          setSessionData((prev: SessionDataType) => ({
+    // --- Helper Functions ---
+    const addOutputLine = useCallback((text: string, type: OutputLine['type'], promptOverride?: string) => {
+        setOutputLines(prev => [
             ...prev,
-            history: [...prev.history, {
-              question: `${idx + 1}.`,
-              answer: item,
-              index: sessionData.completed[idx]
-            }]
-          }));
-        });
-        return true;
-      }
-      
-      if (command === 'help') {
-        setSessionData((prev: SessionDataType) => ({
-          ...prev,
-          history: [...prev.history, {
-            question: "Command: help",
-            answer: "Available commands: list (show progress), edit [number] (edit a response), submit (finalize registration), clear (clear screen), reset (start over)",
-            index: -1
-          }]
-        }));
-        return true;
-      }
-      
-      if (command === 'clear') {
-        setSessionData((prev: SessionDataType) => ({
-          ...prev,
-          history: []
-        }));
-        return true;
-      }
-      
-      if (command === 'submit' && isComplete) {
-        handleFinalSubmit();
-        return true;
-      }
-      
-      if (command.startsWith('edit ')) {
-        const indexStr = command.split(' ')[1];
-        const index = parseInt(indexStr, 10) - 1; // Convert to 0-based
-        
-        if (isNaN(index) || index < 0 || index >= sessionData.completed.length) {
-          setSessionData((prev: SessionDataType) => ({
-            ...prev,
-            history: [...prev.history, {
-              question: `Command: ${command}`,
-              answer: "Invalid question number. Use 'list' to see available questions.",
-              index: -1
-            }]
-          }));
-        } else {
-          setCurrentMode('edit');
-          const editingIndex = sessionData.completed[index];
-          setCurrentInput('');
-          setCurrentQuestionIndex(editingIndex);
-        }
-        return true;
-      }
-    }
-    
-    // If we get here, it wasn't a system command
-    return false;
-  };
+            {
+                id: outputIdCounter.current++,
+                text,
+                type,
+                mode: currentMode,
+                promptText: promptOverride ?? getPromptText(currentMode, isAuthenticated, userEmail)
+            }
+        ]);
+    }, [currentMode, isAuthenticated, userEmail]);
 
-  // Form submission with debug logging
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    console.log('Form submitted, input:', currentInput, 'mode:', currentMode);
-    
-    if (!bootComplete) return;
-    
-    // Process as command first
-    if (processCommand(currentInput)) {
-      setCurrentInput('');
-      return;
-    }
-    
-    // If in boot mode and not a valid command, show error
-    if (currentMode === 'boot') {
-      setBootMessages(prev => [...prev, `> ${currentInput}`, "Unknown command. Type 'help' for available commands."]);
-      setCurrentInput('');
-      return;
-    }
-    
-    // Handle form responses
-    const question = questions[currentQuestionIndex];
-    if (!question) return;
-    
-    // Validate input
-    const value = currentInput.trim();
-    let validationError: string | null = null;
-    let processedAnswer: any = value;
-    
-    // Basic validation
-    if (question.required && !value) {
-      validationError = "This field is required.";
-    } else if (question.validation && value) {
-      validationError = question.validation(value);
-    }
-    
-    // Type conversion
-    if (!validationError) {
-      if (question.type === 'number' || question.type === 'range') {
-        processedAnswer = parseInt(value, 10);
-      } else if (question.type === 'boolean') {
-        processedAnswer = value.toLowerCase() === 'yes' || value.toLowerCase() === 'true';
-      } else if (question.id.endsWith('_rankings')) {
-        // Handle comma-separated rankings
-        processedAnswer = value.split(',').map(v => v.trim()).filter(Boolean);
-      }
-    }
-    
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
-    
-    // Clear any errors
-    setError(null);
-    
-    // Update storage with new value
-    const newFormData = { ...sessionData.formData, [question.id]: processedAnswer };
-    
-    // If editing, update the stored value but don't advance
-    if (currentMode === 'edit') {
-      setSessionData((prev: SessionDataType) => {
-        // Update the specific history item that matches this question index
-        const newHistory = [...prev.history];
-        const historyIndex = newHistory.findIndex(h => h.index === currentQuestionIndex);
-        if (historyIndex >= 0) {
-          newHistory[historyIndex] = {
-            ...newHistory[historyIndex],
-            answer: value
-          };
+    const getPromptText = (mode: TerminalMode, auth: boolean, email: string | null): string => {
+        switch (mode) {
+            case 'boot': return '';
+            case 'auth': return '[auth]> ';
+            case 'register':
+            case 'edit':
+                 const qIndex = currentQuestionIndex;
+                 const totalQuestions = questions.length;
+                 return `[reg ${qIndex + 1}/${totalQuestions}]> `;
+            case 'review': return '[review]> ';
+            case 'confirm_delete': return 'Confirm DELETE> ';
+            case 'confirm_new': return 'Overwrite? (yes/no)> ';
+            case 'main':
+            default: return auth && email ? `[${email}]$ ` : '[guest@philosothon]$ ';
         }
-        
-        return {
-          ...prev,
-          formData: newFormData, 
-          history: newHistory
+    };
+
+    const scrollToBottom = useCallback(() => {
+        setTimeout(() => {
+            if (terminalRef.current) {
+                terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+            }
+        }, 0);
+    }, []);
+
+    // --- Effects ---
+
+    useEffect(() => {
+        if (hasBooted.current) return;
+        hasBooted.current = true;
+
+        const runBootLogic = () => {
+            addOutputLine("Initializing Terminal v2.0...", 'info');
+            addOutputLine("Checking session...", 'info');
+
+            if (initialAuthStatus?.isAuthenticated) {
+                setIsAuthenticated(true);
+                setUserEmail(initialAuthStatus.email ?? null);
+                setRegistrationStatus('incomplete'); // Placeholder
+                addOutputLine(`Session found for ${initialAuthStatus.email}.`, 'success');
+            } else {
+                addOutputLine("No active session found.", 'info');
+                 if (localData.currentQuestionIndex !== undefined && localData.email) {
+                     addOutputLine("Local registration data found. Use 'register continue' or 'sign-in'.", 'warning');
+                 }
+            }
+            addOutputLine("Type 'help' for available commands.", 'info');
+            setCurrentMode('main');
+            setIsBooting(false);
         };
-      });
-      
-      // Return to previous mode
-      setCurrentMode('form');
-      
-      // Find first unanswered question
-      const nextUnanswered = questions.findIndex(
-        (_, idx: number) => !sessionData.completed.includes(idx)
-      );
-      setCurrentQuestionIndex(nextUnanswered >= 0 ? nextUnanswered : 0);
-      
-      setCurrentInput('');
-      return;
-    }
-    
-    // Normal form flow - add to history and advance
-    setSessionData((prev: SessionDataType) => ({
-      ...prev,
-      formData: newFormData,
-      history: [...prev.history, { 
-        question: question.label, 
-        answer: value,
-        index: currentQuestionIndex
-      }],
-      completed: Array.from(new Set([...prev.completed, currentQuestionIndex]))
-    }));
-    
-    setCurrentInput('');
-    
-    // Find next question accounting for dependencies
-    let nextIndex = currentQuestionIndex + 1;
-    
-    // Skip dependent questions if condition isn't met
-    while (
-      questions[nextIndex] && 
-      questions[nextIndex].dependsOn && 
-      newFormData[questions[nextIndex].dependsOn as keyof typeof newFormData] !== questions[nextIndex].dependsValue
-    ) {
-      nextIndex++;
-    }
-    
-    // Check if we're done
-    if (nextIndex >= questions.length) {
-      setIsComplete(true);
-      setCurrentMode('review');
-    } else {
-      setCurrentQuestionIndex(nextIndex);
-    }
-  };
 
-  const handleFinalSubmit = () => {
-    // Convert data for server submission
-    const formDataForServer = new FormData();
-    
-    // Add all form fields
-    Object.entries(sessionData.formData).forEach(([key, value]) => {
-      if (value === undefined || value === null) return;
-      
-      if (Array.isArray(value)) {
-        value.forEach(item => formDataForServer.append(key, String(item)));
-      } else {
-        formDataForServer.append(key, String(value));
-      }
-    });
-    
-    // Submit the form
-    formAction(formDataForServer);
-  };
+        if (process.env.NODE_ENV === 'test') {
+            // Run synchronously for tests
+            runBootLogic();
+        } else {
+            // Run asynchronously for runtime
+            const bootSequenceAsync = async () => {
+                addOutputLine("Initializing Terminal v2.0...", 'info');
+                await new Promise(r => setTimeout(r, 300));
+                addOutputLine("Checking session...", 'info');
+                await new Promise(r => setTimeout(r, 500));
 
-  // Render the CRT monitor frame with terminal inside
-  return (
-    <div className="relative w-full max-w-4xl mx-auto">
-      {/* Debug element to show current state (for development only) */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="absolute top-0 right-0 bg-black/80 text-white p-2 text-xs">
-          Mode: {currentMode}, Boot: {bootComplete ? 'Complete' : 'In Progress'}
-        </div>
-      )}
-      
-      {/* CRT Monitor frame */}
-      <div className="bg-gray-300 border-8 border-gray-400 rounded-lg p-3 shadow-lg">
-        {/* Screen bezel */}
-        <div className="bg-black rounded border-2 border-gray-500 p-1">
-          {/* Scanlines overlay */}
-          <div className="relative overflow-hidden rounded">
-            <div className="absolute inset-0 pointer-events-none" 
-                 style={{
-                   backgroundImage: 'linear-gradient(transparent 50%, rgba(0, 0, 0, 0.05) 50%)',
-                   backgroundSize: '100% 4px'
-                 }}>
+                if (initialAuthStatus?.isAuthenticated) {
+                    setIsAuthenticated(true);
+                    setUserEmail(initialAuthStatus.email ?? null);
+                    setRegistrationStatus('incomplete'); // Placeholder
+                    addOutputLine(`Session found for ${initialAuthStatus.email}.`, 'success');
+                } else {
+                    addOutputLine("No active session found.", 'info');
+                     if (localData.currentQuestionIndex !== undefined && localData.email) {
+                         addOutputLine("Local registration data found. Use 'register continue' or 'sign-in'.", 'warning');
+                     }
+                }
+                await new Promise(r => setTimeout(r, 300));
+                addOutputLine("Type 'help' for available commands.", 'info');
+                setCurrentMode('main');
+                setIsBooting(false);
+            };
+            bootSequenceAsync();
+        }
+    }, [addOutputLine, initialAuthStatus, localData, setIsBooting, setIsAuthenticated, setUserEmail, setRegistrationStatus]); // Added all state setters used in boot logic
+
+    useEffect(() => {
+        scrollToBottom();
+        if (currentMode !== 'boot') {
+             setTimeout(() => inputRef.current?.focus(), 50);
+        }
+    }, [outputLines, currentMode, scrollToBottom]);
+
+    // --- Command/Input Handling ---
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setCurrentInput(e.target.value);
+    };
+
+    const handleSubmit = async (e?: React.FormEvent<HTMLFormElement>) => {
+        e?.preventDefault();
+        const input = currentInput.trim();
+        const currentPrompt = getPromptText(currentMode, isAuthenticated, userEmail);
+
+        if (input || (currentMode !== 'register' && currentMode !== 'edit')) {
+             addOutputLine(input, 'input', currentPrompt);
+        }
+
+        setCurrentInput('');
+
+        if (!input && (currentMode === 'register' || currentMode === 'edit')) {
+             const question = questions[currentQuestionIndex];
+             if (question && !question.required) {
+                 await processAnswer('');
+                 return;
+             } else if (question && question.required) {
+                 addOutputLine("This field is required.", 'error');
+                 addOutputLine(question.label, 'question');
+                 return;
+             }
+             return;
+        } else if (!input) {
+             return;
+        }
+
+        const command = input.toLowerCase();
+        const args = input.split(' ').slice(1);
+
+        if (command === 'help') {
+            handleHelpCommand(args);
+            return;
+        }
+        if (command === 'clear') {
+            setOutputLines([]);
+            return;
+        }
+         if (command === 'reset') {
+             addOutputLine("This will clear all local data and reload. Are you sure? (yes/no)", 'warning');
+             // TODO: Implement confirmation logic for reset
+             return;
+         }
+
+        try {
+            switch (currentMode) {
+                case 'main':
+                    await handleMainModeCommand(command, args);
+                    break;
+                case 'auth':
+                    await handleAuthModeInput(input);
+                    break;
+                case 'register':
+                case 'edit':
+                    await handleRegisterModeInput(input, command, args);
+                    break;
+                case 'review':
+                    await handleReviewModeCommand(command, args);
+                    break;
+                 case 'confirm_delete':
+                     await handleConfirmDeleteCommand(command);
+                     break;
+                 case 'confirm_new':
+                     await handleConfirmNewCommand(command);
+                     break;
+            }
+        } catch (err) {
+             console.error("Command processing error:", err);
+             addOutputLine(`Error: ${(err as Error).message || 'An unexpected error occurred.'}`, 'error');
+        }
+    };
+
+    // --- Mode-Specific Handlers ---
+
+    const handleHelpCommand = (args: string[]) => {
+        addOutputLine("Available commands:", 'info');
+        let commands: string[] = [];
+        switch (currentMode) {
+            case 'main':
+                commands = isAuthenticated
+                    ? ['view', 'edit', 'delete', 'sign-out', 'help', 'about', 'clear', 'reset']
+                    : ['register new', 'register continue', 'sign-in', 'help', 'about', 'clear', 'reset'];
+                break;
+            case 'auth':
+                commands = ['magiclink', 'reset-password', 'back', 'help', 'clear', 'reset'];
+                break;
+            case 'register':
+            case 'edit':
+                const isRegComplete = questions.every(q =>
+                    !q.required || localData.hasOwnProperty(q.id) ||
+                    (q.dependsOn && localData[q.dependsOn as keyof FormDataStore] !== q.dependsValue)
+                );
+                 commands = ['next', 'prev', 'save', 'exit', 'help', 'clear', 'reset'];
+                 if (isRegComplete) commands.push('submit');
+                break;
+            case 'review':
+                 commands = ['submit', 'edit [number]', 'back', 'help', 'clear', 'reset'];
+                 break;
+             case 'confirm_delete':
+                 commands = ["'DELETE'", 'cancel', 'help'];
+                 break;
+             case 'confirm_new':
+                 commands = ['yes', 'no', 'help'];
+                 break;
+        }
+        addOutputLine(commands.join(', '), 'info');
+    };
+
+    const handleMainModeCommand = async (command: string, args: string[]) => {
+        if (isAuthenticated) {
+            switch (command) {
+                case 'view':
+                    addOutputLine("Fetching registration data...", 'info');
+                    addOutputLine(JSON.stringify(localData, null, 2), 'output');
+                    break;
+                case 'edit':
+                    addOutputLine("Entering edit mode...", 'info');
+                    setCurrentMode('edit');
+                    setCurrentQuestionIndex(0);
+                    setIsPasswordInput(false);
+                    addOutputLine(questions[0].label, 'question');
+                    break;
+                case 'delete':
+                    addOutputLine("Are you sure? This cannot be undone.", 'warning');
+                    addOutputLine("Type 'DELETE' to confirm, or 'cancel'.", 'warning');
+                    setCurrentMode('confirm_delete');
+                    break;
+                case 'sign-out':
+                    addOutputLine("Signing out...", 'info');
+                    startAuthTransition(async () => {
+                        const result = await signOut();
+                        if (result.success) {
+                            addOutputLine(result.message, 'success');
+                            setIsAuthenticated(false);
+                            setUserEmail(null);
+                            setRegistrationStatus('not_started');
+                            setLocalData({}); // Use setter to clear
+                        } else {
+                            addOutputLine(`Sign out failed: ${result.message}`, 'error');
+                        }
+                        setCurrentMode('main');
+                    });
+                    break;
+                case 'about':
+                     addOutputLine("Philosothon Registration Terminal v2.0", 'output');
+                     break;
+                default:
+                    addOutputLine(`Unknown command: ${command}. Type 'help'.`, 'error');
+            }
+        } else {
+            switch (command) {
+                 case 'register new':
+                     if (localData.currentQuestionIndex !== undefined && localData.email) {
+                         addOutputLine("Existing local data found. Overwrite? (yes/no)", 'warning');
+                         setCurrentMode('confirm_new');
+                     } else {
+                         handleStartNewRegistration();
+                     }
+                     break;
+                 case 'register continue':
+                     if (localData.currentQuestionIndex !== undefined && localData.email) {
+                         addOutputLine("Resuming registration...", 'info');
+                         setCurrentMode('register');
+                         const resumeIndex = Math.max(0, Math.min(localData.currentQuestionIndex, questions.length -1));
+                         setCurrentQuestionIndex(resumeIndex);
+                         setIsPasswordInput(false);
+                         addOutputLine(questions[resumeIndex].label, 'question');
+                     } else {
+                         addOutputLine("No registration in progress found. Use 'register new'.", 'error');
+                     }
+                     break;
+                case 'sign-in':
+                    addOutputLine("Entering authentication mode...", 'info');
+                    setCurrentMode('auth');
+                    addOutputLine("Enter email:", 'question');
+                    setIsPasswordInput(false);
+                    setPasswordAttempt('');
+                    break;
+                 case 'about':
+                     addOutputLine("Philosothon Registration Terminal v2.0", 'output');
+                     break;
+                default:
+                    addOutputLine(`Unknown command: ${command}. Type 'help'.`, 'error');
+            }
+        }
+    };
+
+     const handleConfirmDeleteCommand = async (command: string) => {
+         if (command === 'delete') {
+             addOutputLine("Deleting registration...", 'warning');
+             startSubmitTransition(async () => {
+                 const result = await deleteRegistration();
+                 if (result.success) {
+                     addOutputLine("Registration deleted successfully.", 'success');
+                     setRegistrationStatus('not_started');
+                     setLocalData({}); // Use setter to clear
+                 } else {
+                     addOutputLine(`Error: ${result.message}`, 'error');
+                 }
+                 setCurrentMode('main');
+             });
+         } else if (command === 'cancel') {
+             addOutputLine("Deletion cancelled.", 'info');
+             setCurrentMode('main');
+         } else {
+             addOutputLine("Invalid confirmation. Type 'DELETE' or 'cancel'.", 'error');
+         }
+     };
+
+     const handleConfirmNewCommand = (command: string) => {
+         if (command === 'yes') {
+             handleStartNewRegistration();
+         } else if (command === 'no') {
+             addOutputLine("Operation cancelled. Use 'register continue' or 'sign-in'.", 'info');
+             setCurrentMode('main');
+         } else {
+             addOutputLine("Invalid input. Type 'yes' or 'no'.", 'error');
+         }
+     };
+
+     const handleStartNewRegistration = () => {
+         setLocalData({}); // Use setter to clear data
+         addOutputLine("Starting new registration...", 'info');
+         setCurrentMode('register');
+         setCurrentQuestionIndex(0);
+         setIsPasswordInput(false);
+         setPasswordAttempt('');
+         addOutputLine(questions[0].label, 'question');
+     };
+
+    const handleAuthModeInput = async (input: string) => {
+        const command = input.toLowerCase();
+         if (command === 'back') {
+             addOutputLine("Returning to main menu...", 'info');
+             setCurrentMode('main');
+             setLocalData((prev: FormDataStore) => ({ ...prev, email: undefined })); // Add type
+             setIsPasswordInput(false);
+             setPasswordAttempt('');
+             return;
+         }
+         if (command === 'help' || command === 'magiclink' || command === 'reset-password') {
+             await handleAuthModeCommandInternal(command);
+             return;
+         }
+
+        if (!localData.email) {
+            if (input && input.includes('@')) {
+                setLocalData((prev: FormDataStore) => ({ ...prev, email: input })); // Add type
+                addOutputLine("Enter password:", 'question');
+                setIsPasswordInput(true);
+                setPasswordAttempt('');
+            } else {
+                addOutputLine("Invalid email format. Please try again.", 'error');
+                addOutputLine("Enter email:", 'question');
+            }
+        } else {
+            addOutputLine("Authenticating...", 'info');
+            setIsPasswordInput(false);
+            startAuthTransition(async () => {
+                const result = await signInWithPassword({ email: localData.email!, password: input });
+                if (result.success) {
+                    addOutputLine(result.message, 'success');
+                    setIsAuthenticated(true);
+                    setUserEmail(localData.email);
+                    setRegistrationStatus('incomplete');
+                    setCurrentMode('main');
+                } else {
+                    addOutputLine(`Authentication failed: ${result.message}`, 'error');
+                    addOutputLine("Enter email:", 'question');
+                    setLocalData((prev: FormDataStore) => ({ ...prev, email: undefined })); // Add type
+                }
+            });
+        }
+    };
+
+    const handleAuthModeCommandInternal = async (command: string) => {
+        switch (command) {
+            case 'magiclink':
+                if (localData.email) {
+                     addOutputLine(`Requesting magic link for ${localData.email}...`, 'info');
+                     startAuthTransition(async () => {
+                         const result = await requestPasswordReset({ email: localData.email! });
+                         if (result.success) {
+                             addOutputLine("Magic link request sent. Check your email.", 'success');
+                             setCurrentMode('main');
+                         } else {
+                             addOutputLine(`Failed to send magic link: ${result.message}`, 'error');
+                         }
+                     });
+                } else {
+                     addOutputLine("Please enter your email first.", 'error');
+                }
+                break;
+            case 'reset-password':
+                 if (localData.email) {
+                     addOutputLine(`Requesting password reset for ${localData.email}...`, 'info');
+                      startAuthTransition(async () => {
+                         const result = await requestPasswordReset({ email: localData.email! });
+                         if (result.success) {
+                             addOutputLine("Password reset email sent. Check your email.", 'success');
+                             setCurrentMode('main');
+                         } else {
+                             addOutputLine(`Failed to send reset email: ${result.message}`, 'error');
+                         }
+                     });
+                 } else {
+                     addOutputLine("Please enter your email first to reset password.", 'error');
+                 }
+                 break;
+             case 'help':
+                  handleHelpCommand([]);
+                  break;
+            default:
+                 addOutputLine(`Unknown command in auth mode: ${command}.`, 'error');
+        }
+    };
+
+    const handleRegisterModeInput = async (input: string, command: string, args: string[]) => {
+        switch (command) {
+            case 'next':
+                const currentQ = questions[currentQuestionIndex];
+                if (currentQ?.required && !localData[currentQ.id as keyof FormDataStore]) {
+                     addOutputLine("Please answer the current question before proceeding.", 'warning');
+                     return;
+                }
+                const nextIdx = findNextQuestionIndex(currentQuestionIndex, localData);
+                if (nextIdx < questions.length) {
+                    setCurrentQuestionIndex(nextIdx);
+                    addOutputLine(questions[nextIdx].label, 'question');
+                } else {
+                     addOutputLine("Already at the last question.", 'info');
+                     checkAndHandleCompletion(localData);
+                }
+                return;
+            case 'prev':
+                 const prevIdx = findPrevQuestionIndex(currentQuestionIndex, localData);
+                 if (prevIdx >= 0) {
+                     setCurrentQuestionIndex(prevIdx);
+                     addOutputLine(questions[prevIdx].label, 'question');
+                 } else {
+                      addOutputLine("Already at the first question.", 'info');
+                 }
+                return;
+            case 'save':
+                setLocalData((prev: FormDataStore) => ({ ...prev, currentQuestionIndex }));
+                addOutputLine("Progress saved locally.", 'success');
+                return;
+            case 'exit':
+            case 'back':
+                addOutputLine("Saving progress and exiting registration...", 'info');
+                setLocalData((prev: FormDataStore) => ({ ...prev, currentQuestionIndex }));
+                setCurrentMode('main');
+                return;
+             case 'submit':
+                 if (checkCompletion(localData)) {
+                     handleFinalSubmit();
+                 } else {
+                     addOutputLine("Please complete all required questions before submitting.", 'warning');
+                 }
+                 return;
+             case 'review':
+                 handleReviewCommand();
+                 return;
+            default:
+                await processAnswer(input);
+        }
+    };
+
+     const handleReviewModeCommand = async (command: string, args: string[]) => {
+         switch(command) {
+             case 'submit':
+                 handleFinalSubmit();
+                 break;
+             case 'edit':
+                 const indexStr = args[0];
+                 const indexToEdit = parseInt(indexStr, 10) - 1;
+                 if (!isNaN(indexToEdit) && indexToEdit >= 0 && indexToEdit < questions.length) {
+                      addOutputLine(`Editing question ${indexToEdit + 1}: ${questions[indexToEdit].label}`, 'info');
+                      setCurrentMode('edit');
+                      setCurrentQuestionIndex(indexToEdit);
+                      setCurrentInput(localData[questions[indexToEdit].id as keyof FormDataStore] ?? '');
+                      addOutputLine(questions[indexToEdit].label, 'question');
+                 } else {
+                      addOutputLine("Invalid question number. Use 'edit [number]'.", 'error');
+                 }
+                 break;
+             case 'back':
+                 addOutputLine("Returning to main menu...", 'info');
+                 setCurrentMode('main');
+                 break;
+             default:
+                  addOutputLine(`Unknown command: ${command}. Use 'submit', 'edit [number]', or 'back'.`, 'error');
+         }
+     };
+
+     const handleReviewCommand = () => {
+         addOutputLine("--- Review Answers ---", 'info');
+         questions.forEach((q, idx) => {
+             const answer = localData[q.id as keyof FormDataStore];
+             const displayAnswer = answer === undefined || answer === null ? '[Not Answered]' : String(answer);
+             addOutputLine(`${idx + 1}. ${q.label}: ${displayAnswer}`, 'output');
+         });
+         addOutputLine("--- End Review ---", 'info');
+     };
+
+    const processAnswer = async (answer: string) => {
+        const question = questions[currentQuestionIndex];
+        if (!question) return;
+
+        if (question.id === 'email') {
+             if (answer && answer.includes('@')) {
+                 setLocalData((prev: FormDataStore) => ({ ...prev, email: answer }));
+                 advanceQuestion(answer);
+             } else {
+                 addOutputLine("Invalid email format.", 'error');
+                 addOutputLine(question.label, 'question');
+             }
+             return;
+        }
+
+        if (question.id === 'password') {
+             if (answer.length >= 8) {
+                 setPasswordAttempt(answer);
+                 advanceQuestion(answer);
+             } else {
+                 addOutputLine("Password must be at least 8 characters.", 'error');
+                 addOutputLine(question.label, 'question');
+             }
+             return;
+        }
+
+        if (question.id === 'confirmPassword') {
+             if (answer === passwordAttempt) {
+                 addOutputLine("Password confirmed. Creating account...", 'info');
+                 setIsPasswordInput(false);
+                 startAuthTransition(async () => {
+                     const result = await signUpUser({ email: localData.email!, password: passwordAttempt });
+                     if (result.success || result.message.includes('User already registered')) {
+                         addOutputLine(result.success ? "Account created/verified." : "Account already exists, proceeding.", 'success');
+                         setLocalData((prev: FormDataStore) => ({ ...prev, isVerified: true }));
+                         advanceQuestion(answer);
+                     } else {
+                         addOutputLine(`Account creation failed: ${result.message}`, 'error');
+                         setCurrentQuestionIndex(0);
+                         addOutputLine(questions[0].label, 'question');
+                         setLocalData((prev: FormDataStore) => ({ ...prev, email: undefined }));
+                         setPasswordAttempt('');
+                     }
+                 });
+             } else {
+                 addOutputLine("Passwords do not match. Try again.", 'error');
+                 const passwordIndex = questions.findIndex(q => q.id === 'password');
+                 setCurrentQuestionIndex(passwordIndex >= 0 ? passwordIndex : 0);
+                 addOutputLine(questions[passwordIndex >= 0 ? passwordIndex : 0].label, 'question');
+                 setIsPasswordInput(true);
+                 setPasswordAttempt('');
+             }
+             return;
+        }
+
+        let validationError: string | undefined = undefined;
+        if (question.required && !answer) {
+            validationError = "This field is required.";
+        } else if (question.clientValidation) {
+            validationError = question.clientValidation(answer, localData);
+        }
+
+        if (validationError) {
+            addOutputLine(`Error: ${validationError}`, 'error');
+            addOutputLine(question.label, 'question');
+            return;
+        }
+
+        let processedAnswer: any = answer;
+        if (question.type === 'boolean') {
+            processedAnswer = answer.toLowerCase() === 'yes' || answer.toLowerCase() === 'true';
+        } else if (question.type === 'number') { // Removed 'range' check
+             processedAnswer = parseInt(answer, 10);
+             if (isNaN(processedAnswer)) {
+                 addOutputLine("Invalid number.", 'error');
+                 addOutputLine(question.label, 'question');
+                 return;
+             }
+        }
+
+        const newData: FormDataStore = { ...localData, [question.id]: processedAnswer };
+
+        if (currentMode === 'edit') {
+             addOutputLine("Saving update...", 'info');
+             setLocalData(newData);
+             startSubmitTransition(async () => {
+                 const updateData = { [question.id]: processedAnswer };
+                 const formDataForUpdate = new FormData(); // Create FormData for action
+                 Object.entries(updateData).forEach(([key, value]) => {
+                     if (value !== undefined && value !== null) {
+                         formDataForUpdate.append(key, String(value));
+                     }
+                 });
+                 const result = await updateRegistration(null as any, formDataForUpdate);
+                 if (result.success) {
+                     addOutputLine("Update saved successfully.", 'success');
+                 } else {
+                     addOutputLine(`Update failed: ${result.message}`, 'error');
+                 }
+                 setCurrentMode('review');
+                 handleReviewCommand();
+             });
+             return;
+        }
+
+        advanceQuestion(processedAnswer);
+    };
+
+    // Helper function to advance to the next question or completion
+    const advanceQuestion = (currentAnswer: any) => {
+        const currentQ = questions[currentQuestionIndex];
+        if (!currentQ) {
+            console.error("Cannot advance, current question is undefined.");
+            return;
+        }
+        const newData: FormDataStore = { ...localData, [currentQ.id]: currentAnswer };
+        setLocalData((prev: FormDataStore) => ({
+            ...newData,
+            currentQuestionIndex: currentQuestionIndex
+        }));
+
+        const nextIndex = findNextQuestionIndex(currentQuestionIndex, newData);
+
+        if (nextIndex >= questions.length) {
+            if (checkCompletion(newData)) {
+                addOutputLine("All questions answered.", 'success');
+                setIsComplete(true);
+                setCurrentMode('review');
+                addOutputLine("Review your answers. Use 'submit' or 'edit [number]'.", 'info');
+                handleReviewCommand();
+            } else {
+                 addOutputLine("Error: Could not determine next question or not all required answered.", 'error');
+            }
+        } else {
+            setCurrentQuestionIndex(nextIndex);
+            addOutputLine(questions[nextIndex].label, 'question');
+            setIsPasswordInput(questions[nextIndex].type === 'password');
+        }
+    };
+    // Removed duplicate advanceQuestion function
+
+     const checkCompletion = (data: FormDataStore): boolean => {
+         const registrationQuestions = questions.filter(q => q.id !== 'email' && q.id !== 'password' && q.id !== 'confirmPassword');
+         return registrationQuestions.every(q => {
+             if (!q.required) return true;
+             if (q.dependsOn && data[q.dependsOn as keyof FormDataStore] !== q.dependsValue) return true;
+             const answer = data[q.id as keyof FormDataStore];
+             return answer !== undefined && answer !== null && answer !== '';
+         });
+     };
+
+     const checkAndHandleCompletion = (data: FormDataStore) => {
+         if (checkCompletion(data)) {
+             setIsComplete(true);
+             setCurrentMode('review');
+             addOutputLine("All questions answered. Review your answers.", 'info');
+             handleReviewCommand();
+         }
+     };
+
+    const handleFinalSubmit = () => {
+        addOutputLine("Submitting registration...", 'info');
+        const formDataForServer = new FormData();
+        Object.entries(localData).forEach(([key, value]) => {
+            if (key === 'currentQuestionIndex' || key === 'isVerified') return;
+            if (value !== undefined && value !== null) {
+                 if (Array.isArray(value)) {
+                     value.forEach(item => formDataForServer.append(key, String(item)));
+                 } else {
+                     formDataForServer.append(key, String(value));
+                 }
+            }
+        });
+
+        startSubmitTransition(async () => {
+             const result = await submitRegistration(null as any, formDataForServer);
+             if (result.success) {
+                 addOutputLine("Registration submitted successfully!", 'success');
+                 setLocalData({});
+                 setRegistrationStatus('complete');
+                 setCurrentMode('main');
+             } else {
+                 addOutputLine(`Submission failed: ${result.message || 'Unknown error'}`, 'error');
+                 if (result.errors) {
+                     Object.entries(result.errors).forEach(([field, errors]) => {
+                         if (errors) {
+                             addOutputLine(` - ${field}: ${errors.join(', ')}`, 'error');
+                         }
+                     });
+                 }
+                 setCurrentMode('review');
+             }
+        });
+    };
+
+    const findNextQuestionIndex = (currentIndex: number, currentData: FormDataStore): number => {
+        let nextIndex = currentIndex + 1;
+        while (nextIndex < questions.length) {
+            const nextQuestion = questions[nextIndex];
+            if (nextQuestion.id === 'confirmPassword' && !passwordAttempt) continue;
+            if (nextQuestion.dependsOn) {
+                const dependencyValue = currentData[nextQuestion.dependsOn as keyof FormDataStore];
+                if (dependencyValue !== nextQuestion.dependsValue) {
+                    nextIndex++;
+                    continue;
+                }
+            }
+            return nextIndex;
+        }
+        return nextIndex;
+    };
+
+     const findPrevQuestionIndex = (currentIndex: number, currentData: FormDataStore): number => {
+         let prevIndex = currentIndex - 1;
+         while (prevIndex >= 0) {
+             const prevQuestion = questions[prevIndex];
+             if (prevQuestion.id === 'password' || prevQuestion.id === 'confirmPassword') {
+                  prevIndex--;
+                  continue;
+             }
+             if (prevQuestion.dependsOn) {
+                 const dependencyValue = currentData[prevQuestion.dependsOn as keyof FormDataStore];
+                 if (dependencyValue !== prevQuestion.dependsValue) {
+                     prevIndex--;
+                     continue;
+                 }
+             }
+             return prevIndex;
+         }
+         return prevIndex;
+     };
+
+    // --- Rendering ---
+    const currentPromptText = getPromptText(currentMode, isAuthenticated, userEmail);
+    const currentQuestion = (currentMode === 'register' || currentMode === 'edit') && currentQuestionIndex >= 0 && currentQuestionIndex < questions.length
+        ? questions[currentQuestionIndex]
+        : null;
+
+    return (
+        <div className="bg-black text-hacker-green font-mono p-4 border border-gray-700 rounded h-[70vh] flex flex-col">
+            <div ref={terminalRef} className="flex-grow overflow-y-auto mb-2 scroll-smooth">
+                {outputLines.map(line => (
+                    <div key={line.id} className={`whitespace-pre-wrap ${
+                        line.type === 'error' ? 'text-red-500' :
+                        line.type === 'success' ? 'text-green-500' :
+                        line.type === 'warning' ? 'text-yellow-500' :
+                        line.type === 'info' ? 'text-blue-400' :
+                        line.type === 'question' ? 'text-cyan-400' :
+                        line.type === 'input' ? 'text-white' :
+                        'text-hacker-green'
+                    }`}>
+                        {line.type === 'input' && <span className="text-gray-500">{line.promptText}</span>}
+                        {line.text}
+                    </div>
+                ))}
+                 {currentQuestion && currentMode !== 'auth' && (
+                     <div className="text-cyan-400 mt-1">{currentQuestion.label}</div>
+                 )}
+                 {currentQuestion?.id === 'confirmPassword' && (
+                      <div className="text-cyan-400 mt-1">Confirm Password:</div>
+                 )}
             </div>
-            
-            {/* Terminal content */}
-            <div 
-              ref={terminalRef}
-              className="bg-black text-hacker-green font-mono p-4 h-[600px] overflow-y-auto border border-gray-700 rounded relative"
-            >
-              {/* Boot sequence */}
-              {!bootComplete ? (
-                <div className="animate-pulse">
-                  {bootMessages.map((msg, idx) => (
-                    <div key={idx} className={msg.startsWith('> ') ? 'text-hacker-green' : 'text-gray-400'}>
-                      <pre className="whitespace-pre-wrap">{msg}</pre>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <>
-                  {/* Session header */}
-                  <div className="pb-3 mb-4 border-b border-gray-700">
-                    <span className="text-hacker-green">Library archive session ready.</span>
-                    <br />
-                    <span className="text-gray-400">&gt; Searching for locally cached resources....</span>
-                  </div>
-                  
-                  {/* Command history */}
-                  {sessionData.history.map((item: HistoryItem, index: number) => (
-                    <div key={index} className="mb-2">
-                      {/* Only show question label for actual questions */}
-                      {item.index >= 0 && (
-                        <div className="text-gray-400">{item.question}</div>
-                      )}
-                      <div className="flex">
-                        <span className="text-gray-500 mr-1">{item.index >= 0 ? '>' : ''}</span>
-                        <span className={item.index >= 0 ? '' : 'text-gray-300'}>{item.answer}</span>
-                      </div>
-                    </div>
-                  ))}
-                  
-                  {/* Current question */}
-                  {!isComplete && questions[currentQuestionIndex] && (
-                    <div className="current-question mt-4">
-                      <div className="text-gray-300 mb-1">{questions[currentQuestionIndex].label}</div>
-                      {questions[currentQuestionIndex].options && Array.isArray(questions[currentQuestionIndex].options) && (
-                        <div className="text-gray-500 mb-2">
-                          Options: {questions[currentQuestionIndex].options.map((o: { label: string }) => o.label).join(', ')}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  
-                  {/* Review mode message */}
-                  {isComplete && currentMode === 'review' && !serverState.success && (
-                    <div className="mb-4 p-2 border border-gray-700 bg-gray-900">
-                      <p className="text-yellow-400">Registration complete! Review your answers with &apos;list&apos;.</p>
-                      <p className="text-gray-400 mt-2">Use &apos;edit [number]&apos; to modify responses or &apos;submit&apos; to finalize.</p>
-                    </div>
-                  )}
-                  
-                  {/* Submission status */}
-                  {serverState.message && (
-                    <div className={`p-2 mb-4 ${serverState.success ? 'text-green-400' : 'text-red-400'}`}>
-                      {serverState.message}
-                    </div>
-                  )}
-                  
-                  {/* Input form - updated to improve focus handling */}
-                  {!serverState.success && (
-                    <form 
-                      onSubmit={handleSubmit} 
-                      className="flex items-center mt-2"
-                    >
-                      <span className="text-gray-500 mr-1">[admin@local]#</span>
-                      <input
+
+            {currentMode !== 'boot' && (
+                <form onSubmit={handleSubmit} className="flex items-center mt-auto pt-2 border-t border-gray-700">
+                    <span className="text-gray-500 mr-1">{currentPromptText}</span>
+                    <input
                         ref={inputRef}
-                        type="text"
+                        type={isPasswordInput ? 'password' : 'text'}
                         value={currentInput}
-                        onChange={(e) => setCurrentInput(e.target.value)}
-                        onFocus={() => console.log('Input focused')}
+                        onChange={handleInputChange}
                         className="bg-transparent border-none text-hacker-green outline-none flex-grow p-0 m-0 focus:ring-0"
                         autoComplete="off"
-                        aria-describedby={error ? "terminal-error" : undefined}
-                        autoFocus={bootComplete}
-                      />
-                    </form>
-                  )}
-                  
-                  {/* Error message */}
-                  {error && (
-                    <p id="terminal-error" className="text-red-400 mt-1">Error: {error}</p>
-                  )}
-                </>
-              )}
-              
-              {/* Command help footer - always visible */}
-              <div className="absolute bottom-0 left-0 right-0 flex justify-between py-2 px-4 bg-gray-900 border-t border-gray-700">
-                {currentMode === 'boot' && (
-                  <>
-                    <span className="text-gray-400">AI_feedback.eml</span>
-                    <span className="text-gray-400">spinoza_ethics.eml</span>
-                    <span className="text-gray-400">straton_of_stageira.wiki</span>
-                    <span className="text-gray-400">exit</span>
-                  </>
-                )}
-                
-                {(currentMode === 'form' || currentMode === 'edit' || currentMode === 'review') && (
-                  <>
-                    <span className="text-gray-400">help</span>
-                    <span className="text-gray-400">list</span>
-                    <span className="text-gray-400">{currentMode === 'edit' ? 'cancel' : 'edit'}</span>
-                    <span className="text-gray-400">{isComplete ? 'submit' : 'save'}</span>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
+                        autoFocus
+                        // Temporarily remove disabled check for testing
+                        disabled={isBooting || isSubmitting || isAuthActionPending}
+                    />
+                </form>
+            )}
         </div>
-      </div>
-    </div>
-  );
+    );
 }
