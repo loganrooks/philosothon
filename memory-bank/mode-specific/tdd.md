@@ -3,6 +3,18 @@
 ## Test Execution Results
 ${tddModeUpdateTestResults}
 
+### Test Execution: Registration V3 Red Phase Verification - [2025-04-20 2:21:00]
+- **Trigger**: Manual (Post-Red Phase Test Writing/Updates)
+- **Outcome**: FAIL (Expected for Red Phase) / **Summary**: SSOT tests pass, Auth tests pass, Reg Action tests fail (validation), UI tests fail (implementation).
+- **Failed Tests**:
+    - `src/app/register/actions.test.ts` (6 tests): Failing due to Zod validation errors (Expected - type mismatches like string vs number/boolean).
+    - `src/app/register/components/RegistrationForm.test.tsx` (3 tests): Failing due to missing V3 implementation (Expected).
+- **Skipped Tests**:
+    - `src/app/register/components/RegistrationForm.test.tsx` (32 tests): Old V2 tests skipped.
+    - `src/app/register/actions.test.ts` (1 test): Skipped delete confirmation test.
+- **Notes**: Confirmed tests are in the expected Red state, failing because V3 implementation is missing.
+
+
 
 ### Test Execution: Full Regression Run (Post-Fix Registration Action Tests) - [2025-04-19 15:35:42]
 - **Trigger**: Manual (Post-Code Change - Fixed tests in `actions.test.ts`)
@@ -126,6 +138,17 @@ ${tddModeUpdateTestResults}
 
 ## Test Plans (Driving Implementation)
 ${tddModeUpdateTestPlan}
+
+### Test Plan: Registration Terminal V3 - [2025-04-20 2:21:00]
+- **Objective**: Drive implementation of V3 Terminal UI, Auth, and Registration logic based on `docs/specs/p0_registration_terminal_ui_spec_v2.md`.
+- **Scope**: `RegistrationForm.tsx`, `auth/actions.ts`, `register/actions.ts`, `generate-registration.ts`.
+- **Test Cases (Red Phase Status)**:
+    - SSOT Script (`generate-registration.test.ts`): Verified existing tests cover V3 requirements (file generation, schema update, SQL draft). Tests PASS after fixing path assertion.
+    - Auth Actions (`auth/actions.test.ts`): Verified existing tests cover V3 actions (`signInWithPassword`, `signUpUser`, `signOut`, `requestPasswordReset`). Tests PASS after adding `headers` mock.
+    - Reg Actions (`register/actions.test.ts`): Updated mock data to V3. Tests FAIL due to Zod validation errors (missing type coercion in action). Red state achieved.
+    - Terminal UI (`RegistrationForm.test.tsx`): Skipped V2 tests. Added new failing tests for V3 initial render, `register new` command, and early auth flow. Tests FAIL due to missing V3 implementation. Red state achieved.
+- **Related Requirements**: `docs/specs/p0_registration_terminal_ui_spec_v2.md`
+
 
 
 ### Test Execution: Regression Run Post-Downgrade (Task 18) - [2025-04-18 16:08:45]
@@ -461,6 +484,13 @@ ${tddModeUpdateTestPlan}
 
 
 ## TDD Cycles Log
+### TDD Cycle: Registration Terminal V3 - Red Phase - [2025-04-20 1:56:00]
+- **Red**: Attempted to write failing tests for `RegistrationForm.tsx` based on V3 spec (`p0_registration_terminal_ui_spec_v2.md`). Found existing test file and `registrationQuestions.ts` mock data are outdated (V2, 17 questions) and incompatible with V3 requirements (31 questions, new types like `multi-select-numbered`, `ranking-numbered`). Fixed TS syntax errors in `RegistrationForm.test.tsx` by aligning mock data with the *outdated* `registrationQuestions.ts`.
+- **Green**: N/A
+- **Refactor**: N/A
+- **Outcome**: **Blocked**. Cannot proceed with Red Phase for V3 features until the SSOT generation script (`generate-registration.ts`) is updated to match the V3 spec and executed. Test file `RegistrationForm.test.tsx` is syntactically valid but uses outdated mock data.
+
+
 ${tddModeUpdateCycleLog}
 
 

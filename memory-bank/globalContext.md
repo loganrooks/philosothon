@@ -37,6 +37,8 @@ This file consolidates less frequently updated global project information, inclu
 *   **[2025-04-19 23:23:00] Vitest Mocking Strategy (`vi.spyOn`):** When mocking modules (especially server actions) that are used within React components tested with Vitest, if the mock factory needs to reference variables defined outside the factory, `vi.mock` can cause hoisting-related `ReferenceError`s. A reliable pattern is to import the actual module, define mock function variables (`const myMock = vi.fn()`), and then use `vi.spyOn(actualModule, 'functionName').mockImplementation(myMock)` within `beforeEach` to apply the mock. This avoids the hoisting issue while allowing mock control and assertion. [See Debug Issue VITEST-MOCK-HOIST-001]
 
 
+*   **[2025-04-20 2:05:00] SSOT Generation Script Refinement:** Updated `platform/scripts/generate-registration.ts` to correctly handle the `'use server'` directive placement (must be first line) and import statements within the target `actions.ts` file. Also ensured the script correctly generates the `QuestionType` definition including all V3 types (`scale`, `multi-select-numbered`, `ranking-numbered`) in the output `registrationQuestions.ts` file.
+
 *   **[2025-04-19 00:00:00] Style Guide:** Defined and refined a formal style guide (`docs/style_guide.md`) for the minimalist hacker aesthetic. Covers color palette (emphasizing `light-text` over Matrix/translucent backgrounds, restricting green text), typography, spacing, borders, common component styles (buttons, forms, cards, timeline), and specifies the `MatrixBackground` component as the default background, all using Tailwind CSS where applicable.
 
 
@@ -98,6 +100,108 @@ This file consolidates less frequently updated global project information, inclu
 *   **[2025-04-18] Admin CRUD Pattern:** Implemented using Server Components for list/edit page shells, Client Components for forms (`useFormState`), and Server Actions (`actions.ts`) for data mutation (create, update, delete). Edit pages use query parameters (`?id=...`) instead of dynamic route segments to avoid previous build issues.
 
 # Decision Log
+
+## Decision
+[2025-04-20 17:33:00] Use `minRanked` Constraint for Ranked-Choice Validation in SSOT.
+
+## Rationale
+Provides a more flexible way to specify ranked-choice validation constraints compared to a hardcoded flag (`isTop3Ranking`). Allows defining the minimum number of required ranks (e.g., 3 for current outline) or potentially requiring all options to be ranked in the future. Keeps the SSOT definition focused on constraints, leaving implementation details (Zod logic) to the code generator.
+
+## Implementation Details
+Use `ranked-choice-numbered` as the SSOT `type`. Within `validationRules`, use `minRanked: { value: number; message?: string }` and `uniqueSelections: boolean | string`. The code generation script will interpret these constraints to produce appropriate validation logic (e.g., Zod `.refine`).
+
+
+
+## Decision
+[2025-04-20] Adopt Space-Separated Numbers for Terminal "Check All That Apply" Input.
+
+## Rationale
+Provides a clear and relatively simple input method for selecting multiple options in a text-based terminal interface. Easier to parse than free-form text.
+
+## Implementation Details
+Display options with numbers. User enters space-separated numbers (e.g., `1 3 5`). Client-side validation checks for valid numbers within the option range. SSOT type: `multi-select-numbered`.
+
+## Decision
+[2025-04-20] Adopt Comma-Separated Numbers (Top Ranks) for Terminal "Ranking" Input.
+
+## Rationale
+Allows users to specify their preferred order for a subset of options within the terminal. Explicitly ranking only the top choices is often sufficient and simpler than full drag-and-drop emulation.
+
+## Implementation Details
+Display options with numbers. User enters comma-separated numbers representing their ranked choices in order (e.g., `3,1,4`). Hint clarifies to rank at least 3. Client-side validation checks for valid numbers, uniqueness, and minimum count (3). SSOT type: `ranking-numbered`.
+
+## Decision
+[2025-04-20] Use Registration Outline Intro Text for Terminal UI.
+
+## Rationale
+Directly uses the user-approved introductory text from the source document (`docs/event_info/registration_outline.md`).
+
+## Implementation Details
+Display the specified multi-line text upon initiating the `register new` command flow.
+
+## Decision
+[2025-04-20] Set Minimum Password Length to 8 Characters (No Other Complexity).
+
+## Rationale
+Provides a basic level of security without imposing overly strict rules for this context. Aligns with common practices.
+
+## Implementation Details
+Implement client-side and server-side (Zod schema generated via SSOT) validation enforcing a minimum length of 8 characters for the password field.
+
+## Decision
+[2025-04-20] Use Green (#39FF14) Text and Orange (#FFA500) Highlights/Errors for Terminal UI.
+
+## Rationale
+Matches the requested "hacker green" aesthetic and provides clear visual distinction for important information like errors or highlights.
+
+## Implementation Details
+Apply Tailwind CSS classes or global styles to set the default text color to `#39FF14` and use `#FFA500` for error messages, command highlights, or other designated elements on a black background.
+
+## Decision
+[2025-04-20] Adopt Space-Separated Numbers for Terminal "Check All That Apply" Input.
+
+## Rationale
+Provides a clear and relatively simple input method for selecting multiple options in a text-based terminal interface. Easier to parse than free-form text.
+
+## Implementation Details
+Display options with numbers. User enters space-separated numbers (e.g., `1 3 5`). Client-side validation checks for valid numbers within the option range. SSOT type: `multi-select-numbered`.
+
+## Decision
+[2025-04-20] Adopt Comma-Separated Numbers (Top Ranks) for Terminal "Ranking" Input.
+
+## Rationale
+Allows users to specify their preferred order for a subset of options within the terminal. Explicitly ranking only the top choices is often sufficient and simpler than full drag-and-drop emulation.
+
+## Implementation Details
+Display options with numbers. User enters comma-separated numbers representing their ranked choices in order (e.g., `3,1,4`). Hint clarifies to rank at least 3. Client-side validation checks for valid numbers, uniqueness, and minimum count (3). SSOT type: `ranking-numbered`.
+
+## Decision
+[2025-04-20] Use Registration Outline Intro Text for Terminal UI.
+
+## Rationale
+Directly uses the user-approved introductory text from the source document (`docs/event_info/registration_outline.md`).
+
+## Implementation Details
+Display the specified multi-line text upon initiating the `register new` command flow.
+
+## Decision
+[2025-04-20] Set Minimum Password Length to 8 Characters (No Other Complexity).
+
+## Rationale
+Provides a basic level of security without imposing overly strict rules for this context. Aligns with common practices.
+
+## Implementation Details
+Implement client-side and server-side (Zod schema generated via SSOT) validation enforcing a minimum length of 8 characters for the password field.
+
+## Decision
+[2025-04-20] Use Green (#39FF14) Text and Orange (#FFA500) Highlights/Errors for Terminal UI.
+
+## Rationale
+Matches the requested "hacker green" aesthetic and provides clear visual distinction for important information like errors or highlights.
+
+## Implementation Details
+Apply Tailwind CSS classes or global styles to set the default text color to `#39FF14` and use `#FFA500` for error messages, command highlights, or other designated elements on a black background.
+
 ## Decision
 [2025-04-19 20:09:00] Adopt Site-Wide Password Authentication (Replacing Magic Link/OTP).
 
@@ -371,6 +475,12 @@ Puppeteer was failing with a missing shared library error (`libnss3.so`) within 
 ## Implementation Details
 Added `libnss3` to the `apt-get install -y` command list within the `RUN` instruction in `Dockerfile`.
 # Progress
+
+[2025-04-20 1:49:00] - [SpecPseudo Task] Update Terminal Registration UI Specification (V3) [Completed] - Updated `docs/specs/p0_registration_terminal_ui_spec_v2.md` to integrate `registration_outline.md` structure/questions and new UX requirements (intro, validation, hints, `back` command, conditional commands, formatting, check-all/ranking input, context loading) while retaining V2 technical decisions (SSOT, password auth). Clarified details via `ask_followup_question`.
+
+[2025-04-20 1:49:00] - [SpecPseudo Task] Update Terminal Registration UI Specification (V3) [Completed] - Updated `docs/specs/p0_registration_terminal_ui_spec_v2.md` to integrate `registration_outline.md` structure/questions and new UX requirements (intro, validation, hints, `back` command, conditional commands, formatting, check-all/ranking input, context loading) while retaining V2 technical decisions (SSOT, password auth). Clarified details via `ask_followup_question`.
+[2025-04-20 2:05:00] - [Code Task] Update SSOT Config & Generation Script for V3 Registration [Completed] - Updated `platform/config/registrationSchema.ts` to match V3 spec (31 questions, new types like multi-select-numbered, ranking-numbered). Refined `platform/scripts/generate-registration.ts` to correctly handle imports, 'use server' directive placement in `actions.ts`, and type definitions in generated `registrationQuestions.ts`. Ran script, verified generated files (frontend questions, Zod schema, draft SQL migration). Fixed build errors caused by script execution. Build compilation passed, though static generation failed due to unrelated dynamic route issues. Committed (f115aa5) and pushed changes.
+
 ${globalContextUpdate}
 
 [2025-04-20 13:38:00] - [Code Task] Update Dynamic Theme Page to Use Markdown [Completed] - Refactored `platform/src/app/themes/[id]/page.tsx` to fetch detailed content from `docs/event_info/themes/*.md` instead of Supabase `description_expanded`. Includes parsing for 'Suggested Readings' and fallback logic. Tests updated and passing. Build successful. Changes committed (5eb3646) and pushed to `feat/architecture-v2`.

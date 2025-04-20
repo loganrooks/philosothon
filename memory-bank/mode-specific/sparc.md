@@ -2,6 +2,15 @@
 <!-- Entries below should be added reverse chronologically (newest first) -->
 
 ## Intervention Log
+### [2025-04-20 16:35:59] Intervention: SSOT/V3 Spec Mismatch with Outline & New Requirements
+- **Trigger**: User interruption and detailed feedback during Green Phase delegation.
+- **Context**: User identified that the current SSOT config (`registrationSchema.ts`) and generated files do not match the structure/content of `docs/event_info/registration_outline.md` (e.g., separate First/Last Name). Additionally, the SSOT mechanism lacks support for required hints, descriptions, complex validation rules (e.g., ranked choice), specific error hints, and flexible input handling.
+- **Action Taken**: Halted Green Phase delegation. Logging intervention. Will prioritize updating the V3 specification and the SSOT implementation (config + script) to accurately reflect the outline and new requirements.
+- **Rationale**: Ensure the SSOT foundation correctly represents the required questions, validation, and metadata before proceeding with TDD for the UI that consumes it. Addresses core data structure and validation requirements.
+- **Outcome**: Intervention logged. Workflow reset to Specification/Implementation of the SSOT mechanism based on the new inputs.
+- **Follow-up**: Delegate V3 Spec update (Attempt 4) to `spec-pseudocode`, then SSOT implementation update to `code`, before re-attempting TDD Red Phase.
+
+
 ### [2025-04-20 05:56:08] Intervention: URGENT Reprioritization - Theme Pages & Registration Terminal V3
 - **Trigger**: User interruption and new instructions.
 - **Context**: Previous workflow was blocked on registration UI unit tests. User provided two new urgent priorities: 1) Overhaul Theme Pages (split MD source, upgrade content, add readings, update frontend parsing). 2) Major redesign of Registration Terminal UI based on new outline (`docs/event_info/registration_outline.md`) with significant UX/feature enhancements (new commands, validation, hints, early auth, etc.).
@@ -29,6 +38,16 @@
 - **Follow-up**: Delegate task to fix the missing file issue (run script, fix script, or fix import path).
 
 
+### [2025-04-20 17:37:44] Task: Update Terminal Registration UI Specification (V3.1 - Incorporating Outline & SSOT Enhancements)
+- Assigned to: spec-pseudocode
+- Description: Update V3 spec (`docs/specs/p0_registration_terminal_ui_spec_v2.md`) based on new outline (`registration_outline.md`) and feedback (hints, validation, etc.).
+- Expected deliverable: Updated V3.1 specification document.
+- Status: completed
+- Completion time: [2025-04-20 17:37:44]
+- Outcome: Successfully updated specification document `docs/specs/p0_registration_terminal_ui_spec_v2.md` to V3.1 (Revised), aligning questions with outline (36 questions), enhancing SSOT definition (hints, descriptions, validationRules), and incorporating all user feedback.
+- Link to Progress Entry: [See Spec-Pseudocode completion message 2025-04-20 17:37:44]
+
+
 ### [2025-04-19 19:45:37] Intervention: Specification Task Requires Prior Analysis & Sync Mechanism
 - **Trigger**: User denial of `new_task` (Define Terminal UI Specs) with feedback.
 - **Context**: SPARC delegated spec drafting for the redesigned terminal UI. User clarified the need to first analyze the existing registration implementation (`RegistrationForm.tsx`, `registrationQuestions.ts`, `actions.ts`, DB schema) and required the specification to include a mechanism for easily modifying questions and keeping them synchronized across frontend, backend validation, and DB schema.
@@ -36,6 +55,46 @@
 - **Rationale**: Ensure the specification is grounded in the current implementation and addresses the critical requirement for question synchronization before detailed design.
 - **Outcome**: Intervention logged. Workflow adjusted to Analysis phase.
 - **Follow-up**: Delegate analysis task to `code` or `architect` mode. Then, re-delegate specification task incorporating analysis findings and sync requirement.
+
+
+### [2025-04-20 14:22:25] Task: Registration Terminal V3 - TDD Red Phase (Attempt 2)
+- Assigned to: tdd
+- Description: Create initial failing tests for V3 terminal UI and password auth based on V3 spec, using updated SSOT outputs.
+- Expected deliverable: Failing tests committed.
+- Status: completed
+- Completion time: [2025-04-20 14:22:25]
+- Outcome: Successfully updated/added failing tests for V3 spec in `generate-registration.test.ts` (fixed), `auth/actions.test.ts` (fixed), `register/actions.test.ts` (updated, failing on validation), `RegistrationForm.test.tsx` (updated, failing on implementation). Committed (`094ea0a`). Ready for Green Phase.
+- Link to Progress Entry: [See TDD completion message 2025-04-20 14:22:25]
+
+
+### [2025-04-20 14:06:57] Task: Update and Run SSOT Script for V3 Registration Questions
+- Assigned to: code
+- Description: Update SSOT config (`registrationSchema.ts`) and script (`generate-registration.ts`) per V3 spec, run script, commit results.
+- Expected deliverable: Updated config/script, generated `registrationQuestions.ts`/Zod schema/SQL draft, committed and pushed.
+- Status: completed
+- Completion time: [2025-04-20 14:06:57]
+- Outcome: Successfully updated SSOT config and script for V3 spec (31 questions, new types). Ran script, generating `registrationQuestions.ts`, updated Zod schema in `actions.ts`, and draft migration `..._update_registrations_table_generated.sql`. Fixed build errors. Committed (`f115aa5`) and pushed changes. Build compiles, static generation errors persist (unrelated).
+- Link to Progress Entry: [See Code completion message 2025-04-20 14:06:57]
+
+
+### [2025-04-20 13:56:38] Task: Registration Terminal V3 - TDD Red Phase
+- Assigned to: tdd
+- Description: Create initial failing tests for V3 terminal UI and password auth based on V3 spec.
+- Expected deliverable: Failing tests committed.
+- Status: blocked
+- Completion time: [2025-04-20 13:56:38]
+- Outcome: Task Blocked. Cannot write accurate failing tests because the prerequisite SSOT configuration (`platform/config/registrationSchema.ts`) has not been updated to V3, and the generation script (`platform/scripts/generate-registration.ts`) has not been run to produce the V3 `registrationQuestions.ts` and update the Zod schema in `actions.ts`.
+- Link to Progress Entry: [See TDD completion message 2025-04-20 13:56:38]
+
+
+### [2025-04-20 13:51:11] Task: Update Terminal Registration UI Specification (V3)
+- Assigned to: spec-pseudocode
+- Description: Update `docs/specs/p0_registration_terminal_ui_spec_v2.md` based on new outline and user requests, incorporating SSOT and password auth.
+- Expected deliverable: Updated V3 specification document.
+- Status: completed
+- Completion time: [2025-04-20 13:51:11]
+- Outcome: Successfully updated specification document `docs/specs/p0_registration_terminal_ui_spec_v2.md` to V3, incorporating new outline, features (hints, back command, conditional commands, early auth, etc.), SSOT strategy, and password auth flow. Clarifications obtained via `ask_followup_question`.
+- Link to Progress Entry: [See Spec-Pseudocode completion message 2025-04-20 13:51:11]
 
 
 ### [2025-04-20 13:38:59] Task: Update Dynamic Theme Page to Use Markdown Files
@@ -144,25 +203,67 @@
 - Outcome: Task Blocked. Attempts to fix component logic failures (async timing issues) led to intractable test stalling in Vitest/JSDOM environment. Reverting changes did not resolve stalling. Root cause likely complex interaction between component async logic and test environment. Issue logged (`REG-TEST-STALL-001`). Early Return Clause invoked.
 - Link to Progress Entry: [See Debug completion message 2025-04-20 02:42:29]
 
+# Workflow State (Current - Overwrite this section)
+- Current phase: Implementation (Registration Terminal V3.1 - SSOT Update)
+- Phase start: [2025-04-20 17:37:44]
+- Current focus: Update the SSOT configuration (`platform/config/registrationSchema.ts`) and generation script (`platform/scripts/generate-registration.ts`) to align with the V3.1 specification (`docs/specs/p0_registration_terminal_ui_spec_v2.md`). Run the script.
+- Next actions: Delegate SSOT update and execution task to `code` mode.
+- Last Updated: [2025-04-20 17:37:44]
+
 
 ### [2025-04-19 23:56:27] Task: Debug Vitest Mocking Error in RegistrationForm Test
 - Assigned to: debug
+# Workflow State (Current - Overwrite this section)
+- Current phase: Specification (Registration SSOT & Spec V3.1 Update)
+- Phase start: [2025-04-20 16:35:59]
+- Current focus: Update the V3 registration spec (`docs/specs/p0_registration_terminal_ui_spec_v2.md`) and the SSOT definition structure to accurately reflect `docs/event_info/registration_outline.md` and include support for hints, complex validation, error hints, and flexible input.
+- Next actions: Delegate V3.1 spec update task to `spec-pseudocode`.
+- Last Updated: [2025-04-20 16:35:59]
+
 - Description: Diagnose and resolve `ReferenceError: Cannot access 'mockQuestions' before initialization` in `RegistrationForm.test.tsx`.
 - Expected deliverable: Fixed test file, confirmation error resolved, commit.
 - Status: completed* (Early Return)
 - Completion time: [2025-04-19 23:56:27]
+# Workflow State (Current - Overwrite this section)
+- Current phase: Implementation (TDD - Registration Terminal V3 - Green Phase)
+- Phase start: [2025-04-20 14:22:25]
+- Current focus: Implement minimal code for the V3 terminal registration UI, SSOT script fixes, password auth, and registration actions to pass the newly created/updated failing tests.
+- Next actions: Delegate Green Phase implementation task to `code` mode.
+- Last Updated: [2025-04-20 14:22:25]
+
 - Outcome: Successfully resolved the `ReferenceError` by switching from `vi.mock` to `vi.spyOn` for action modules (commit `b83053d`). *However*, this revealed 16/17 tests now fail due to component logic issues (stuck in boot sequence). Invoked Early Return Clause as fixing logic errors is out of scope.
 - Link to Progress Entry: [See Debug completion message 2025-04-19 23:56:27]
 
+
+# Workflow State (Current - Overwrite this section)
+- Current phase: Implementation (TDD - Registration Terminal V3 - Red Phase - Attempt 2)
+- Phase start: [2025-04-20 14:06:57]
+- Current focus: Re-attempt TDD Red Phase for the V3 terminal registration UI and password auth, now that V3 SSOT config/generated files are available.
+- Next actions: Re-delegate TDD Red Phase task to `tdd` mode.
+- Last Updated: [2025-04-20 14:06:57]
 
 ### [2025-04-19 23:14:06] Task: Redesigned Terminal Registration UI - TDD Green Phase
 - Assigned to: code
 - Description: Implement minimal code for redesigned terminal UI, SSOT script, password auth to pass Red Phase tests.
 - Expected deliverable: Passing tests, committed code.
+# Workflow State (Current - Overwrite this section)
+- Current phase: Implementation (Registration Terminal V3 - SSOT Update)
+- Phase start: [2025-04-20 13:56:38]
+- Current focus: Update the SSOT configuration (`platform/config/registrationSchema.ts`) and generation script (`platform/scripts/generate-registration.ts`) to align with the V3 specification (`docs/specs/p0_registration_terminal_ui_spec_v2.md`). Run the script.
+- Next actions: Delegate SSOT update and execution task to `code` mode.
+- Last Updated: [2025-04-20 13:56:38]
+
 - Status: blocked
 - Completion time: [2025-04-19 23:14:06]
 - Outcome: Implemented SSOT script (`generate-registration.ts`), auth actions (`auth/actions.ts`), registration actions (`register/actions.ts`), and rewrote `RegistrationForm.tsx`. Most tests pass (SSOT, auth, register actions - except 1 skipped). **Blocked by intractable Vitest mocking error (`ReferenceError: Cannot access 'mockQuestions' before initialization`) in `RegistrationForm.test.tsx`.** Cannot verify UI component tests.
 - Link to Progress Entry: [See Code completion message 2025-04-19 23:14:06]
+# Workflow State (Current - Overwrite this section)
+- Current phase: Implementation (TDD - Registration Terminal V3 - Red Phase)
+- Phase start: [2025-04-20 13:51:11]
+- Current focus: Initiate TDD cycle for the redesigned V3 terminal registration UI and password authentication system based on the updated V3 specification.
+- Next actions: Delegate TDD task (Red phase) for the V3 terminal UI and auth system.
+- Last Updated: [2025-04-20 13:51:11]
+
 
 
 ### [2025-04-19 21:40:38] Task: Redesigned Terminal Registration UI - TDD Red Phase

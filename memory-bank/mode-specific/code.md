@@ -3,6 +3,20 @@
 
 
 ## Components Implemented
+### [2025-04-20 2:05:00] Registration SSOT V3 Update
+- **Purpose**: Update the Single Source of Truth (SSOT) configuration and generation script for V3 registration questions.
+- **Files**:
+    - `platform/config/registrationSchema.ts` (Modified)
+    - `platform/scripts/generate-registration.ts` (Modified)
+    - `platform/src/app/register/data/registrationQuestions.ts` (Generated)
+    - `platform/src/app/register/actions.ts` (Updated by script)
+    - `supabase/migrations/20250420180445_update_registrations_table_generated.sql` (Generated)
+- **Status**: Implemented & Verified (Build compilation pass, Git push success)
+- **Dependencies**: `zod`
+- **API Surface**: None changed directly. Zod schema in `actions.ts` updated.
+- **Tests**: Build verified (compilation/types pass). TDD tests recommended as next step.
+- **Notes**: Updated `registrationSchema.ts` to match V3 spec (31 questions, new types `multi-select-numbered`, `ranking-numbered`). Fixed generation script (`generate-registration.ts`) to correctly handle `'use server'` directive, imports in `actions.ts`, and type definitions in `registrationQuestions.ts`. Ran script, verified generated files. Build fails during static generation due to unrelated dynamic route issues (`cookies()` usage), but compilation/types pass. Committed (f115aa5) and pushed.
+
 
 ### [2025-04-20 13:38:00] Dynamic Theme Page Update (Markdown Source)
 - **Purpose**: Modify the dynamic theme detail page to fetch and render content from individual Markdown files instead of Supabase.
@@ -104,6 +118,19 @@
 
 
 ## Intervention Log
+### [2025-04-20 2:05:00] Intervention: Build Failure - SSOT Script Errors
+- **Trigger**: `npm run build` failed after running `npm run generate:reg`.
+- **Context**: Multiple build failures occurred after updating the SSOT config and running the generation script.
+- **Action Taken**: 
+    1. Fixed duplicate import and `'use server'` placement in `actions.ts`.
+    2. Fixed `QuestionDefinition` interface in `registrationSchema.ts` (missing `placeholder`).
+    3. Fixed `QuestionType` definition in `generate-registration.ts`.
+    4. Fixed import/directive handling logic in `ensureSchemaUsageInActions` function within `generate-registration.ts`.
+    5. Fixed ESLint warnings in `generate-registration.ts`.
+- **Rationale**: The generation script had several bugs causing build failures: incorrectly adding duplicate imports, misplacing `'use server'`, referencing a missing interface property (`placeholder`), not generating correct type definitions, and having flawed logic for updating `actions.ts`.
+- **Outcome**: Build compilation and type checking now pass after fixing the script and config. Static generation still fails due to unrelated dynamic route issues.
+- **Follow-up**: None needed for this specific issue. The unrelated build failures need separate investigation.
+
 ### [2025-04-19 01:50:05] Intervention: Task 75 Blocked - Build/Restart Failed
 - **Trigger**: `execute_command` (`rm -rf .next && npm run dev`) terminated (`^C`).
 - **Context**: Attempting clean build and restart after creating `admin/page.tsx` and refining middleware matcher to fix admin 404s.
