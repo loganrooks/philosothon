@@ -120,36 +120,37 @@ b) **Last Name** (Short answer)
 
 ## Theme Preferences
 
-18. **Please rank the following potential themes in order of your preference** (Ranked choice voting)
-    *Drag to reorder, with your first choice at the top*
-    - Minds and Machines: Consciousness Beyond the Human
-    - Digital Commons: Rethinking Property in Information Space
-    - Algorithmic Governance: Authority Without Autonomy?
-    - Technological Singularity: Philosophical Implications of Superintelligence
-    - Extended Perception: Technology and Phenomenological Experience
-    - Digital Ethics: Beyond Utilitarian Frameworks
-    - Attention Economies: The Commodification of Consciousness
-    - Algorithmic Aesthetics: Beauty in the Age of Machine Creation
-    - Other: ___________
+18. **Please rank your top 3 preferred themes (enter numbers 1-3)** (Numbered ranking)
+    *Enter 1 for your first choice, 2 for second, 3 for third*
+    - ___ Minds and Machines: Consciousness Beyond the Human
+    - ___ Digital Commons: Rethinking Property in Information Space
+    - ___ Algorithmic Governance: Authority Without Autonomy?
+    - ___ Technological Singularity: Philosophical Implications of Superintelligence
+    - ___ Extended Perception: Technology and Phenomenological Experience
+    - ___ Digital Ethics: Beyond Utilitarian Frameworks
+    - ___ Attention Economies: The Commodification of Consciousness
+    - ___ Algorithmic Aesthetics: Beauty in the Age of Machine Creation
+    - ___ Other (please describe below)
 
-19. **If you wrote "Other" in the previous question, please describe your theme preference here** (Paragraph - optional)
-    *This is your chance to suggest a theme that isn't listed above. Please provide a brief description of your idea.*
+19. **If you ranked "Other" as one of your choices, please describe your theme idea here** (Paragraph - optional)
+    *Only required if you selected "Other" as one of your top three theme preferences*
 
 ## Workshop Preferences
 
-20. **Please rank the following workshop options in order of your preference** (Drag and drop ranking)
-    - Language Models as Philosophical Objects
-    - Generative AI Art: Creativity, Authorship, and Aesthetics
-    - Reinforcement Learning: The Technical Foundations of AGI
-    - Technology as Tool vs Master: Beyond Instrumentalism
-    - Digital Commons and Information Capitalism
-    - The Attention Economy: Technical Mechanisms and Philosophical Implications
-    - Thinking Through Technical Systems: A Philosophical Approach
-    - Design Philosophy: From Metaphysics to Material Reality
-    - Other: ___________
+20. **Please rank your top 3 preferred workshops (enter numbers 1-3)** (Numbered ranking)
+    *Enter 1 for your first choice, 2 for second, 3 for third*
+    - ___ Language Models as Philosophical Objects
+    - ___ Generative AI Art: Creativity, Authorship, and Aesthetics
+    - ___ Reinforcement Learning: The Technical Foundations of AGI
+    - ___ Technology as Tool vs Master: Beyond Instrumentalism
+    - ___ Digital Commons and Information Capitalism
+    - ___ The Attention Economy: Technical Mechanisms and Philosophical Implications
+    - ___ Thinking Through Technical Systems: A Philosophical Approach
+    - ___ Design Philosophy: From Metaphysics to Material Reality
+    - ___ Other (please describe below)
 
-21. **If you wrote "Other" in the previous question, please describe your workshop preference here** (Paragraph - optional)
-    *This is your chance to suggest a workshop that isn't listed above.*
+21. **If you ranked "Other" as one of your choices, please describe your workshop idea here** (Paragraph - optional)
+    *Only required if you selected "Other" as one of your top three workshop preferences*
 
 ## Team Formation Preferences
 
@@ -168,9 +169,18 @@ b) **Last Name** (Short answer)
 25. **Do you have any specific people you'd like to have as teammates?** (Paragraph - optional)
     *Please list their names. Note that we'll try to accommodate requests when possible, but cannot guarantee team placements.*
 
+## Communication & Community
+
+26. **Are you a member of the Philosophy of Technology Group Discord?** (Multiple choice - select one)
+    - Yes
+    - No, but I'd like to join
+    - No, and I prefer not to join
+
+    *If you'd like to join, here's the invite link: https://discord.gg/wuxnJG9XwW*
+
 ## Learning Goals
 
-26. **What do you hope to gain from the Philosothon experience?** (Checkboxes - select all that apply)
+27. **What do you hope to gain from the Philosothon experience?** (Checkboxes - select all that apply)
     - Deeper understanding of specific philosophical concepts
     - Experience with collaborative philosophical inquiry
     - New perspectives from peers with different backgrounds
@@ -179,16 +189,32 @@ b) **Last Name** (Short answer)
     - Technical knowledge about emerging technologies
     - Other: ___________
 
+## Availability and Scheduling
+
+28. **Please confirm your availability for the full duration of the event (April 26-27, 2025)** (Multiple choice - select one)
+    - Yes, I can attend the full event
+    - No, I have partial availability (please specify below)
+
+29. **If you have partial availability, please specify the times you CAN attend** (Paragraph - optional)
+    *Please be specific about which portions of the event you can attend*
+
+30. **Contingency Planning: If we need to postpone the event, would you be available the following weekend (May 3-4, 2025)?** (Multiple choice - select one)
+    - Yes, I would be fully available that weekend
+    - I would have partial availability that weekend (please specify below)
+    - No, I would not be available that weekend
+
+31. **If you have partial availability for the contingency dates, please specify** (Paragraph - optional)
+    *Please let us know which portions of the backup dates you would be available*
 
 ## Logistics
 
-27. **Do you have any dietary restrictions or preferences?** (Paragraph - optional)
+32. **Do you have any dietary restrictions or preferences?** (Paragraph - optional)
     *This will help us plan for lunch on April 26*
 
-28. **Do you require any accessibility accommodations?** (Paragraph - optional)
+33. **Do you require any accessibility accommodations?** (Paragraph - optional)
     *Please let us know how we can make this event accessible for you*
 
-29. **How did you hear about the Philosothon?** (Checkboxes - select all that apply)
+34. **How did you hear about the Philosothon?** (Checkboxes - select all that apply)
     - Email announcement
     - From a professor
     - From a friend/classmate
@@ -198,10 +224,10 @@ b) **Last Name** (Short answer)
 
 ## Additional Information
 
-30. **Is there anything else you'd like us to know?** (Paragraph - optional)
+35. **Is there anything else you'd like us to know?** (Paragraph - optional)
     *Any additional information that might be relevant*
 
-31. **By submitting this form, I confirm that I understand the time commitment required for the Philosothon (all day April 26 and morning of April 27) and will make arrangements to fully participate and provide feedback on my experience.** (Checkbox)
+36. **By submitting this form, I confirm that I understand the time commitment required for the Philosothon (all day April 26 and morning of April 27) and will make arrangements to fully participate and provide feedback on my experience.** (Checkbox)
     - I confirm
 
 Thank you for your interest in the Philosothon! We'll notify you about your team assignment by Friday, April 25th.
