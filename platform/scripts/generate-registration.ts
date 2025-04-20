@@ -25,10 +25,13 @@ export type QuestionType =
   | 'textarea'
   | 'email'
   | 'password'
+  | 'confirmPassword' // Added to match config
   | 'number'
+  | 'scale' // Added V3 type
   | 'boolean'
   | 'single-select'
-  | 'multi-select';
+  | 'multi-select-numbered' // Added V3 type
+  | 'ranking-numbered'; // Added V3 type
 
 export interface Question {
   id: string;
@@ -103,40 +106,81 @@ ${registrationSchema
 function ensureSchemaUsageInActions(): string {
     console.log(`Ensuring schema usage in ${path.basename(actionsPath)}...`);
     let content = fs.readFileSync(actionsPath, 'utf-8');
-    let modified = false;
+    const originalContent = content; // Keep original to check if modified
+    const useServerDirective = "'use server';";
+    const correctImportPath = '../../../config/registrationSchema'; // Relative path from actions.ts
+    const correctImportStatement = `import { generateRegistrationSchema } from '${correctImportPath}';`;
 
-    // Ensure the import exists
-    if (!content.includes(zodSchemaImport.replace('@/', '../'))) { // Adjust for relative path from actions.ts
-        // Add the import at the top (simple approach)
-        content = `${zodSchemaImport.replace('@/', '../')}\n${content}`; // Adjust path relative to actions.ts
-        console.log(`Added schema import to ${path.basename(actionsPath)}.`);
-        modified = true;
-    } else {
-        console.log(`Schema import already exists in ${path.basename(actionsPath)}.`);
+    // --- Handle 'use server' directive ---
+    const lines = content.split('\n');
+    const useServerFoundOnTop = lines.length > 0 && lines[0].trim() === useServerDirective;
+
+    // Remove all existing 'use server' directives
+    const cleanedLines = lines.filter(line => line.trim() !== useServerDirective);
+    content = cleanedLines.join('\n');
+
+    // Add 'use server' at the very top
+    content = `${useServerDirective}\n${content}`;
+    if (!useServerFoundOnTop) {
+        console.log(`Moved/Added 'use server' directive to the top of ${path.basename(actionsPath)}.`);
     }
 
-    // Ensure the schema is generated and exported
-    // Replace existing schema definition if found, otherwise add it.
-    const schemaRegex = /export\s+const\s+RegistrationSchema\s*=\s*z\.object\s*\({[\s\S]*?}\)(?:\.refine\([\s\S]*?\))?;?/gm;
-    const schemaDefinition = `// Generated Zod schema based on central configuration\n${zodSchemaUsage}`;
+    // --- Handle Import Statement ---
+    // Remove any incorrect/duplicate imports first
+    const importRegex = /import\s+\{\s*generateRegistrationSchema\s*\}\s+from\s+['"].*config\/registrationSchema['"];?\s*/g;
+    let correctImportFound = false;
+    const contentWithoutImports = content.replace(importRegex, (match) => {
+        if (match.includes(correctImportPath)) {
+            correctImportFound = true; // Mark if the correct one was found
+        } else {
+            console.log(`Removing incorrect/duplicate import: ${match.trim()}`);
+        }
+        return ''; // Remove all matches initially
+    });
 
-    if (schemaRegex.test(content)) {
-        content = content.replace(schemaRegex, schemaDefinition);
-        console.log(`Replaced existing RegistrationSchema definition in ${path.basename(actionsPath)}.`);
-        modified = true;
-    } else if (!content.includes(zodSchemaUsage)) {
-        // Attempt to add it after imports
-        const importEndIndex = content.lastIndexOf('import ');
-        const nextLineIndex = content.indexOf('\n', importEndIndex >= 0 ? importEndIndex : 0) + 1;
-        content = content.slice(0, nextLineIndex) + `\n${schemaDefinition}\n` + content.slice(nextLineIndex);
-        console.log(`Added schema usage export to ${path.basename(actionsPath)}.`);
-        modified = true;
+    // Clean up potential extra newlines left by removal
+    const tempContent = contentWithoutImports.split('\n');
+    // Find the line index after 'use server;'
+    const insertLineIndex = 1; // Start checking from the second line
+
+    // Add the correct import statement back in the right place (after 'use server;')
+    tempContent.splice(insertLineIndex, 0, correctImportStatement);
+    content = tempContent.join('\n');
+
+    if (!correctImportFound) {
+        console.log(`Added correct schema import to ${path.basename(actionsPath)}.`);
     } else {
-         console.log(`Schema usage export already exists in ${path.basename(actionsPath)}.`);
+        console.log(`Ensured correct schema import exists in ${path.basename(actionsPath)}.`);
     }
+
+
+    // --- Handle Schema Usage (Export) ---
+    // Ensure the export line exists, replace if necessary to ensure comment is correct
+    const schemaExportRegex = /export\s+const\s+RegistrationSchema\s*=\s*generateRegistrationSchema\(\);?/m; // Use multiline flag
+    const schemaExportDefinition = `// Generated Zod schema based on central configuration\nexport const RegistrationSchema = generateRegistrationSchema();`;
+
+    if (!schemaExportRegex.test(content)) {
+         // Attempt to add it after imports (find first line after imports)
+         const lastImportIndex = content.lastIndexOf('import ');
+         const nextLineAfterImports = content.indexOf('\n', lastImportIndex >= 0 ? lastImportIndex : 0) + 1;
+         let insertPos = nextLineAfterImports;
+         // Find the next non-empty line to insert before potential code
+         while (insertPos < content.length && (content[insertPos] === '\n' || content[insertPos] === '\r')) {
+             insertPos++;
+         }
+         content = content.slice(0, insertPos) + `\n${schemaExportDefinition}\n` + content.slice(insertPos);
+         console.log(`Added schema usage export to ${path.basename(actionsPath)}.`);
+    } else {
+         // Replace existing to ensure comment is present/correct
+         content = content.replace(schemaExportRegex, schemaExportDefinition);
+         console.log(`Ensured schema usage export exists in ${path.basename(actionsPath)}.`);
+    }
+
+    // Check if content was actually modified compared to the start
+    const modified = content !== originalContent;
 
     // Return modified content only if changes were made
-    return modified ? content : fs.readFileSync(actionsPath, 'utf-8');
+    return modified ? content : originalContent;
 }
 
 
