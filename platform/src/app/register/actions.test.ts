@@ -1,4 +1,5 @@
-import { createRegistration, RegistrationState } from '@/app/register/actions';
+// Import actions (will fail initially as they don't exist/are renamed)
+import { submitRegistration, updateRegistration, deleteRegistration, RegistrationState } from '@/app/register/actions';
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
@@ -67,12 +68,22 @@ const mockSupabaseClient = {
     // Remove 'from' property as it's no longer mocked
 };
 
-// Import mocked DAL functions at the top level
-const { fetchRegistrationByUserId: mockFetchReg, insertRegistration: mockInsertReg } =
-  vi.mocked(await import('@/lib/data/registrations'));
+// Import mocked DAL functions at the top level (add update/delete)
+const {
+  fetchRegistrationByUserId: mockFetchReg,
+  insertRegistration: mockInsertReg,
+  updateRegistration: mockUpdateReg, // Add mock for update
+  deleteRegistration: mockDeleteReg, // Add mock for delete
+} = vi.mocked(await import('@/lib/data/registrations'));
 
 
-describe('createRegistration Server Action', () => {
+// Placeholder for actual action functions - tests will fail
+const submitRegistration = vi.fn();
+const updateRegistration = vi.fn();
+const deleteRegistration = vi.fn();
+
+
+describe('Registration Server Actions', () => {
   let previousState: RegistrationState;
 
   // Define complete valid data based on the schema in actions.ts (v1.1)
@@ -185,178 +196,209 @@ describe('createRegistration Server Action', () => {
 
 
     previousState = { success: false, message: null, errors: {} }; // Reset state
+
+    // Reset DAL mocks for update/delete
+    mockUpdateReg.mockReset();
+    mockDeleteReg.mockReset();
   });
 
-  // --- TDD Anchors ---
+  describe('submitRegistration', () => {
+    // --- TDD Anchors for submitRegistration ---
 
-  it('should return error for invalid email submission', async () => {
-    // TDD Anchor: Test invalid email submission.
-    // Explicitly mock getSession for this case as no session is expected
-    vi.mocked(mockSupabaseClient.auth.getSession).mockResolvedValue({ data: { session: null }, error: null });
-    // Use complete data but override email
-    const formData = createTestFormData({ ...completeValidData, email: 'invalid-email' });
-    const result = await createRegistration(previousState, formData);
-    expect(result.success).toBe(false);
-    expect(result.message).toContain('Invalid email address');
-  });
-
-  it('should return error if logged-in user submits with different email', async () => {
-     // TDD Anchor: Test logged-in user submitting with different email.
-     vi.mocked(mockSupabaseClient.auth.getSession).mockResolvedValue({
-       data: { session: { user: { id: 'user-123', email: 'logged-in@example.com' } } } as any,
-       error: null,
-     });
-     // Use complete valid data, overriding email
-     const formData = createTestFormData({ ...completeValidData, email: 'different@example.com' });
-     const result = await createRegistration(previousState, formData);
-     expect(result.success).toBe(false);
-     expect(result.message).toContain('Email does not match logged-in user');
-   });
-
-
-  it('should return error if logged-in user is already registered', async () => {
-    // TDD Anchor: Test handling when logged-in user has already registered.
-    vi.mocked(mockSupabaseClient.auth.getSession).mockResolvedValue({
-      data: { session: { user: { id: 'user-123', email: 'valid@example.com' } } } as any, // Use valid email
-      error: null,
+    it('should return error if user session cannot be retrieved', async () => {
+      vi.mocked(mockSupabaseClient.auth.getSession).mockResolvedValue({ data: { session: null }, error: new Error('Session fetch failed') });
+      const formData = createTestFormData(completeValidData);
+      const result = await submitRegistration(previousState, formData);
+      // expect(result.success).toBe(false);
+      // expect(result.message).toContain('Could not retrieve user session');
+      expect(true).toBe(false); // Placeholder failure
     });
-    // Mock the DAL function to return an existing registration
-    mockFetchReg.mockResolvedValue({ registration: { id: 'reg-456' } as any, error: null });
 
-   // Use complete valid data
-   const formData = createTestFormData({ ...completeValidData }); // Email matches session
-   const result = await createRegistration(previousState, formData);
-   expect(result.success).toBe(false);
-    expect(result.message).toContain('You have already registered');
-  });
-
-   it('should return error on database error checking existing registration', async () => {
-     // TDD Anchor: Test handling of database error during existing registration check (logged-in).
-     vi.mocked(mockSupabaseClient.auth.getSession).mockResolvedValue({
-       data: { session: { user: { id: 'user-123', email: 'valid@example.com' } } } as any, // Use valid email
-       error: null,
-     });
-    // Mock the DAL function to return an error
-    mockFetchReg.mockResolvedValue({ registration: null, error: new Error('DB check failed') });
-
-    // Use complete valid data
-    const formData = createTestFormData({ ...completeValidData }); // Email matches session
-    const result = await createRegistration(previousState, formData);
-    expect(result.success).toBe(false);
-     expect(result.message).toContain('Database error checking registration status');
-   });
-
-  it('should return validation errors for missing required fields', async () => {
-    // TDD Anchor: Test validation failure returns correct error structure.
-    vi.mocked(mockSupabaseClient.auth.getSession).mockResolvedValue({ data: { session: null }, error: null }); // No session
-    vi.mocked(mockSupabaseClient.auth.signInWithOtp).mockResolvedValue({ data: {}, error: null }); // Assume OTP sent
-
-    // Create data missing a required field (e.g., university) by omitting it
-    const { university, ...incompleteData } = completeValidData;
-    const formData = createTestFormData(incompleteData);
-    const result = await createRegistration(previousState, formData);
-
-    expect(result.success).toBe(false);
-    expect(result.message).toContain('Validation failed');
-    expect(result.errors).toBeDefined();
-    // Expect the *first* validation error based on the schema order
-    expect(result.errors?.university).toBeDefined();
-    // Optionally check that other errors are NOT present if university is the first failure
-    // expect(result.errors?.full_name).toBeUndefined();
-  });
-
-  it('should return error on Supabase sign-up failure', async () => {
-    // TDD Anchor: Test handling sign-up errors from Supabase.
-    vi.mocked(mockSupabaseClient.auth.getSession).mockResolvedValue({ data: { session: null }, error: null }); // No session
-    vi.mocked(mockSupabaseClient.auth.signInWithOtp).mockResolvedValue({
-      data: {},
-      error: new Error('Supabase OTP error'), // Simulate sign-up error
+    it('should return error if user is not authenticated', async () => {
+      vi.mocked(mockSupabaseClient.auth.getSession).mockResolvedValue({ data: { session: null }, error: null });
+      const formData = createTestFormData(completeValidData);
+      const result = await submitRegistration(previousState, formData);
+      // expect(result.success).toBe(false);
+      // expect(result.message).toContain('User not authenticated');
+      expect(true).toBe(false); // Placeholder failure
     });
-    // Use complete valid data, overriding email
-    const formData = createTestFormData({ ...completeValidData, email: 'new@example.com' });
-    const result = await createRegistration(previousState, formData);
-    expect(result.success).toBe(false);
-    expect(result.message).toContain('Could not initiate sign-up: Supabase OTP error');
-  });
 
 
-  it('should return error on database insertion failure', async () => {
-    // TDD Anchor: Test database insertion error handling.
+    it('should return validation errors for missing required fields', async () => {
+      // TDD Anchor: Test validation failure returns correct error structure.
+      vi.mocked(mockSupabaseClient.auth.getSession).mockResolvedValue({
+        data: { session: { user: { id: 'user-123', email: 'valid@example.com' } } } as any,
+        error: null,
+      });
 
-    // --- Specific Mocks for this Test ---
-     vi.mocked(mockSupabaseClient.auth.getSession).mockResolvedValue({ // Mock successful session
-       data: { session: { user: { id: 'user-123', email: 'valid@example.com' } } } as any, // Use valid email
-       error: null,
+      // Create data missing a required field (e.g., university)
+      const { university, ...incompleteData } = completeValidData;
+      const formData = createTestFormData(incompleteData);
+      const result = await submitRegistration(previousState, formData);
+
+      // expect(result.success).toBe(false);
+      // expect(result.message).toContain('Validation failed');
+      // expect(result.errors).toBeDefined();
+      // expect(result.errors?.university).toBeDefined();
+      expect(true).toBe(false); // Placeholder failure
+    });
+
+    it('should return error on database insertion failure', async () => {
+      // TDD Anchor: Test database insertion error handling.
+      const userId = 'user-123';
+      vi.mocked(mockSupabaseClient.auth.getSession).mockResolvedValue({
+        data: { session: { user: { id: userId, email: 'valid@example.com' } } } as any,
+        error: null,
+      });
+      mockInsertReg.mockResolvedValue({ registration: null, error: new Error('DB insert failed') }); // Insert fails
+
+      const formData = createTestFormData(completeValidData);
+      const result = await submitRegistration(previousState, formData);
+
+      // expect(result.success).toBe(false);
+      // expect(result.message).toContain('Database Error: Failed to save registration. DB insert failed');
+      expect(true).toBe(false); // Placeholder failure
+    });
+
+    it('should call insert with user_id and redirect on success', async () => {
+      // TDD Anchor: Test successful insertion linking to user_id.
+      const userId = 'user-123';
+      vi.mocked(mockSupabaseClient.auth.getSession).mockResolvedValue({
+        data: { session: { user: { id: userId, email: 'valid@example.com' } } } as any,
+        error: null,
+      });
+      mockInsertReg.mockResolvedValue({ registration: { id: 'new-reg-id' } as any, error: null }); // Successful insert
+
+      const formData = createTestFormData(completeValidData);
+      await submitRegistration(previousState, formData);
+
+      // Check against the expected parsed data structure, ensuring user_id is present
+      // expect(mockInsertReg).toHaveBeenCalledWith(
+      //   expect.objectContaining({ ...expectedParsedData, user_id: userId })
+      // );
+      // expect(revalidatePath).toHaveBeenCalledWith('/admin/registrations'); // Or other relevant paths
+      // expect(redirect).toHaveBeenCalledWith('/register/success'); // Or appropriate success path
+
+      expect(true).toBe(false); // Placeholder failure
+    });
+  }); // End describe submitRegistration
+
+  describe('updateRegistration', () => {
+    // --- TDD Anchors for updateRegistration ---
+    it('should return error if user is not authenticated', async () => {
+       vi.mocked(mockSupabaseClient.auth.getSession).mockResolvedValue({ data: { session: null }, error: null });
+       const formData = createTestFormData(completeValidData);
+       const result = await updateRegistration(previousState, formData);
+       // expect(result.success).toBe(false);
+       // expect(result.message).toContain('User not authenticated');
+       expect(true).toBe(false); // Placeholder failure
+    });
+
+    it('should return validation errors for missing required fields', async () => {
+       vi.mocked(mockSupabaseClient.auth.getSession).mockResolvedValue({
+         data: { session: { user: { id: 'user-123', email: 'valid@example.com' } } } as any,
+         error: null,
+       });
+       const { university, ...incompleteData } = completeValidData;
+       const formData = createTestFormData(incompleteData);
+       const result = await updateRegistration(previousState, formData);
+       // expect(result.success).toBe(false);
+       // expect(result.message).toContain('Validation failed');
+       // expect(result.errors?.university).toBeDefined();
+       expect(true).toBe(false); // Placeholder failure
+    });
+
+    it('should return error on database update failure', async () => {
+       const userId = 'user-123';
+       vi.mocked(mockSupabaseClient.auth.getSession).mockResolvedValue({
+         data: { session: { user: { id: userId, email: 'valid@example.com' } } } as any,
+         error: null,
+       });
+       mockUpdateReg.mockResolvedValue({ registration: null, error: new Error('DB update failed') }); // Update fails
+
+       const formData = createTestFormData(completeValidData);
+       const result = await updateRegistration(previousState, formData);
+       // expect(result.success).toBe(false);
+       // expect(result.message).toContain('Database Error: Failed to update registration. DB update failed');
+       expect(true).toBe(false); // Placeholder failure
+    });
+
+    it('should call update with user_id and redirect on success', async () => {
+       const userId = 'user-123';
+       vi.mocked(mockSupabaseClient.auth.getSession).mockResolvedValue({
+         data: { session: { user: { id: userId, email: 'valid@example.com' } } } as any,
+         error: null,
+       });
+       mockUpdateReg.mockResolvedValue({ registration: { id: 'reg-id-to-update' } as any, error: null }); // Successful update
+
+       const formData = createTestFormData(completeValidData);
+       await updateRegistration(previousState, formData);
+
+       // expect(mockUpdateReg).toHaveBeenCalledWith(
+       //   userId, // Assuming action gets userId from session
+       //   expect.objectContaining(expectedParsedData) // Check data passed
+       // );
+       // expect(revalidatePath).toHaveBeenCalledWith('/admin/registrations'); // Or other relevant paths
+       // expect(redirect).toHaveBeenCalledWith('/register/success'); // Or appropriate success path
+
+       expect(true).toBe(false); // Placeholder failure
+    });
+  }); // End describe updateRegistration
+
+  describe('deleteRegistration', () => {
+    // --- TDD Anchors for deleteRegistration ---
+     it('should return error if user is not authenticated', async () => {
+       vi.mocked(mockSupabaseClient.auth.getSession).mockResolvedValue({ data: { session: null }, error: null });
+       // Assuming delete action takes confirmation or similar, not FormData
+       const result = await deleteRegistration({ confirmed: true }); // Example input
+       // expect(result.success).toBe(false);
+       // expect(result.message).toContain('User not authenticated');
+       expect(true).toBe(false); // Placeholder failure
+    });
+
+     it('should return error if confirmation is not provided (if required by action)', async () => {
+       const userId = 'user-123';
+       vi.mocked(mockSupabaseClient.auth.getSession).mockResolvedValue({
+         data: { session: { user: { id: userId, email: 'valid@example.com' } } } as any,
+         error: null,
+       });
+       // Assuming delete action requires a specific confirmation flag/value
+       const result = await deleteRegistration({ confirmed: false }); // Example input
+       // expect(result.success).toBe(false);
+       // expect(result.message).toContain('Deletion not confirmed');
+       expect(true).toBe(false); // Placeholder failure
      });
 
-     // Mock DAL functions for this specific scenario
-     mockFetchReg.mockResolvedValue({ registration: null, error: null }); // No existing registration
-     mockInsertReg.mockResolvedValue({ registration: null, error: new Error('DB insert failed') }); // Insert fails
-     // --- End Specific Mocks ---
+     it('should return error on database delete failure', async () => {
+       const userId = 'user-123';
+       vi.mocked(mockSupabaseClient.auth.getSession).mockResolvedValue({
+         data: { session: { user: { id: userId, email: 'valid@example.com' } } } as any,
+         error: null,
+       });
+       mockDeleteReg.mockResolvedValue({ error: new Error('DB delete failed') }); // Delete fails
 
-
-    // Use the updated completeValidData
-    const validData = { ...completeValidData }; // Email matches session
-    const formData = createTestFormData(validData);
-    const result = await createRegistration(previousState, formData);
-
-    // Add a check to ensure result is defined before accessing properties
-    expect(result).toBeDefined();
-    if (!result) return; // Guard clause for type safety
-
-    expect(result.success).toBe(false);
-    expect(result.message).toContain('Database Error: Failed to save registration. DB insert failed');
-  });
-
-  it('should call insert and redirect to /register/success for logged-in user', async () => {
-    // TDD Anchor: Test successful insertion into the `registrations` table (with user_id).
-    // TDD Anchor: Test correct redirect path based on logged-in user.
-     const userId = 'user-123';
-     vi.mocked(mockSupabaseClient.auth.getSession).mockResolvedValue({
-       data: { session: { user: { id: userId, email: 'valid@example.com' } } } as any, // Use valid email
-       error: null,
+       const result = await deleteRegistration({ confirmed: true }); // Example input
+       // expect(result.success).toBe(false);
+       // expect(result.message).toContain('Database Error: Failed to delete registration. DB delete failed');
+       expect(true).toBe(false); // Placeholder failure
      });
-     // Mock DAL functions for successful path
-     mockFetchReg.mockResolvedValue({ registration: null, error: null }); // No existing registration
-     mockInsertReg.mockResolvedValue({ registration: { id: 'new-reg-id' } as any, error: null }); // Successful insert
 
+     it('should call delete with user_id and redirect on success', async () => {
+       const userId = 'user-123';
+       vi.mocked(mockSupabaseClient.auth.getSession).mockResolvedValue({
+         data: { session: { user: { id: userId, email: 'valid@example.com' } } } as any,
+         error: null,
+       });
+       mockDeleteReg.mockResolvedValue({ error: null }); // Successful delete
 
-    // Use the updated completeValidData
-    const validData = { ...completeValidData }; // Email matches session
-    const formData = createTestFormData(validData);
-    await createRegistration(previousState, formData);
+       await deleteRegistration({ confirmed: true }); // Example input
 
-    // Check against the expected parsed data structure
-    expect(mockInsertReg).toHaveBeenCalledWith(
-      expect.objectContaining({ ...expectedParsedData, user_id: userId })
-    );
-    expect(revalidatePath).toHaveBeenCalledWith('/admin/registrations');
-    expect(redirect).toHaveBeenCalledWith('/register/success');
-  });
+       // expect(mockDeleteReg).toHaveBeenCalledWith(userId); // Assuming action gets userId from session
+       // expect(revalidatePath).toHaveBeenCalledWith('/admin/registrations'); // Or other relevant paths
+       // expect(redirect).toHaveBeenCalledWith('/register/deleted'); // Or appropriate path
 
-  it('should call insert and redirect to /register/pending for new user sign-up', async () => {
-    // TDD Anchor: Test successful insertion into the `registrations` table (without user_id initially).
-    // TDD Anchor: Test correct redirect path based on new user.
-    vi.mocked(mockSupabaseClient.auth.getSession).mockResolvedValue({ data: { session: null }, error: null }); // No session
-    vi.mocked(mockSupabaseClient.auth.signInWithOtp).mockResolvedValue({ data: {}, error: null }); // Assume OTP sent
-    // Mock DAL function for successful insert
-    mockInsertReg.mockResolvedValue({ registration: { id: 'new-reg-id-2' } as any, error: null });
+       expect(true).toBe(false); // Placeholder failure
+     });
+  }); // End describe deleteRegistration
 
-
-    // Use the updated completeValidData, overriding email
-    const validData = { ...completeValidData, email: 'new@example.com' };
-    const formData = createTestFormData(validData);
-    await createRegistration(previousState, formData);
-
-    // Check against the expected parsed data structure, ensuring user_id is null/undefined
-    expect(mockInsertReg).toHaveBeenCalledWith(
-      expect.objectContaining({ ...expectedParsedData, email: 'new@example.com', user_id: null })
-    );
-    expect(revalidatePath).toHaveBeenCalledWith('/admin/registrations');
-    expect(redirect).toHaveBeenCalledWith('/register/pending');
-  });
-
-  // Add more tests based on TDD Anchors:
-  // - Test successful validation and data preparation (check data passed to insert)
-  // - Test confirmation email trigger call (mock email service or DAL function if used)
-});
+}); // End describe Registration Server Actions
