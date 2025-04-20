@@ -8,7 +8,11 @@ Completing this form should take approximately 10-15 minutes. Please submit your
 
 ## Personal Information
 
-1. **Full Name** (Short answer)
+1. a) **First Name** (Short answer)
+   *Please enter your first name*
+
+b) **Last Name** (Short answer)
+   *Please enter your last name*
 
 2. **University Email Address** (Short answer)
    *We'll use this to communicate important information about the event*
