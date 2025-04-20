@@ -1,92 +1,125 @@
-import { describe, it, expect, vi } from 'vitest';
-// Assuming the script exports a main function or similar
-// import { generateRegistrationAssets } from './generate-registration'; 
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import fs from 'fs';
+import path from 'path';
+import { execSync } from 'child_process';
+import { registrationSchema } from '../config/registrationSchema'; // For checks
 
-// Mock file system operations if the script interacts with files directly
-vi.mock('fs/promises', () => ({
-  readFile: vi.fn(),
-  writeFile: vi.fn(),
-  mkdir: vi.fn(),
-}));
+// --- Configuration ---
+const platformDir = path.resolve(__dirname, '..'); // Assumes script is in platform/scripts
+const frontendQuestionsPath = path.resolve(platformDir, 'src/app/register/data/registrationQuestions.ts');
+const actionsPath = path.resolve(platformDir, 'src/app/register/actions.ts');
+const migrationsDir = path.resolve(platformDir, '../supabase/migrations'); // Path relative to platform dir
 
-// Sample Central Definition (Simplified)
-const sampleCentralDefinition = `
-export const registrationSchemaDefinition = [
-  { id: 'email', label: 'Email Address', type: 'email', required: true, dbType: 'TEXT' },
-  { id: 'fullName', label: 'Full Name', type: 'text', required: true, dbType: 'TEXT' },
-  { id: 'affiliation', label: 'Affiliation', type: 'select', required: false, options: ['UofT', 'Other'], dbType: 'TEXT' },
-  { id: 'hasAttended', label: 'Attended Before?', type: 'boolean', required: true, dbType: 'BOOLEAN' },
-  { id: 'previousEvents', label: 'Which events?', type: 'text', required: false, dependsOn: 'hasAttended', dependsValue: true, dbType: 'TEXT' },
-];
-`;
-
-// Placeholder for the actual generation function - test will fail as it's not imported/defined
-const generateRegistrationAssets = vi.fn(); 
+// Store original file contents and track created files
+let originalActionsContent: string | null = null;
+let generatedMigrationFile: string | null = null;
+const generatedFrontendFile = frontendQuestionsPath; // This file is always overwritten
 
 describe('SSOT Registration Generation Script', () => {
-  it('should read the central definition file', async () => {
-    // This test would need refinement based on actual script implementation
-    // For now, it checks if the (mocked) function is called
-    await generateRegistrationAssets('config/registrationSchema.ts');
-    // Ideally, assert fs.readFile was called with the correct path
-    expect(generateRegistrationAssets).toHaveBeenCalled(); 
-    // Placeholder assertion - will fail as generateRegistrationAssets is just a mock
-    expect(true).toBe(false); 
+  beforeAll(() => {
+    // Store original actions content if it exists
+    if (fs.existsSync(actionsPath)) {
+      originalActionsContent = fs.readFileSync(actionsPath, 'utf-8');
+    }
+    // Clean up potentially existing generated files from previous runs (optional)
+    if (fs.existsSync(generatedFrontendFile)) {
+        fs.unlinkSync(generatedFrontendFile);
+    }
+    // Clean up previous generated migrations (be careful with this in real scenarios)
+    const migrationFiles = fs.readdirSync(migrationsDir);
+    migrationFiles.forEach(file => {
+        if (file.includes('_update_registrations_table_generated.sql')) {
+            fs.unlinkSync(path.join(migrationsDir, file));
+            console.log(`Cleaned up previous migration: ${file}`);
+        }
+    });
+
+    // Run the script via npm
+    try {
+      console.log('Running generation script...');
+      execSync('npm run generate:reg', { cwd: platformDir, stdio: 'inherit' });
+      console.log('Generation script finished.');
+
+      // Find the generated migration file
+      const newMigrationFiles = fs.readdirSync(migrationsDir);
+      generatedMigrationFile = newMigrationFiles.find(file => file.includes('_update_registrations_table_generated.sql')) || null;
+      if (generatedMigrationFile) {
+        generatedMigrationFile = path.join(migrationsDir, generatedMigrationFile);
+      }
+
+    } catch (error) {
+      console.error('Failed to run generation script:', error);
+      // Throw error to fail the test suite if script execution fails
+      throw new Error(`Generation script failed: ${error}`);
+    }
   });
 
-  it('should generate the correct registrationQuestions.ts content', async () => {
-    // Mock readFile to return the sample definition
-    // vi.mocked(fs.readFile).mockResolvedValue(sampleCentralDefinition);
-    
-    await generateRegistrationAssets('config/registrationSchema.ts');
-    
-    // Assert fs.writeFile was called with the correct path and expected content
-    // const expectedQuestionsContent = `...`; // Define expected output string
-    // expect(vi.mocked(fs.writeFile)).toHaveBeenCalledWith(
-    //   'platform/src/app/register/data/registrationQuestions.ts',
-    //   expectedQuestionsContent,
-    //   'utf-8'
-    // );
-    
-    // Placeholder assertion - will fail
-    expect(true).toBe(false); 
+  afterAll(() => {
+    // Restore original actions file content
+    if (originalActionsContent !== null) {
+      fs.writeFileSync(actionsPath, originalActionsContent, 'utf-8');
+      console.log(`Restored original content of ${path.basename(actionsPath)}`);
+    } else if (fs.existsSync(actionsPath)) {
+      // If the file was created by the script and didn't exist before
+      // fs.unlinkSync(actionsPath);
+      // console.log(`Removed generated ${path.basename(actionsPath)}`);
+      // Decide if cleanup is needed - for now, let's leave it if it was created
+    }
+
+    // Clean up generated frontend file
+    if (fs.existsSync(generatedFrontendFile)) {
+        fs.unlinkSync(generatedFrontendFile);
+        console.log(`Cleaned up generated ${path.basename(generatedFrontendFile)}`);
+    }
+    // Clean up generated migration file
+    if (generatedMigrationFile && fs.existsSync(generatedMigrationFile)) {
+        fs.unlinkSync(generatedMigrationFile);
+        console.log(`Cleaned up generated migration: ${path.basename(generatedMigrationFile)}`);
+    }
   });
 
-  it('should generate the correct Zod schema in actions.ts', async () => {
-    // Mock readFile for central definition
-    // Mock readFile for actions.ts (to insert into)
-    // vi.mocked(fs.readFile).mockResolvedValueOnce(sampleCentralDefinition);
-    // vi.mocked(fs.readFile).mockResolvedValueOnce('// Existing actions.ts content');
-
-    await generateRegistrationAssets('config/registrationSchema.ts');
-
-    // Assert fs.writeFile was called with the correct path and expected content
-    // const expectedActionsContent = `...`; // Define expected output string with schema inserted
-    // expect(vi.mocked(fs.writeFile)).toHaveBeenCalledWith(
-    //   'platform/src/app/register/actions.ts',
-    //   expectedActionsContent,
-    //   'utf-8'
-    // );
-
-    // Placeholder assertion - will fail
-    expect(true).toBe(false); 
+  it('should generate the registrationQuestions.ts file', () => {
+    expect(fs.existsSync(frontendQuestionsPath)).toBe(true);
   });
 
-  it('should generate a plausible draft SQL migration file', async () => {
-    // Mock readFile for central definition
-    // vi.mocked(fs.readFile).mockResolvedValue(sampleCentralDefinition);
+  it('should generate correct content in registrationQuestions.ts', () => {
+    const content = fs.readFileSync(frontendQuestionsPath, 'utf-8');
+    // Basic checks - more specific checks can be added
+    expect(content).toContain('// Generated by generate-registration.ts');
+    expect(content).toContain('export const questions: Question[] = [');
+    expect(content).toContain('export type FormDataStore = {');
+    // Check if a known question ID is present
+    expect(content).toContain("id: 'fullName'");
+    // Check if password fields are excluded
+    expect(content).not.toContain("id: 'password'");
+    expect(content).not.toContain("id: 'confirmPassword'");
+    // clientValidation is correctly excluded as confirmPassword is not in the output
+  });
 
-    await generateRegistrationAssets('config/registrationSchema.ts');
+   it('should update actions.ts with schema import and usage', () => {
+     expect(fs.existsSync(actionsPath)).toBe(true); // Ensure file exists
+     const content = fs.readFileSync(actionsPath, 'utf-8');
+     // Check for import (adjust path as needed based on script logic)
+     expect(content).toContain("import { generateRegistrationSchema } from '../config/registrationSchema';");
+     // Check for schema usage
+     expect(content).toContain('export const RegistrationSchema = generateRegistrationSchema();');
+   });
 
-    // Assert fs.writeFile was called with a path matching the migration pattern
-    // and content containing expected ALTER TABLE statements
-    // expect(vi.mocked(fs.writeFile)).toHaveBeenCalledWith(
-    //   expect.stringMatching(/supabase\/migrations\/\d+_draft_registration_schema\.sql/),
-    //   expect.stringContaining('ALTER TABLE public.registrations ADD COLUMN "fullName" TEXT;'),
-    //   'utf-8'
-    // );
+  it('should generate a draft SQL migration file', () => {
+    expect(generatedMigrationFile).not.toBeNull();
+    expect(fs.existsSync(generatedMigrationFile!)).toBe(true);
+  });
 
-    // Placeholder assertion - will fail
-    expect(true).toBe(false); 
+  it('should generate plausible content in the SQL migration file', () => {
+    const content = fs.readFileSync(generatedMigrationFile!, 'utf-8');
+    expect(content).toContain('-- Draft migration generated by generate-registration.ts');
+    expect(content).toContain('ALTER TABLE public.registrations');
+    // Check if columns from the schema (excluding SKIP) are mentioned
+    registrationSchema.forEach(q => {
+        if (q.dbType !== 'SKIP') {
+            expect(content).toContain(`"${q.id}"`); // Check for quoted column name
+        }
+    });
+    expect(content).toContain('ADD CONSTRAINT registrations_user_id_fkey'); // Check for FK constraint
   });
 });

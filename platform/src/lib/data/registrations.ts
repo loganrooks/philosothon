@@ -12,6 +12,8 @@ export type ReferralSource = Database["public"]["Enums"]["referral_source"];
 // Define the Registration type based on spec FR-REG-005 and data model
 // This should ideally align perfectly with Database['public']['Tables']['registrations']['Row']
 // For now, keeping the manually defined one but adding missing fields based on spec v1.1
+// Define the Registration type based on spec FR-REG-005 and data model (V1.1 + user_id)
+// This should reflect the current DB schema before V2 migrations
 export interface Registration {
   id: string; // Assuming UUID
   user_id: string | null; // UUID from auth.users, nullable initially
@@ -19,86 +21,87 @@ export interface Registration {
   full_name: string;
   university: string;
   program: string;
-  year_of_study: number;
-  can_attend_may_3_4: AttendanceOption; // Mapped to ENUM
-  may_3_4_comment: string | null;
-  prior_courses: string[] | null;
-  discussion_confidence: number; // Added
-  writing_confidence: number; // Added
-  familiarity_analytic: number;
-  familiarity_continental: number;
-  familiarity_other: number; // integer 1-5
-  areas_of_interest: string | null;
-  philosophical_traditions: string[]; // Added, text[]
-  philosophical_interests: string[]; // Added, text[]
-  theme_rankings: Json; // Added, JSONB
-  theme_suggestion: string | null; // Added
-  workshop_rankings: Json; // Added, JSONB
-  preferred_working_style: WorkingStyle;
-  teammate_similarity: number; // Added, integer 1-10
-  skill_writing: number;
-  skill_speaking: number;
-  skill_research: number; // integer 1-5
-  skill_synthesis: number; // integer 1-5
-  skill_critique: number; // integer 1-5
-  preferred_teammates: string | null;
-  complementary_perspectives: string | null;
-  mentorship_preference: MentorshipRole | null; // Added
-  mentorship_areas: string | null; // Added
-  familiarity_tech_concepts: number;
-  prior_hackathon_experience: boolean;
-  prior_hackathon_details: string | null;
-  dietary_restrictions: string | null; // Added
-  accessibility_needs: string | null;
-  additional_notes: string | null; // Added
-  how_heard: ReferralSource; // Added
-  how_heard_other: string | null; // Added
+  year_of_study: number; // V1.1 field
+  can_attend_may_3_4: AttendanceOption; // V1.1 field
+  may_3_4_comment: string | null; // V1.1 field
+  prior_courses: string[] | null; // V1.1 field
+  discussion_confidence: number; // V1.1 field
+  writing_confidence: number; // V1.1 field
+  familiarity_analytic: number; // V1.1 field
+  familiarity_continental: number; // V1.1 field
+  familiarity_other: number; // V1.1 field
+  areas_of_interest: string | null; // V1.1 field
+  philosophical_traditions: string[]; // V1.1 field
+  philosophical_interests: string[]; // V1.1 field
+  theme_rankings: Json; // V1.1 field
+  theme_suggestion: string | null; // V1.1 field
+  workshop_rankings: Json; // V1.1 field
+  preferred_working_style: WorkingStyle; // V1.1 field
+  teammate_similarity: number; // V1.1 field
+  skill_writing: number; // V1.1 field
+  skill_speaking: number; // V1.1 field
+  skill_research: number; // V1.1 field
+  skill_synthesis: number; // V1.1 field
+  skill_critique: number; // V1.1 field
+  preferred_teammates: string | null; // V1.1 field
+  complementary_perspectives: string | null; // V1.1 field
+  mentorship_preference: MentorshipRole | null; // V1.1 field
+  mentorship_areas: string | null; // V1.1 field
+  familiarity_tech_concepts: number; // V1.1 field
+  prior_hackathon_experience: boolean; // V1.1 field
+  prior_hackathon_details: string | null; // V1.1 field
+  dietary_restrictions: string | null; // V1.1 field (also in V2)
+  accessibility_needs: string | null; // V1.1 field (also in V2)
+  additional_notes: string | null; // V1.1 field
+  how_heard: ReferralSource; // V1.1 field
+  how_heard_other: string | null; // V1.1 field
   created_at: string;
   updated_at: string;
+  // V2 fields not in V1.1 (like pronouns, student_id, academic_year, consents) are assumed not yet in DB
 }
 
-// Define input type for insert/update (matches Zod schema in actions)
-// Includes all fields from spec v1.1
+// Define input type for insert/update (reflecting V1.1 DB schema + user_id)
 export interface RegistrationInput {
   user_id?: string | null; // Optional for initial insert
   email: string;
   full_name: string;
   university: string;
   program: string;
-  year_of_study: number;
-  can_attend_may_3_4: AttendanceOption;
-  may_3_4_comment?: string | null;
-  prior_courses?: string[] | null;
-  discussion_confidence: number; // Added
-  writing_confidence: number; // Added
-  familiarity_analytic: number;
-  familiarity_continental: number;
-  familiarity_other: number;
-  philosophical_traditions: string[]; // Added
-  philosophical_interests: string[]; // Added
-  areas_of_interest?: string | null;
-  theme_rankings: Json; // Added
-  theme_suggestion?: string | null; // Added
-  workshop_rankings: Json; // Added
-  preferred_working_style: WorkingStyle;
-  teammate_similarity: number; // Added
-  skill_writing: number;
-  skill_speaking: number;
-  skill_research: number;
-  skill_synthesis: number;
-  skill_critique: number;
-  preferred_teammates?: string | null;
-  complementary_perspectives?: string | null;
-  mentorship_preference?: MentorshipRole | null; // Added
-  mentorship_areas?: string | null; // Added
-  familiarity_tech_concepts: number;
-  prior_hackathon_experience: boolean;
-  prior_hackathon_details?: string | null;
-  dietary_restrictions?: string | null; // Added
-  accessibility_needs?: string | null;
-  additional_notes?: string | null; // Added
-  how_heard: ReferralSource; // Added
-  how_heard_other?: string | null; // Added
+  year_of_study: number; // V1.1 field
+  can_attend_may_3_4: AttendanceOption; // V1.1 field
+  may_3_4_comment?: string | null; // V1.1 field
+  prior_courses?: string[] | null; // V1.1 field
+  discussion_confidence: number; // V1.1 field
+  writing_confidence: number; // V1.1 field
+  familiarity_analytic: number; // V1.1 field
+  familiarity_continental: number; // V1.1 field
+  familiarity_other: number; // V1.1 field
+  areas_of_interest?: string | null; // V1.1 field
+  philosophical_traditions: string[]; // V1.1 field
+  philosophical_interests: string[]; // V1.1 field
+  theme_rankings: Json; // V1.1 field
+  theme_suggestion?: string | null; // V1.1 field
+  workshop_rankings: Json; // V1.1 field
+  preferred_working_style: WorkingStyle; // V1.1 field
+  teammate_similarity: number; // V1.1 field
+  skill_writing: number; // V1.1 field
+  skill_speaking: number; // V1.1 field
+  skill_research: number; // V1.1 field
+  skill_synthesis: number; // V1.1 field
+  skill_critique: number; // V1.1 field
+  preferred_teammates?: string | null; // V1.1 field
+  complementary_perspectives?: string | null; // V1.1 field
+  mentorship_preference?: MentorshipRole | null; // V1.1 field
+  mentorship_areas?: string | null; // V1.1 field
+  familiarity_tech_concepts: number; // V1.1 field
+  prior_hackathon_experience: boolean; // V1.1 field
+  prior_hackathon_details?: string | null; // V1.1 field
+  dietary_restrictions?: string | null; // V1.1 field (also in V2)
+  accessibility_needs?: string | null; // V1.1 field (also in V2)
+  additional_notes?: string | null; // V1.1 field
+  how_heard: ReferralSource; // V1.1 field
+  how_heard_other?: string | null; // V1.1 field
+  // V2 fields not in V1.1 (like pronouns, student_id, academic_year, consents) are NOT included here
 }
 
 /**
@@ -158,6 +161,76 @@ export async function fetchRegistrationByUserId(userId: string): Promise<{ regis
     return { registration: null, error };
   }
 }
+
+
+// Added updateRegistrationById function
+/**
+ * Updates an existing registration by user ID.
+ * @param userId The UUID of the user whose registration is to be updated.
+ * @param registrationData The partial data to update.
+ * @returns An object containing the updated registration or an error.
+ */
+export async function updateRegistrationById(userId: string, registrationData: Partial<RegistrationInput>): Promise<{ registration: Registration | null; error: Error | null }> {
+  if (!userId) {
+    return { registration: null, error: new Error('User ID is required for update.') };
+  }
+  try {
+    const supabase = await createClient();
+    // Ensure user_id is not part of the update payload itself
+    const { user_id, ...updateData } = registrationData;
+
+    const { data, error } = await supabase
+      .from('registrations')
+      .update(updateData)
+      .eq('user_id', userId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error(`Error updating registration for user ${userId}:`, error);
+      throw new Error(`Database error updating registration: ${error.message}`);
+    }
+
+    return { registration: data as Registration, error: null };
+  } catch (err) {
+    const error = err instanceof Error ? err : new Error(`An unknown error occurred updating registration for user ${userId}.`);
+    console.error(`updateRegistrationById(${userId}) failed:`, error);
+    return { registration: null, error };
+  }
+}
+
+// Added deleteRegistrationByUserId function
+/**
+ * Deletes a registration by user ID.
+ * @param userId The UUID of the user whose registration is to be deleted.
+ * @returns An object indicating success or an error.
+ */
+export async function deleteRegistrationByUserId(userId: string): Promise<{ success: boolean; error: Error | null }> {
+  if (!userId) {
+    return { success: false, error: new Error('User ID is required for deletion.') };
+  }
+  try {
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from('registrations')
+      .delete()
+      .eq('user_id', userId);
+
+    if (error) {
+      console.error(`Error deleting registration for user ${userId}:`, error);
+      throw new Error(`Database error deleting registration: ${error.message}`);
+    }
+
+    return { success: true, error: null };
+  } catch (err) {
+    const error = err instanceof Error ? err : new Error(`An unknown error occurred deleting registration for user ${userId}.`);
+    console.error(`deleteRegistrationByUserId(${userId}) failed:`, error);
+    return { success: false, error };
+  }
+}
+
+// Removed TODO comments as functions are now added
+// TODO: Implement fetchRegistrationByEmail if needed for linking during OTP flow
 
 // TODO: Implement updateRegistrationById if needed
 // TODO: Implement fetchRegistrationByEmail if needed for linking during OTP flow
