@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createStaticSupabaseClient } from '@/lib/supabase/server';
 import { Database } from '@/lib/supabase/database.types'; // Use generated types
 
 export type ScheduleItem = Database['public']['Tables']['schedule_items']['Row'];
@@ -6,7 +6,8 @@ export type ScheduleItemInsert = Database['public']['Tables']['schedule_items'][
 export type ScheduleItemUpdate = Database['public']['Tables']['schedule_items']['Update'];
 
 export async function fetchSchedule(): Promise<ScheduleItem[]> {
-    const supabase = await createClient(); // Added await
+    // Use the static client for SSG/ISR pages like public schedule
+    const supabase = createStaticSupabaseClient();
     const { data, error } = await supabase
         .from('schedule_items')
         .select('*')

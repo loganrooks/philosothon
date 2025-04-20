@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createStaticSupabaseClient } from '@/lib/supabase/server';
 
 // Define the Workshop type based on usage in actions/pages and specs
 // Need to confirm exact fields from schema or existing types if available
@@ -20,7 +20,8 @@ export interface Workshop {
  */
 export async function fetchWorkshops(): Promise<{ workshops: Workshop[] | null; error: Error | null }> {
   try {
-    const supabase = await createClient();
+    // Use the static client for SSG/ISR pages like public workshops
+    const supabase = createStaticSupabaseClient();
     const { data, error } = await supabase
       .from('workshops')
       .select('*') // Select all columns for now

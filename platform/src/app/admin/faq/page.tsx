@@ -1,4 +1,6 @@
 // platform/src/app/admin/faq/page.tsx
+import { cookies } from 'next/headers'; // Import cookies to mark as dynamic
+export const dynamic = 'force-dynamic';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { FaqActions } from './components/FaqActions'; // Import FaqActions
