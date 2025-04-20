@@ -33,6 +33,8 @@ The system operates in distinct modes, each offering specific commands and visua
     *   **Visuals:** Header indicating "Registration Mode". Progress indicator (e.g., "Question X/36") during initial registration. Mode-specific command hints. Question text clearly displayed above the prompt. Hints (`hint` field) displayed below the question text.
     *   **Commands (Answering):** `next`, `prev`, `save`, `exit`, `back`, `help`.
     *   **Commands (Completion):** `submit`, `review`, `edit [number]`, `back`, `help`.
+    *   *TDD Anchor:* Test mode header "Registration Mode" is displayed.
+    *   *TDD Anchor:* Test progress indicator "Question X/36" is displayed and updates correctly.
 
 3.  **Authentication Mode**
     *   **Entry:** Via `sign-in` command from Main Mode.
@@ -58,6 +60,7 @@ The system operates in distinct modes, each offering specific commands and visua
     *   Prompts shall differ per mode as specified in 2.1.
     *   Input area styling should clearly differentiate between entering commands (Main/Auth modes) and entering answers (Registration mode).
     *   *TDD Anchor:* Test prompt string matches the current mode and auth state.
+    *   *TDD Anchor:* Test visual distinction between command input area and answer input area styling.
 
 ## 3. User Flows
 
@@ -85,7 +88,8 @@ The system operates in distinct modes, each offering specific commands and visua
     *   *TDD Anchor:* Test `register new` prompts confirmation if local data exists.
     *   *TDD Anchor:* Test `register new` clears local data and proceeds to First Name on confirmation.
     *   *TDD Anchor:* Test `continue` command is only shown if local data exists.
-    *   *TDD Anchor:* Test `register continue` resumes from correct index and loads previous answers visually if local data exists.
+    *   *TDD Anchor:* Test `register continue` resumes from correct index if local data exists.
+    *   *TDD Anchor:* Test `register continue` visually displays previously answered questions leading up to the resume point.
     *   *TDD Anchor:* Test `register continue` shows error if no local data exists.
     *   *TDD Anchor:* Test `back` command returns to Main Mode.
 3.  **Name, Email & Password Creation (Early Auth Flow):**
@@ -134,6 +138,7 @@ The system operates in distinct modes, each offering specific commands and visua
     *   *TDD Anchor:* Test input handling for each type (text, number, scale, boolean variations, single-select number/partial text, multi-select-numbered, ranked-choice-numbered).
     *   *TDD Anchor:* Test 'Other' field prompting (including conditional for ranking).
     *   *TDD Anchor:* Test client-side validation (required, number, scale range, multi-select numbers, ranking format/uniqueness/minRanked, email format, regex patterns).
+    *   *TDD Anchor:* Test specific error message content matches `validationRules` from SSOT.
     *   *TDD Anchor:* Test specific error messages appear alongside hints after validation failure.
     *   *TDD Anchor:* Test invalid input is preserved in field after validation failure.
     *   *TDD Anchor:* Test valid answer saves to local storage (obfuscated).
@@ -164,6 +169,7 @@ The system operates in distinct modes, each offering specific commands and visua
 2.  **Commands (Main Mode):**
     *   `view`: (Requires completed registration) Displays the completed registration data (read-only). Fetches from server.
     *   `edit`: (Requires completed registration) Enters Registration Mode to allow modification of answers (see Section 4.1.4). Fetches from server.
+    *   *TDD Anchor:* Test `view` command fetches data from server and displays it correctly.
     *   `delete`: (Requires completed registration) Initiates the registration deletion process (see Section 4.1.5).
     *   `sign-out`: Logs the user out.
     *   `help`, `about`
@@ -254,6 +260,8 @@ This password-based flow replaces the previous Magic Link/OTP system for all use
     *   User Input: Clearly highlighted (e.g., different shade of green or distinct background).
     *   Command vs. Answer Input: Differentiate via prompt style and potentially input area styling/border.
     *   CRT effect (optional).
+    *   *TDD Anchor:* Test correct fonts are applied (e.g., `font-mono` for general, `font-philosopher` if used).
+    *   *TDD Anchor:* Test correct colors are used (black background, green text, orange errors/highlights).
 2.  **Status Indicators:**
     *   Current mode visible (prompt/status line).
     *   Session status visible.
@@ -333,6 +341,8 @@ This password-based flow replaces the previous Magic Link/OTP system for all use
     *   Key: `philosothon-registration-v3.1`.
     *   Stores: `formData` (object keyed by question ID, including `firstName`, `lastName`, and new QIDs), `currentQuestionIndex`, `history` (optional).
     *   **Obfuscation:** Basic Base64 obfuscation applied before saving, reversed on load.
+    *   *TDD Anchor:* Test local storage uses the key `philosothon-registration-v3.1`.
+    *   *TDD Anchor:* Test local storage data is Base64 encoded/decoded correctly.
 2.  **Server Storage (Supabase):**
     *   `auth.users`: Email, hashed password.
     *   `profiles`: User role, linked to `auth.users`.
@@ -348,6 +358,7 @@ This password-based flow replaces the previous Magic Link/OTP system for all use
         *   `updateRegistration` (Server Action): Fetches existing, validates, saves edited data.
         *   `deleteRegistration` (Server Action): Deletes registration data.
     *   **Data Fetching:** Server Components/Route Handlers for `view`/`edit`.
+    *   *TDD Anchor (Placeholder):* Integration tests verify backend actions handle expected parameters and return correct states/errors.
 
 ### 6.3 Integration Requirements
 
