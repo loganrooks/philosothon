@@ -72,6 +72,11 @@ export function RegistrationForm({ initialAuthStatus }: { initialAuthStatus?: { 
     }, [currentMode, isAuthenticated, userEmail]);
 
     const getPromptText = (mode: TerminalMode, auth: boolean, email: string | null): string => {
+        // Special prompt for password entry during registration
+        if (mode === 'register' && (isPasswordInput || passwordAttempt)) {
+            return '[reg pass]> ';
+        }
+
         switch (mode) {
             case 'boot': return '';
             case 'auth': return '[auth]> ';
@@ -79,6 +84,8 @@ export function RegistrationForm({ initialAuthStatus }: { initialAuthStatus?: { 
             case 'edit':
                  const qIndex = currentQuestionIndex;
                  const totalQuestions = questions.length;
+                 // Adjust index for display if needed, but keep internal logic 0-based
+                 // The prompt logic here seems okay, it uses the currentQuestionIndex
                  return `[reg ${qIndex + 1}/${totalQuestions}]> `;
             case 'review': return '[review]> ';
             case 'confirm_delete': return 'Confirm DELETE> ';
@@ -187,7 +194,8 @@ export function RegistrationForm({ initialAuthStatus }: { initialAuthStatus?: { 
             if (isPasswordInput && !passwordAttempt) {
                 if (input.length >= 8) {
                     setPasswordAttempt(input);
-                    setIsPasswordInput(false);
+                    // setIsPasswordInput(false); // Keep true for confirmation
+                    setIsPasswordInput(true); // Explicitly set true for confirmation prompt
                     addOutputLine("Confirm password:", 'question');
                 } else {
                     addOutputLine("Password must be at least 8 characters.", 'error');
@@ -198,7 +206,8 @@ export function RegistrationForm({ initialAuthStatus }: { initialAuthStatus?: { 
             }
 
             // 2. Handling Confirmation Input
-            if (!isPasswordInput && passwordAttempt) {
+            // Corrected condition: Should be true when confirming password
+            if (isPasswordInput && passwordAttempt) {
                 if (input === passwordAttempt) {
                     addOutputLine("Password confirmed. Creating account...", 'info');
                     startAuthTransition(async () => {
@@ -211,12 +220,14 @@ export function RegistrationForm({ initialAuthStatus }: { initialAuthStatus?: { 
                             const firstQuestionIndex = questions.findIndex(q => q.order === 3); // Assuming order 3 is the first real question
                             if (firstQuestionIndex !== -1) {
                                 setCurrentQuestionIndex(firstQuestionIndex);
-                                addOutputLine(questions[firstQuestionIndex].label, 'question');
+                                // Remove redundant label output - rendering handles this
+                                // addOutputLine(questions[firstQuestionIndex].label, 'question');
                             } else {
                                 addOutputLine("Error: Could not find the starting question.", 'error');
                                 setCurrentMode('main'); // Fallback to main mode
                             }
                             setPasswordAttempt(''); // Clear password attempt
+                            setIsPasswordInput(false); // Exit password input state
                         } else {
                             addOutputLine(`Account creation failed: ${result.message}`, 'error');
                             // Reset to email prompt
@@ -987,6 +998,7 @@ export function RegistrationForm({ initialAuthStatus }: { initialAuthStatus?: { 
                         className="bg-transparent border-none text-hacker-green outline-none flex-grow p-0 m-0 focus:ring-0"
                         autoComplete="off"
                         autoFocus
+                        data-testid="terminal-input" // Added data-testid
                         // Temporarily remove disabled check for testing
                         disabled={isBooting || isSubmitting || isAuthActionPending}
                     />
