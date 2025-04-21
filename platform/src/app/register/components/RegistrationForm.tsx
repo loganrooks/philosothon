@@ -23,7 +23,7 @@ import {
 } from '../../auth/actions'; // Adjust path if needed
 
 // --- Constants ---
-const LOCAL_STORAGE_KEY = 'philosothon-registration-v2';
+const LOCAL_STORAGE_KEY = 'philosothon-registration-v3.1'; // V3.1 Key
 type TerminalMode = 'boot' | 'main' | 'auth' | 'register' | 'review' | 'edit' | 'confirm_delete' | 'confirm_new';
 
 interface OutputLine {
@@ -171,27 +171,95 @@ export function RegistrationForm({ initialAuthStatus }: { initialAuthStatus?: { 
         const input = currentInput.trim();
         const currentPrompt = getPromptText(currentMode, isAuthenticated, userEmail);
 
-        if (input || (currentMode !== 'register' && currentMode !== 'edit')) {
-             addOutputLine(input, 'input', currentPrompt);
+        // Add output line for the input itself, unless it's a password/confirmation
+        if (!isPasswordInput && !passwordAttempt) {
+            addOutputLine(input, 'input', currentPrompt);
+        } else {
+            // Mask password input in the output log
+            addOutputLine('*'.repeat(input.length), 'input', currentPrompt);
         }
 
         setCurrentInput('');
 
+        // --- Early Auth Flow: Password & Confirmation Handling ---
+        if (currentMode === 'register' && localData.email && !localData.isVerified) {
+            // 1. Handling Password Input
+            if (isPasswordInput && !passwordAttempt) {
+                if (input.length >= 8) {
+                    setPasswordAttempt(input);
+                    setIsPasswordInput(false);
+                    addOutputLine("Confirm password:", 'question');
+                } else {
+                    addOutputLine("Password must be at least 8 characters.", 'error');
+                    addOutputLine("Enter password:", 'question'); // Re-prompt
+                    setIsPasswordInput(true); // Ensure still waiting for password
+                }
+                return; // Stop further processing
+            }
+
+            // 2. Handling Confirmation Input
+            if (!isPasswordInput && passwordAttempt) {
+                if (input === passwordAttempt) {
+                    addOutputLine("Password confirmed. Creating account...", 'info');
+                    startAuthTransition(async () => {
+                        const result = await signUpUser({ email: localData.email!, password: passwordAttempt });
+                        if (result.success || result.message.includes('User already registered')) {
+                            addOutputLine(result.success ? "Account created/verified." : "Account already exists, proceeding.", 'success');
+                            setLocalData((prev: FormDataStore) => ({ ...prev, isVerified: true }));
+
+                            // Find the index of the first question *after* email (Q3)
+                            const firstQuestionIndex = questions.findIndex(q => q.order === 3); // Assuming order 3 is the first real question
+                            if (firstQuestionIndex !== -1) {
+                                setCurrentQuestionIndex(firstQuestionIndex);
+                                addOutputLine(questions[firstQuestionIndex].label, 'question');
+                            } else {
+                                addOutputLine("Error: Could not find the starting question.", 'error');
+                                setCurrentMode('main'); // Fallback to main mode
+                            }
+                            setPasswordAttempt(''); // Clear password attempt
+                        } else {
+                            addOutputLine(`Account creation failed: ${result.message}`, 'error');
+                            // Reset to email prompt
+                            const emailIndex = questions.findIndex(q => q.id === 'email');
+                            setCurrentQuestionIndex(emailIndex >= 0 ? emailIndex : 0);
+                            addOutputLine(questions[emailIndex >= 0 ? emailIndex : 0].label, 'question');
+                            setLocalData((prev: FormDataStore) => ({ ...prev, email: undefined, isVerified: undefined }));
+                            setPasswordAttempt('');
+                            setIsPasswordInput(false);
+                        }
+                    });
+                } else {
+                    addOutputLine("Passwords do not match. Try again.", 'error');
+                    addOutputLine("Enter password:", 'question');
+                    setPasswordAttempt('');
+                    setIsPasswordInput(true);
+                }
+                return; // Stop further processing
+            }
+        }
+        // --- End Early Auth Flow ---
+
+
+        // Handle empty input for non-required questions
         if (!input && (currentMode === 'register' || currentMode === 'edit')) {
              const question = questions[currentQuestionIndex];
              if (question && !question.required) {
-                 await processAnswer('');
+                 await processAnswer(''); // Process empty answer for optional question
                  return;
              } else if (question && question.required) {
                  addOutputLine("This field is required.", 'error');
-                 addOutputLine(question.label, 'question');
+                 addOutputLine(question.label, 'question'); // Re-prompt
                  return;
              }
+             // If no question or other issue, just return
              return;
         } else if (!input) {
+             // If input is empty and not in register/edit mode, do nothing
              return;
         }
 
+
+        // --- Standard Command Processing ---
         const command = input.toLowerCase();
         const args = input.split(' ').slice(1);
 
@@ -215,10 +283,15 @@ export function RegistrationForm({ initialAuthStatus }: { initialAuthStatus?: { 
                     await handleMainModeCommand(command, args);
                     break;
                 case 'auth':
-                    await handleAuthModeInput(input);
+                    await handleAuthModeInput(input); // Auth mode handles its own password logic separately
                     break;
                 case 'register':
                 case 'edit':
+                    // Prevent processing answers if still in early auth password flow
+                    if (localData.email && !localData.isVerified) {
+                         addOutputLine("Please complete the password setup.", 'warning');
+                         return;
+                    }
                     await handleRegisterModeInput(input, command, args);
                     break;
                 case 'review':
@@ -275,15 +348,19 @@ export function RegistrationForm({ initialAuthStatus }: { initialAuthStatus?: { 
 
     const handleMainModeCommand = async (command: string, args: string[]) => {
         if (isAuthenticated) {
+            // Authenticated User Commands
             switch (command) {
+                case 'register': // Allow 'register' to act like 'view' or 'edit' if already registered
                 case 'view':
+                    // TODO: Fetch from server instead of localData
                     addOutputLine("Fetching registration data...", 'info');
-                    addOutputLine(JSON.stringify(localData, null, 2), 'output');
+                    addOutputLine(JSON.stringify(localData, null, 2), 'output'); // Placeholder
                     break;
                 case 'edit':
                     addOutputLine("Entering edit mode...", 'info');
+                    // TODO: Fetch from server first
                     setCurrentMode('edit');
-                    setCurrentQuestionIndex(0);
+                    setCurrentQuestionIndex(0); // Start edit from beginning
                     setIsPasswordInput(false);
                     addOutputLine(questions[0].label, 'question');
                     break;
@@ -315,8 +392,43 @@ export function RegistrationForm({ initialAuthStatus }: { initialAuthStatus?: { 
                     addOutputLine(`Unknown command: ${command}. Type 'help'.`, 'error');
             }
         } else {
+            // Anonymous User Commands
             switch (command) {
-                 case 'register new':
+                 case 'register':
+                     // Display sub-menu if no arguments provided
+                     if (args.length === 0) {
+                         addOutputLine("Usage: register [new|continue]", 'info');
+                         addOutputLine("  new       - Start a new registration.", 'output');
+                         if (localData.currentQuestionIndex !== undefined && localData.email) {
+                             addOutputLine("  continue  - Resume previous registration.", 'output');
+                         }
+                         addOutputLine("  back      - Return to main menu.", 'output');
+                     } else if (args[0] === 'new') {
+                         if (localData.currentQuestionIndex !== undefined && localData.email) {
+                             addOutputLine("Existing local data found. Overwrite? (yes/no)", 'warning');
+                             setCurrentMode('confirm_new');
+                         } else {
+                             handleStartNewRegistration();
+                         }
+                     } else if (args[0] === 'continue') {
+                         if (localData.currentQuestionIndex !== undefined && localData.email) {
+                             addOutputLine("Resuming registration...", 'info');
+                             setCurrentMode('register');
+                             const resumeIndex = Math.max(0, Math.min(localData.currentQuestionIndex, questions.length -1));
+                             setCurrentQuestionIndex(resumeIndex);
+                             setIsPasswordInput(false); // Ensure password input is off when resuming
+                             addOutputLine(questions[resumeIndex].label, 'question');
+                         } else {
+                             addOutputLine("No registration in progress found. Use 'register new'.", 'error');
+                         }
+                     } else if (args[0] === 'back') {
+                         // Already handled by default case if needed, or just ignore
+                     } else {
+                         addOutputLine(`Invalid argument for register: ${args[0]}. Use 'new' or 'continue'.`, 'error');
+                     }
+                     break;
+                 // Keep 'register new' and 'register continue' for direct access if needed, though 'register' handles them now.
+                 case 'register new': // Allow direct command
                      if (localData.currentQuestionIndex !== undefined && localData.email) {
                          addOutputLine("Existing local data found. Overwrite? (yes/no)", 'warning');
                          setCurrentMode('confirm_new');
@@ -324,7 +436,7 @@ export function RegistrationForm({ initialAuthStatus }: { initialAuthStatus?: { 
                          handleStartNewRegistration();
                      }
                      break;
-                 case 'register continue':
+                 case 'register continue': // Allow direct command
                      if (localData.currentQuestionIndex !== undefined && localData.email) {
                          addOutputLine("Resuming registration...", 'info');
                          setCurrentMode('register');
@@ -388,11 +500,15 @@ export function RegistrationForm({ initialAuthStatus }: { initialAuthStatus?: { 
      const handleStartNewRegistration = () => {
          setLocalData({}); // Use setter to clear data
          addOutputLine("Starting new registration...", 'info');
+         // Add introductory text from Spec V3.1 Section 3.2.2
+         addOutputLine("Welcome to the Philosothon registration form! This questionnaire will help us understand your interests, background, and preferences to create balanced teams and select themes that resonate with participants. The event will take place on April 26-27, 2025. Completing this form should take approximately 10-15 minutes. Please submit your responses by Thursday, April 24th at midnight.", 'output');
          setCurrentMode('register');
+         // Start with First Name (Q1a, assuming index 0)
          setCurrentQuestionIndex(0);
-         setIsPasswordInput(false);
-         setPasswordAttempt('');
-         addOutputLine(questions[0].label, 'question');
+         setIsPasswordInput(false); // Ensure password mode is off initially
+         setPasswordAttempt(''); // Clear any previous attempts
+         setLocalData((prev: FormDataStore) => ({ ...prev, isVerified: undefined })); // Reset verification status
+         addOutputLine(questions[0].label, 'question'); // Prompt for First Name
      };
 
     const handleAuthModeInput = async (input: string) => {
@@ -428,7 +544,7 @@ export function RegistrationForm({ initialAuthStatus }: { initialAuthStatus?: { 
                 if (result.success) {
                     addOutputLine(result.message, 'success');
                     setIsAuthenticated(true);
-                    setUserEmail(localData.email);
+                    setUserEmail(localData.email ?? null); // Ensure null if undefined
                     setRegistrationStatus('incomplete');
                     setCurrentMode('main');
                 } else {
@@ -545,7 +661,8 @@ export function RegistrationForm({ initialAuthStatus }: { initialAuthStatus?: { 
                       addOutputLine(`Editing question ${indexToEdit + 1}: ${questions[indexToEdit].label}`, 'info');
                       setCurrentMode('edit');
                       setCurrentQuestionIndex(indexToEdit);
-                      setCurrentInput(localData[questions[indexToEdit].id as keyof FormDataStore] ?? '');
+                      // Convert potential non-string answers to string for input field
+                      setCurrentInput(String(localData[questions[indexToEdit].id as keyof FormDataStore] ?? ''));
                       addOutputLine(questions[indexToEdit].label, 'question');
                  } else {
                       addOutputLine("Invalid question number. Use 'edit [number]'.", 'error');
@@ -574,107 +691,133 @@ export function RegistrationForm({ initialAuthStatus }: { initialAuthStatus?: { 
         const question = questions[currentQuestionIndex];
         if (!question) return;
 
+        // Handle email separately to trigger password flow
         if (question.id === 'email') {
              if (answer && answer.includes('@')) {
                  setLocalData((prev: FormDataStore) => ({ ...prev, email: answer }));
-                 advanceQuestion(answer);
+                 // Trigger password flow instead of advancing question index
+                 setIsPasswordInput(true);
+                 addOutputLine("Enter password:", 'question');
              } else {
                  addOutputLine("Invalid email format.", 'error');
-                 addOutputLine(question.label, 'question');
+                 addOutputLine(question.label, 'question'); // Re-prompt for email
              }
-             return;
+             return; // Stop processing here for email
         }
 
-        if (question.id === 'password') {
-             if (answer.length >= 8) {
-                 setPasswordAttempt(answer);
-                 advanceQuestion(answer);
-             } else {
-                 addOutputLine("Password must be at least 8 characters.", 'error');
-                 addOutputLine(question.label, 'question');
-             }
-             return;
-        }
-
-        if (question.id === 'confirmPassword') {
-             if (answer === passwordAttempt) {
-                 addOutputLine("Password confirmed. Creating account...", 'info');
-                 setIsPasswordInput(false);
-                 startAuthTransition(async () => {
-                     const result = await signUpUser({ email: localData.email!, password: passwordAttempt });
-                     if (result.success || result.message.includes('User already registered')) {
-                         addOutputLine(result.success ? "Account created/verified." : "Account already exists, proceeding.", 'success');
-                         setLocalData((prev: FormDataStore) => ({ ...prev, isVerified: true }));
-                         advanceQuestion(answer);
-                     } else {
-                         addOutputLine(`Account creation failed: ${result.message}`, 'error');
-                         setCurrentQuestionIndex(0);
-                         addOutputLine(questions[0].label, 'question');
-                         setLocalData((prev: FormDataStore) => ({ ...prev, email: undefined }));
-                         setPasswordAttempt('');
-                     }
-                 });
-             } else {
-                 addOutputLine("Passwords do not match. Try again.", 'error');
-                 const passwordIndex = questions.findIndex(q => q.id === 'password');
-                 setCurrentQuestionIndex(passwordIndex >= 0 ? passwordIndex : 0);
-                 addOutputLine(questions[passwordIndex >= 0 ? passwordIndex : 0].label, 'question');
-                 setIsPasswordInput(true);
-                 setPasswordAttempt('');
-             }
-             return;
-        }
+        // Password and ConfirmPassword are now handled directly in handleSubmit
 
         let validationError: string | undefined = undefined;
         if (question.required && !answer) {
             validationError = "This field is required.";
-        } else if (question.clientValidation) {
-            validationError = question.clientValidation(answer, localData);
         }
+        // TODO: Implement validation based on question.validationRules from SSOT
+        // Example:
+        // if (question.validationRules?.minLength && answer.length < question.validationRules.minLength.value) {
+        //     validationError = question.validationRules.minLength.message || `Minimum length is ${question.validationRules.minLength.value}.`;
+        // }
+        // ... add more validation checks based on type and rules ...
 
         if (validationError) {
             addOutputLine(`Error: ${validationError}`, 'error');
-            addOutputLine(question.label, 'question');
+            if (question.hint) {
+                 addOutputLine(`Hint: ${question.hint}`, 'info'); // Show hint on error
+            }
+            addOutputLine(question.label, 'question'); // Re-prompt
             return;
         }
 
+        // Process answer based on type
         let processedAnswer: any = answer;
-        if (question.type === 'boolean') {
-            processedAnswer = answer.toLowerCase() === 'yes' || answer.toLowerCase() === 'true';
-        } else if (question.type === 'number') { // Removed 'range' check
-             processedAnswer = parseInt(answer, 10);
-             if (isNaN(processedAnswer)) {
-                 addOutputLine("Invalid number.", 'error');
-                 addOutputLine(question.label, 'question');
-                 return;
+        try {
+            switch (question.type) {
+                case 'boolean':
+                    const lowerAnswer = answer.toLowerCase();
+                    if (lowerAnswer === 'yes' || lowerAnswer === 'y' || lowerAnswer === '1') {
+                        processedAnswer = true;
+                    } else if (lowerAnswer === 'no' || lowerAnswer === 'n' || lowerAnswer === '2') {
+                        processedAnswer = false;
+                    } else if (question.required) { // Only error if required and invalid boolean
+                        throw new Error("Invalid input. Please enter 'yes' or 'no'.");
+                    } else {
+                        processedAnswer = null; // Treat invalid optional boolean as null/skipped
+                    }
+                    break;
+                case 'number':
+                case 'scale':
+                    processedAnswer = parseInt(answer, 10);
+                    if (isNaN(processedAnswer)) {
+                         if (question.required || answer) { // Error if required or if they typed something invalid
+                             throw new Error("Invalid number.");
+                         } else {
+                             processedAnswer = null; // Treat empty optional number as null
+                         }
+                    }
+                    // Add min/max validation from validationRules if needed
+                    break;
+                case 'multi-select-numbered':
+                    const selections = answer.split(' ').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
+                    // TODO: Add validation for valid numbers based on options length, min/max selections
+                    processedAnswer = selections;
+                    break;
+                case 'ranking-numbered': // Corrected typo
+                     // TODO: Implement parsing and validation for ranked choice (e.g., "5:1 2:2 8:3")
+                     // Needs robust parsing and validation against options, minRanked, uniqueSelections
+                     processedAnswer = answer; // Placeholder
+                     break;
+                // Default case handles text, email, paragraph, etc.
+                default:
+                    processedAnswer = answer;
+                    break;
+            }
+        } catch (err) {
+             addOutputLine(`Error: ${(err as Error).message}`, 'error');
+             if (question.hint) {
+                  addOutputLine(`Hint: ${question.hint}`, 'info');
              }
+             addOutputLine(question.label, 'question'); // Re-prompt
+             return;
         }
 
+
+        // Store processed answer
         const newData: FormDataStore = { ...localData, [question.id]: processedAnswer };
 
+        // Handle edit mode submission separately
         if (currentMode === 'edit') {
              addOutputLine("Saving update...", 'info');
-             setLocalData(newData);
+             setLocalData(newData); // Update local state immediately for review
              startSubmitTransition(async () => {
-                 const updateData = { [question.id]: processedAnswer };
-                 const formDataForUpdate = new FormData(); // Create FormData for action
-                 Object.entries(updateData).forEach(([key, value]) => {
+                 // In edit mode, we might just update the single field or the whole record
+                 // For simplicity, let's assume updateRegistration handles the full record or diffs
+                 const formDataForUpdate = new FormData();
+                 Object.entries(newData).forEach(([key, value]) => {
+                     // Exclude helper fields
+                     if (key === 'currentQuestionIndex' || key === 'isVerified') return;
                      if (value !== undefined && value !== null) {
-                         formDataForUpdate.append(key, String(value));
+                         if (Array.isArray(value)) {
+                             value.forEach(item => formDataForUpdate.append(key, String(item)));
+                         } else {
+                             formDataForUpdate.append(key, String(value));
+                         }
                      }
                  });
+
+                 // Assuming updateRegistration takes the full data
                  const result = await updateRegistration(null as any, formDataForUpdate);
                  if (result.success) {
                      addOutputLine("Update saved successfully.", 'success');
                  } else {
-                     addOutputLine(`Update failed: ${result.message}`, 'error');
+                     addOutputLine(`Update failed: ${result.message || 'Unknown error'}`, 'error');
+                     // Optionally revert localData or handle error state
                  }
-                 setCurrentMode('review');
+                 setCurrentMode('review'); // Go back to review mode after edit attempt
                  handleReviewCommand();
              });
-             return;
+             return; // Stop further processing in edit mode
         }
 
+        // If not editing, advance to the next question
         advanceQuestion(processedAnswer);
     };
 
