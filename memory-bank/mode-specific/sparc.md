@@ -320,6 +320,13 @@
 - Completion time: [2025-04-19 23:14:06]
 - Outcome: Implemented SSOT script (`generate-registration.ts`), auth actions (`auth/actions.ts`), registration actions (`register/actions.ts`), and rewrote `RegistrationForm.tsx`. Most tests pass (SSOT, auth, register actions - except 1 skipped). **Blocked by intractable Vitest mocking error (`ReferenceError: Cannot access 'mockQuestions' before initialization`) in `RegistrationForm.test.tsx`.** Cannot verify UI component tests.
 # Workflow State (Current - Overwrite this section)
+- Current phase: Integration & Deployment (Placeholder to Main)
+- Phase start: [2025-04-21 07:01:43]
+- Current focus: Prepare the `feat/architecture-v2` branch (containing the terminal placeholder) for deployment to `main` by creating and merging a Pull Request.
+- Next actions: Delegate Git/PR preparation task to `devops` mode.
+- Last Updated: [2025-04-21 07:01:43]
+
+# Workflow State (Current - Overwrite this section)
 - Current phase: Implementation (Interest Signup Table Creation)
 - Phase start: [2025-04-21 06:50:03]
 - Current focus: Create the Supabase table (`interest_signups`) required to store emails captured by the placeholder form, as per the refined plan.
@@ -783,6 +790,16 @@
 <!-- Append new delegation records here -->
 ### [2025-04-19 12:42:22] Task: Philosothon Platform V2 - P0 Content Management TDD (Red Phase)
 - Assigned to: tdd
+### [2025-04-21 06:50:19] Task: Implement Terminal Shell and Interest Form Placeholder
+- Assigned to: code
+- Description: Implement `TerminalShell` and `InterestFormPlaceholder` based on architecture doc, update `logInterest` action, integrate into `/register` page.
+- Expected deliverable: New/modified component and action files, commit confirmation.
+- Status: completed
+- Completion time: [2025-04-21 07:01:43]
+- Outcome: Successfully implemented `TerminalShell`, `InterestFormPlaceholder`, updated `logInterest` action, and integrated into `/register` page. Committed changes.
+- Link to Progress Entry: [Code Log 2025-04-21 07:01:43]
+
+
 - Description: Implement Red phase TDD for P0 Content Management features.
 - Expected deliverable: Failing tests committed (or confirmation they exist).
 - Status: completed

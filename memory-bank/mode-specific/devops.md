@@ -1,6 +1,25 @@
 # DevOps Specific Memory
 
 ## Deployment History Log
+### Git Commit: [2025-04-21 18:55:46] - feat: Create interest_signups table and RLS policies
+- **Branch**: feat/architecture-v2
+- **Commit ID**: 6e92ded
+- **Files**: `supabase/migrations/20250421225316_create_interest_signups_table.sql`
+- **Notes**: Committed the new migration file for the interest_signups table.
+
+
+### Deployment: [2025-04-21 18:55:29] - Supabase Migration (Create `interest_signups`)
+- **Env**: Remote DB (`egdmaehmjuytscswybum`)
+- **Comps**: `interest_signups` table
+- **Version**: Migration `20250421225316_create_interest_signups_table.sql`
+- **Trigger**: Manual (`supabase db push`)
+- **Status**: Success
+- **Duration**: ~1 min
+- **Rollback**: `supabase db reset` (if needed, destructive)
+- **Notes**: Created the `interest_signups` table with columns (id, email, created_at) and basic RLS (public insert, service_role all).
+
+
+
 ### Git Commit: [2025-04-21 16:36:00] - docs(spec): Update V3.1 reg spec for confirmation state & existing user flow
 - **Branch**: feat/architecture-v2
 - **Commit ID**: 8062e37
