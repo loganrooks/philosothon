@@ -27,6 +27,19 @@
 # Code Specific Memory
 <!-- Entries below should be added reverse chronologically (newest first) -->
 
+### [2025-04-21 16:46:03] RegistrationForm.tsx V3.1 Refactor
+- **Purpose**: Rewrite RegistrationForm to comply with V3.1 spec (`docs/specs/p0_registration_terminal_ui_spec_v2.md` @ `8062e37`), focusing on robust state management using `useReducer`.
+- **Files**:
+    - `platform/src/app/register/components/RegistrationForm.tsx` (Rewritten)
+    - `platform/src/app/auth/actions.ts` (Added `resendConfirmationEmail`)
+- **Status**: Implemented
+- **Dependencies**: `react`, `use-local-storage-state` (indirectly via hook), `@supabase/ssr`
+- **API Surface**: Exports `RegistrationForm` component.
+- **Tests**: Existing tests in `RegistrationForm.test.tsx` likely need significant updates to match the new implementation and V3.1 logic. Recommend TDD run.
+- **Notes**: Addresses previous state management complexity noted in feedback ([MB Log 2025-04-21 15:46:11]). Implements early auth flow, existing user detection, `awaiting_confirmation` mode with `continue`/`resend` logic. Uses `useReducer` for state transitions. File size exceeds 500 lines; consider future refactor of reducer/UI.
+
+
+
 ### [2025-04-21 05:53:00] Registration Schema (SSOT)
 - **Purpose**: Central definition for all registration questions, types, validation, and metadata.
 - **Files**: `platform/config/registrationSchema.ts`

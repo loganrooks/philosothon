@@ -1,518 +1,855 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback, useTransition } from 'react';
-import { useFormState } from 'react-dom';
-// Correct import path for useLocalStorage
+import React, { useState, useEffect, useRef, useCallback, useReducer, useTransition } from 'react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
-// Import V2 questions data
-import { questions, FormDataStore, Question } from '../data/registrationQuestions';
+import { questions as allQuestions, Question } from '../data/registrationQuestions'; // Assuming V3.1 data is here
 import {
-    // Import V2 actions
     submitRegistration,
     updateRegistration,
     deleteRegistration,
-    RegistrationState // Keep state type if actions use it
+    RegistrationState // Keep if used by actions
 } from '../actions';
 import {
-    // Import V2 auth actions
     signInWithPassword,
     signUpUser,
     signOut,
     requestPasswordReset,
+    checkUserVerificationStatus,
+    resendConfirmationEmail, // Assuming this will be added
     AuthActionResult
-} from '../../auth/actions'; // Adjust path if needed
+} from '../../auth/actions';
 
 // --- Constants ---
-const LOCAL_STORAGE_KEY = 'philosothon-registration-v3.1'; // V3.1 Key
-type TerminalMode = 'boot' | 'main' | 'auth' | 'register' | 'review' | 'edit' | 'confirm_delete' | 'confirm_new';
+const LOCAL_STORAGE_KEY = 'philosothon-registration-v3.1';
+const TOTAL_QUESTIONS = allQuestions.length; // Should be 36 based on spec
+
+// --- Types ---
+type TerminalMode = 'boot' | 'main' | 'auth' | 'register' | 'review' | 'edit' | 'confirm_delete' | 'confirm_new' | 'awaiting_confirmation';
+type AuthSubState = 'idle' | 'awaiting_email' | 'awaiting_password' | 'awaiting_confirm_password';
+type PendingAction = 'signIn' | 'signUp' | 'submitReg' | 'updateReg' | 'deleteReg' | 'checkVerification' | 'resendConfirmation' | 'resetPassword' | null;
 
 interface OutputLine {
     id: number;
     text: string;
-    type: 'input' | 'output' | 'error' | 'success' | 'warning' | 'info' | 'prompt' | 'question';
-    mode?: TerminalMode; // Store mode when line was added for context
-    promptText?: string; // Store the prompt text used
+    type: 'input' | 'output' | 'error' | 'success' | 'warning' | 'info' | 'question' | 'prompt';
+    mode?: TerminalMode;
+    promptText?: string;
 }
+
+// Using Record<string, any> for flexibility, refine if possible
+type FormDataStore = Record<string, any> & {
+    currentQuestionIndex?: number;
+    email?: string;
+    firstName?: string; // Added for early auth
+    lastName?: string; // Added for early auth
+    isVerified?: boolean; // Track if email verification step passed locally (distinct from server confirmation)
+};
+
+interface TerminalState {
+    mode: TerminalMode;
+    outputLines: OutputLine[];
+    currentInput: string;
+    localData: FormDataStore;
+    currentQuestionIndex: number;
+    isAuthenticated: boolean;
+    userEmail: string | null;
+    registrationStatus: 'complete' | 'incomplete' | 'not_started'; // Fetched from server post-auth
+    authSubState: AuthSubState;
+    passwordAttempt: string; // Store first password attempt during signup/auth
+    pendingAction: PendingAction;
+    error: string | null;
+    infoMessage: string | null; // For non-error messages like "Saved."
+    isBooting: boolean;
+}
+
+type TerminalAction =
+    | { type: 'BOOT_COMPLETE'; payload: { isAuthenticated: boolean; email: string | null; localData: FormDataStore } }
+    | { type: 'SET_MODE'; payload: TerminalMode }
+    | { type: 'ADD_OUTPUT'; payload: { text: string; type: OutputLine['type']; promptOverride?: string } }
+    | { type: 'SET_INPUT'; payload: string }
+    | { type: 'PROCESS_INPUT' } // Handled in effect/callback
+    | { type: 'SET_AUTH_STATE'; payload: { isAuthenticated: boolean; email: string | null } }
+    | { type: 'UPDATE_LOCAL_DATA'; payload: Partial<FormDataStore> }
+    | { type: 'SET_QUESTION_INDEX'; payload: number }
+    | { type: 'SET_AUTH_SUBSTATE'; payload: AuthSubState }
+    | { type: 'SET_PASSWORD_ATTEMPT'; payload: string }
+    | { type: 'ACTION_START'; payload: PendingAction }
+    | { type: 'ACTION_SUCCESS'; payload?: { message?: string; userId?: string; requiresConfirmation?: boolean } } // requiresConfirmation for signUpUser
+    | { type: 'ACTION_FAILURE'; payload: string }
+    | { type: 'CLEAR_ERROR' }
+    | { type: 'SET_INFO_MESSAGE'; payload: string | null }
+    | { type: 'CLEAR_OUTPUT' };
+
+// --- Initial State ---
+const initialState: TerminalState = {
+    mode: 'boot',
+    outputLines: [],
+    currentInput: '',
+    localData: {},
+    currentQuestionIndex: 0,
+    isAuthenticated: false,
+    userEmail: null,
+    registrationStatus: 'not_started',
+    authSubState: 'idle',
+    passwordAttempt: '',
+    pendingAction: null,
+    error: null,
+    infoMessage: null,
+    isBooting: true,
+};
+
+// --- Reducer ---
+function terminalReducer(state: TerminalState, action: TerminalAction): TerminalState {
+    switch (action.type) {
+        case 'BOOT_COMPLETE':
+            const { isAuthenticated, email, localData } = action.payload;
+            const initialMode = isAuthenticated ? 'main' : 'main'; // Always start in main after boot
+            // Determine initial registration status based on auth/local data (simplified)
+            const initialRegStatus = isAuthenticated ? 'incomplete' : (localData.currentQuestionIndex !== undefined ? 'incomplete' : 'not_started');
+            return {
+                ...state,
+                isAuthenticated,
+                userEmail: email,
+                localData,
+                currentQuestionIndex: localData.currentQuestionIndex ?? 0,
+                registrationStatus: initialRegStatus, // TODO: Fetch actual status post-auth
+                mode: initialMode,
+                isBooting: false,
+            };
+        case 'SET_MODE':
+            // Reset auth sub-state when changing main modes
+            return { ...state, mode: action.payload, authSubState: 'idle', passwordAttempt: '', error: null, infoMessage: null };
+        case 'ADD_OUTPUT':
+            const newOutputLine: OutputLine = {
+                id: Date.now() + Math.random(), // Simple unique ID
+                text: action.payload.text,
+                type: action.payload.type,
+                mode: state.mode,
+                promptText: action.payload.promptOverride ?? getPromptText(state.mode, state.isAuthenticated, state.userEmail, state.authSubState, state.currentQuestionIndex)
+            };
+            // Avoid adding duplicate consecutive messages of the same type/text
+            const lastLine = state.outputLines[state.outputLines.length - 1];
+            if (lastLine && lastLine.text === newOutputLine.text && lastLine.type === newOutputLine.type) {
+                return state;
+            }
+            return { ...state, outputLines: [...state.outputLines, newOutputLine] };
+        case 'SET_INPUT':
+            return { ...state, currentInput: action.payload };
+        case 'SET_AUTH_STATE':
+            return { ...state, isAuthenticated: action.payload.isAuthenticated, userEmail: action.payload.email };
+        case 'UPDATE_LOCAL_DATA':
+            return { ...state, localData: { ...state.localData, ...action.payload } };
+        case 'SET_QUESTION_INDEX':
+            return { ...state, currentQuestionIndex: action.payload, error: null, infoMessage: null }; // Clear errors on navigation
+        case 'SET_AUTH_SUBSTATE':
+            return { ...state, authSubState: action.payload };
+        case 'SET_PASSWORD_ATTEMPT':
+            return { ...state, passwordAttempt: action.payload };
+        case 'ACTION_START':
+            return { ...state, pendingAction: action.payload, error: null, infoMessage: null };
+        case 'ACTION_SUCCESS':
+            return { ...state, pendingAction: null, error: null, infoMessage: action.payload?.message ?? null };
+        case 'ACTION_FAILURE':
+            return { ...state, pendingAction: null, error: action.payload, infoMessage: null };
+        case 'CLEAR_ERROR':
+            return { ...state, error: null };
+        case 'SET_INFO_MESSAGE':
+            return { ...state, infoMessage: action.payload };
+        case 'CLEAR_OUTPUT':
+            return { ...state, outputLines: [] };
+        default:
+            return state;
+    }
+}
+
+// --- Helper: Get Prompt Text ---
+const getPromptText = (mode: TerminalMode, auth: boolean, email: string | null, authSubState: AuthSubState, questionIndex: number): string => {
+    if (mode === 'auth') {
+        if (authSubState === 'awaiting_email') return '[auth] Email: ';
+        if (authSubState === 'awaiting_password') return '[auth] Password: ';
+    }
+    if (mode === 'register' || mode === 'edit') {
+        const question = allQuestions[questionIndex];
+        if (question) {
+            if (question.id === 'email' && authSubState === 'awaiting_email') return '[reg] Email: ';
+            if (question.id === 'password' && authSubState === 'awaiting_password') return '[reg] Password: ';
+            if (question.id === 'confirmPassword' && authSubState === 'awaiting_confirm_password') return '[reg] Confirm Password: ';
+        }
+        // Default registration prompt shows progress
+        return `[reg ${questionIndex + 1}/${TOTAL_QUESTIONS}]> `;
+    }
+
+    switch (mode) {
+        case 'boot': return '';
+        case 'review': return '[review]> ';
+        case 'confirm_delete': return 'Confirm DELETE> ';
+        case 'confirm_new': return 'Overwrite? (yes/no)> ';
+        case 'awaiting_confirmation': return '[awaiting_confirmation]> ';
+        case 'main':
+        default: return auth && email ? `[${email}]$ ` : '[guest@philosothon]$ ';
+    }
+};
 
 // --- Component ---
 export function RegistrationForm({ initialAuthStatus }: { initialAuthStatus?: { isAuthenticated: boolean; email?: string | null } }) {
-    const [outputLines, setOutputLines] = useState<OutputLine[]>([]);
-    const [currentInput, setCurrentInput] = useState('');
-    const [currentMode, setCurrentMode] = useState<TerminalMode>('boot');
-    // useLocalStorage hook likely returns only [value, setValue]
+    const [state, dispatch] = useReducer(terminalReducer, initialState);
     const [localData, setLocalData] = useLocalStorage<FormDataStore>(LOCAL_STORAGE_KEY, {});
-    const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
-    const [isAuthenticated, setIsAuthenticated] = useState(initialAuthStatus?.isAuthenticated ?? false);
-    const [userEmail, setUserEmail] = useState<string | null>(initialAuthStatus?.email ?? null);
-    const [registrationStatus, setRegistrationStatus] = useState<'complete' | 'incomplete' | 'not_started'>('not_started');
-    const [isPasswordInput, setIsPasswordInput] = useState(false);
-    const [passwordAttempt, setPasswordAttempt] = useState('');
-    const [isComplete, setIsComplete] = useState(false); // Ensure isComplete state exists
-    const [isSubmitting, startSubmitTransition] = useTransition();
-    const [isBooting, setIsBooting] = useState(true);
-    const [isAuthActionPending, startAuthTransition] = useTransition();
+    const [isSubmitting, startSubmitTransition] = useTransition(); // For form actions
 
     const inputRef = useRef<HTMLInputElement>(null);
     const terminalRef = useRef<HTMLDivElement>(null);
-    const outputIdCounter = useRef(0);
     const hasBooted = useRef(false);
-
-    // --- Helper Functions ---
-    const addOutputLine = useCallback((text: string, type: OutputLine['type'], promptOverride?: string) => {
-        setOutputLines(prev => [
-            ...prev,
-            {
-                id: outputIdCounter.current++,
-                text,
-                type,
-                mode: currentMode,
-                promptText: promptOverride ?? getPromptText(currentMode, isAuthenticated, userEmail)
-            }
-        ]);
-    }, [currentMode, isAuthenticated, userEmail]);
-
-    const getPromptText = (mode: TerminalMode, auth: boolean, email: string | null): string => {
-        // Special prompt for password entry during registration
-        if (mode === 'register' && (isPasswordInput || passwordAttempt)) {
-            return '[reg pass]> ';
-        }
-
-        switch (mode) {
-            case 'boot': return '';
-            case 'auth': return '[auth]> ';
-            case 'register':
-            case 'edit':
-                 const qIndex = currentQuestionIndex;
-                 const totalQuestions = questions.length;
-                 // Adjust index for display if needed, but keep internal logic 0-based
-                 // The prompt logic here seems okay, it uses the currentQuestionIndex
-                 return `[reg ${qIndex + 1}/${totalQuestions}]> `;
-            case 'review': return '[review]> ';
-            case 'confirm_delete': return 'Confirm DELETE> ';
-            case 'confirm_new': return 'Overwrite? (yes/no)> ';
-            case 'main':
-            default: return auth && email ? `[${email}]$ ` : '[guest@philosothon]$ ';
-        }
-    };
-
-    const scrollToBottom = useCallback(() => {
-        setTimeout(() => {
-            if (terminalRef.current) {
-                terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
-            }
-        }, 0);
-    }, []);
 
     // --- Effects ---
 
+    // Initial Boot Sequence & Local Storage Load
     useEffect(() => {
         if (hasBooted.current) return;
         hasBooted.current = true;
 
         const runBootLogic = () => {
-            addOutputLine("Initializing Terminal v2.0...", 'info');
-            addOutputLine("Checking session...", 'info');
+            dispatch({ type: 'ADD_OUTPUT', payload: { text: "Initializing Terminal v3.1...", type: 'info' } });
+            dispatch({ type: 'ADD_OUTPUT', payload: { text: "Checking session...", type: 'info' } });
+
+            // Load from local storage first
+            const loadedData = localData ?? {};
+
+            dispatch({
+                type: 'BOOT_COMPLETE',
+                payload: {
+                    isAuthenticated: initialAuthStatus?.isAuthenticated ?? false,
+                    email: initialAuthStatus?.email ?? null,
+                    localData: loadedData
+                }
+            });
 
             if (initialAuthStatus?.isAuthenticated) {
-                setIsAuthenticated(true);
-                setUserEmail(initialAuthStatus.email ?? null);
-                setRegistrationStatus('incomplete'); // Placeholder
-                addOutputLine(`Session found for ${initialAuthStatus.email}.`, 'success');
+                dispatch({ type: 'ADD_OUTPUT', payload: { text: `Session found for ${initialAuthStatus.email}.`, type: 'success' } });
+                // TODO: Fetch actual registration status from server
             } else {
-                addOutputLine("No active session found.", 'info');
-                 if (localData.currentQuestionIndex !== undefined && localData.email) {
-                     addOutputLine("Local registration data found. Use 'register continue' or 'sign-in'.", 'warning');
-                 }
+                dispatch({ type: 'ADD_OUTPUT', payload: { text: "No active session found.", type: 'info' } });
+                if (loadedData.currentQuestionIndex !== undefined) {
+                    dispatch({ type: 'ADD_OUTPUT', payload: { text: "Local registration data found. Use 'register continue' or 'sign-in'.", type: 'warning' } });
+                }
             }
-            addOutputLine("Type 'help' for available commands.", 'info');
-            setCurrentMode('main');
-            setIsBooting(false);
+            dispatch({ type: 'ADD_OUTPUT', payload: { text: "Type 'help' for available commands.", type: 'info' } });
         };
 
-        if (process.env.NODE_ENV === 'test') {
-            // Run synchronously for tests
-            runBootLogic();
-        } else {
-            // Run asynchronously for runtime
-            const bootSequenceAsync = async () => {
-                addOutputLine("Initializing Terminal v2.0...", 'info');
-                await new Promise(r => setTimeout(r, 300));
-                addOutputLine("Checking session...", 'info');
-                await new Promise(r => setTimeout(r, 500));
+        // Simplified boot for now, add async delays later if needed
+        runBootLogic();
 
-                if (initialAuthStatus?.isAuthenticated) {
-                    setIsAuthenticated(true);
-                    setUserEmail(initialAuthStatus.email ?? null);
-                    setRegistrationStatus('incomplete'); // Placeholder
-                    addOutputLine(`Session found for ${initialAuthStatus.email}.`, 'success');
-                } else {
-                    addOutputLine("No active session found.", 'info');
-                     if (localData.currentQuestionIndex !== undefined && localData.email) {
-                         addOutputLine("Local registration data found. Use 'register continue' or 'sign-in'.", 'warning');
-                     }
-                }
-                await new Promise(r => setTimeout(r, 300));
-                addOutputLine("Type 'help' for available commands.", 'info');
-                setCurrentMode('main');
-                setIsBooting(false);
-            };
-            bootSequenceAsync();
-        }
-    }, [addOutputLine, initialAuthStatus, localData, setIsBooting, setIsAuthenticated, setUserEmail, setRegistrationStatus]); // Added all state setters used in boot logic
+    }, [initialAuthStatus, localData]); // Depend on localData read by useLocalStorage
+
+    // Update local storage when state.localData changes
+    useEffect(() => {
+        setLocalData(state.localData);
+    }, [state.localData, setLocalData]);
+
+    // Scroll to bottom and focus input
+    const scrollToBottom = useCallback(() => {
+        setTimeout(() => {
+            terminalRef.current?.scrollTo({ top: terminalRef.current.scrollHeight, behavior: 'smooth' });
+        }, 50); // Short delay ensures content is rendered
+    }, []);
 
     useEffect(() => {
         scrollToBottom();
-        if (currentMode !== 'boot') {
-             setTimeout(() => inputRef.current?.focus(), 50);
+        if (state.mode !== 'boot' && !state.pendingAction) {
+             setTimeout(() => inputRef.current?.focus(), 100); // Delay focus slightly
         }
-    }, [outputLines, currentMode, scrollToBottom]);
+    }, [state.outputLines, state.mode, state.pendingAction, scrollToBottom]);
 
-    // Effect to display the current question label when index/mode changes
+    // Display current question/prompt text
     useEffect(() => {
-        if ((currentMode === 'register' || currentMode === 'edit') && !isPasswordInput) {
-            const question = questions[currentQuestionIndex];
+        if (state.mode === 'register' || state.mode === 'edit') {
+            const question = allQuestions[state.currentQuestionIndex];
             if (question) {
-                addOutputLine(question.label, 'question');
+                // Avoid adding duplicate question prompts if already last line
+                const lastLine = state.outputLines[state.outputLines.length - 1];
+                if (!lastLine || lastLine.text !== question.label || lastLine.type !== 'question') {
+                    dispatch({ type: 'ADD_OUTPUT', payload: { text: question.label, type: 'question' } });
+                    if (question.hint) {
+                         dispatch({ type: 'ADD_OUTPUT', payload: { text: `Hint: ${question.hint}`, type: 'info' } });
+                    }
+                }
             }
+        } else if (state.mode === 'auth') {
+            if (state.authSubState === 'awaiting_email') {
+                dispatch({ type: 'ADD_OUTPUT', payload: { text: "Enter email:", type: 'question' } });
+            } else if (state.authSubState === 'awaiting_password') {
+                dispatch({ type: 'ADD_OUTPUT', payload: { text: "Enter password:", type: 'question' } });
+            }
+        } else if (state.mode === 'awaiting_confirmation') {
+             dispatch({ type: 'ADD_OUTPUT', payload: { text: `Account created. Please check your email (${state.userEmail}) for a confirmation link. Enter 'continue' here once confirmed, or 'resend' to request a new link.`, type: 'info' } });
         }
-        // Intentionally excluding addOutputLine from dependencies to avoid loops
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [currentQuestionIndex, currentMode, isPasswordInput]);
+        // Add other mode-specific prompts if needed
+    }, [state.mode, state.currentQuestionIndex, state.authSubState, state.userEmail, state.outputLines]); // Added outputLines dependency carefully
+
+    // Display info/error messages
+    useEffect(() => {
+        if (state.error) {
+            dispatch({ type: 'ADD_OUTPUT', payload: { text: `Error: ${state.error}`, type: 'error' } });
+            // Optionally re-display hint for current question on error
+            const question = allQuestions[state.currentQuestionIndex];
+            if ((state.mode === 'register' || state.mode === 'edit') && question?.hint) {
+                 dispatch({ type: 'ADD_OUTPUT', payload: { text: `Hint: ${question.hint}`, type: 'info' } });
+            }
+            dispatch({ type: 'CLEAR_ERROR' }); // Clear error after displaying
+        }
+        if (state.infoMessage) {
+            dispatch({ type: 'ADD_OUTPUT', payload: { text: state.infoMessage, type: 'success' } }); // Assuming info is usually success
+            dispatch({ type: 'SET_INFO_MESSAGE', payload: null }); // Clear after displaying
+        }
+    }, [state.error, state.infoMessage, state.mode, state.currentQuestionIndex]);
 
 
-    // --- Command/Input Handling ---
-
+    // --- Input Handling ---
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setCurrentInput(e.target.value);
+        dispatch({ type: 'SET_INPUT', payload: e.target.value });
     };
 
-    const handleSubmit = async (e?: React.FormEvent<HTMLFormElement>) => {
-        e?.preventDefault();
-        const input = currentInput.trim();
-        const currentPrompt = getPromptText(currentMode, isAuthenticated, userEmail);
-
-        // Add output line for the input itself, unless it's a password/confirmation
-        if (!isPasswordInput && !passwordAttempt) {
-            addOutputLine(input, 'input', currentPrompt);
-        } else {
-            // Mask password input in the output log
-            addOutputLine('*'.repeat(input.length), 'input', currentPrompt);
-        }
-
-        setCurrentInput('');
-
-        // --- Early Auth Flow: Password & Confirmation Handling ---
-        if (currentMode === 'register' && localData.email && !localData.isVerified) {
-            // 1. Handling Password Input
-            if (isPasswordInput && !passwordAttempt) {
-                if (input.length >= 8) {
-                    setPasswordAttempt(input);
-                    // setIsPasswordInput(false); // Keep true for confirmation
-                    setIsPasswordInput(true); // Explicitly set true for confirmation prompt
-                    addOutputLine("Confirm password:", 'question');
-                } else {
-                    addOutputLine("Password must be at least 8 characters.", 'error');
-                    addOutputLine("Enter password:", 'question'); // Re-prompt
-                    setIsPasswordInput(true); // Ensure still waiting for password
-                }
-                return; // Stop further processing
-            }
-
-            // 2. Handling Confirmation Input
-            // Corrected condition: Should be true when confirming password
-            if (isPasswordInput && passwordAttempt) {
-                if (input === passwordAttempt) {
-                    addOutputLine("Password confirmed. Creating account...", 'info');
-                    startAuthTransition(async () => {
-                        // Pass firstName and lastName from localData
-                        const result = await signUpUser({
-                            email: localData.email!,
-                            password: passwordAttempt,
-                            firstName: localData.firstName, // Pass stored first name
-                            lastName: localData.lastName   // Pass stored last name
-                        });
-                        if (result.success || result.message.includes('User already registered')) {
-                            addOutputLine(result.success ? "Account created/verified." : "Account already exists, proceeding.", 'success');
-                            setLocalData((prev: FormDataStore) => ({ ...prev, isVerified: true }));
-
-                            // Find the index of the first question *after* email (Q3)
-                            const firstQuestionIndex = questions.findIndex(q => q.order === 3); // Assuming order 3 is the first real question
-                            if (firstQuestionIndex !== -1) {
-                                setCurrentQuestionIndex(firstQuestionIndex);
-                                // Restore question prompt display
-                                addOutputLine(questions[firstQuestionIndex].label, 'question');
-                            } else {
-                                addOutputLine("Error: Could not find the starting question.", 'error');
-                                setCurrentMode('main'); // Fallback to main mode
-                            }
-                            setPasswordAttempt(''); // Clear password attempt
-                            setIsPasswordInput(false); // Exit password input state
-                        } else {
-                            addOutputLine(`Account creation failed: ${result.message}`, 'error');
-                            // Reset to email prompt
-                            const emailIndex = questions.findIndex(q => q.id === 'email');
-                            setCurrentQuestionIndex(emailIndex >= 0 ? emailIndex : 0);
-                            addOutputLine(questions[emailIndex >= 0 ? emailIndex : 0].label, 'question');
-                            setLocalData((prev: FormDataStore) => ({ ...prev, email: undefined, isVerified: undefined }));
-                            setPasswordAttempt('');
-                            setIsPasswordInput(false);
-                        }
-                    });
-                } else {
-                    addOutputLine("Passwords do not match. Try again.", 'error');
-                    addOutputLine("Enter password:", 'question');
-                    setPasswordAttempt('');
-                    setIsPasswordInput(true);
-                }
-                return; // Stop further processing
-            }
-        }
-        // --- End Early Auth Flow ---
-
-
-        // Handle empty input for non-required questions
-        if (!input && (currentMode === 'register' || currentMode === 'edit')) {
-             const question = questions[currentQuestionIndex];
-             if (question && !question.required) {
-                 await processAnswer(''); // Process empty answer for optional question
-                 return;
-             } else if (question && question.required) {
-                 addOutputLine("This field is required.", 'error');
-                 addOutputLine(question.label, 'question'); // Re-prompt
-                 return;
-             }
-             // If no question or other issue, just return
-             return;
-        } else if (!input) {
-             // If input is empty and not in register/edit mode, do nothing
-             return;
-        }
-
-
-        // --- Standard Command Processing ---
+    const processInput = useCallback(async () => {
+        const input = state.currentInput.trim();
         const command = input.toLowerCase();
         const args = input.split(' ').slice(1);
 
+        // Add input to output lines (mask password)
+        const isMasked = state.authSubState === 'awaiting_password' || state.authSubState === 'awaiting_confirm_password';
+        dispatch({
+            type: 'ADD_OUTPUT',
+            payload: {
+                text: isMasked ? '*'.repeat(input.length) : input,
+                type: 'input',
+                promptOverride: getPromptText(state.mode, state.isAuthenticated, state.userEmail, state.authSubState, state.currentQuestionIndex)
+            }
+        });
+
+        dispatch({ type: 'SET_INPUT', payload: '' }); // Clear input field
+
+        if (!input && state.mode !== 'register' && state.mode !== 'edit') return; // Allow empty submit only in reg/edit for optional fields
+
+        // --- Global Commands ---
         if (command === 'help') {
-            handleHelpCommand(args);
+            // TODO: Implement detailed help logic based on mode/args
+            dispatch({ type: 'ADD_OUTPUT', payload: { text: "Help system not fully implemented yet.", type: 'info' } });
             return;
         }
         if (command === 'clear') {
-            setOutputLines([]);
+            dispatch({ type: 'CLEAR_OUTPUT' });
             return;
         }
-         if (command === 'reset') {
-             addOutputLine("This will clear all local data and reload. Are you sure? (yes/no)", 'warning');
-             // TODO: Implement confirmation logic for reset
+        if (command === 'about') {
+             dispatch({ type: 'ADD_OUTPUT', payload: { text: "Philosothon Registration Terminal v3.1", type: 'output' } });
              return;
-         }
+        }
 
+        // --- Mode-Specific Logic ---
         try {
-            switch (currentMode) {
+            switch (state.mode) {
                 case 'main':
                     await handleMainModeCommand(command, args);
                     break;
                 case 'auth':
-                    await handleAuthModeInput(input); // Auth mode handles its own password logic separately
+                    await handleAuthModeInput(input);
                     break;
                 case 'register':
                 case 'edit':
-                    // Check moved to processAnswer to allow initial name/email entry
-                    // if (localData.email && !localData.isVerified) {
-                    //      addOutputLine("Please complete the password setup.", 'warning');
-                    //      return;
-                    // }
                     await handleRegisterModeInput(input, command, args);
                     break;
                 case 'review':
                     await handleReviewModeCommand(command, args);
                     break;
-                 case 'confirm_delete':
-                     await handleConfirmDeleteCommand(command);
-                     break;
-                 case 'confirm_new':
-                     await handleConfirmNewCommand(command);
-                     break;
+                case 'confirm_delete':
+                    await handleConfirmDeleteCommand(command);
+                    break;
+                case 'confirm_new':
+                    await handleConfirmNewCommand(command);
+                    break;
+                case 'awaiting_confirmation':
+                    await handleAwaitingConfirmationCommand(command);
+                    break;
+                default:
+                    dispatch({ type: 'ACTION_FAILURE', payload: `Command processing not implemented for mode: ${state.mode}` });
             }
         } catch (err) {
-             console.error("Command processing error:", err);
-             addOutputLine(`Error: ${(err as Error).message || 'An unexpected error occurred.'}`, 'error');
+            console.error("Input processing error:", err);
+            dispatch({ type: 'ACTION_FAILURE', payload: (err as Error).message || 'An unexpected error occurred.' });
         }
+
+    }, [state, dispatch]); // Include all dependencies used within
+
+    const handleSubmit = (e?: React.FormEvent<HTMLFormElement>) => {
+        e?.preventDefault();
+        processInput();
     };
 
-    // --- Mode-Specific Handlers ---
-
-    const handleHelpCommand = (args: string[]) => {
-        addOutputLine("Available commands:", 'info');
-        let commands: string[] = [];
-        switch (currentMode) {
-            case 'main':
-                commands = isAuthenticated
-                    ? ['view', 'edit', 'delete', 'sign-out', 'help', 'about', 'clear', 'reset']
-                    : ['register new', 'register continue', 'sign-in', 'help', 'about', 'clear', 'reset'];
-                break;
-            case 'auth':
-                commands = ['magiclink', 'reset-password', 'back', 'help', 'clear', 'reset'];
-                break;
-            case 'register':
-            case 'edit':
-                const isRegComplete = questions.every(q =>
-                    !q.required || localData.hasOwnProperty(q.id) ||
-                    (q.dependsOn && localData[q.dependsOn as keyof FormDataStore] !== q.dependsValue)
-                );
-                 commands = ['next', 'prev', 'save', 'exit', 'help', 'clear', 'reset'];
-                 if (isRegComplete) commands.push('submit');
-                break;
-            case 'review':
-                 commands = ['submit', 'edit [number]', 'back', 'help', 'clear', 'reset'];
-                 break;
-             case 'confirm_delete':
-                 commands = ["'DELETE'", 'cancel', 'help'];
-                 break;
-             case 'confirm_new':
-                 commands = ['yes', 'no', 'help'];
-                 break;
-        }
-        addOutputLine(commands.join(', '), 'info');
-    };
+    // --- Command Handlers ---
 
     const handleMainModeCommand = async (command: string, args: string[]) => {
-        if (isAuthenticated) {
-            // Authenticated User Commands
+        if (state.isAuthenticated) {
+            // Authenticated commands
             switch (command) {
-                case 'register': // Allow 'register' to act like 'view' or 'edit' if already registered
+                case 'register': // Treat as view/edit if registered
                 case 'view':
-                    // TODO: Fetch from server instead of localData
-                    addOutputLine("Fetching registration data...", 'info');
-                    addOutputLine(JSON.stringify(localData, null, 2), 'output'); // Placeholder
+                    // TODO: Fetch and display server data
+                    dispatch({ type: 'ADD_OUTPUT', payload: { text: "Viewing registration (placeholder)...", type: 'info' } });
+                    dispatch({ type: 'ADD_OUTPUT', payload: { text: JSON.stringify(state.localData, null, 2), type: 'output' } }); // Show local for now
                     break;
                 case 'edit':
-                    addOutputLine("Entering edit mode...", 'info');
-                    // TODO: Fetch from server first
-                    setCurrentMode('edit');
-                    setCurrentQuestionIndex(0); // Start edit from beginning
-                    setIsPasswordInput(false);
-                    addOutputLine(questions[0].label, 'question');
+                    // TODO: Fetch server data first
+                    dispatch({ type: 'ADD_OUTPUT', payload: { text: "Entering edit mode...", type: 'info' } });
+                    dispatch({ type: 'SET_MODE', payload: 'edit' });
+                    dispatch({ type: 'SET_QUESTION_INDEX', payload: 0 }); // Start edit from beginning
                     break;
                 case 'delete':
-                    addOutputLine("Are you sure? This cannot be undone.", 'warning');
-                    addOutputLine("Type 'DELETE' to confirm, or 'cancel'.", 'warning');
-                    setCurrentMode('confirm_delete');
+                    dispatch({ type: 'ADD_OUTPUT', payload: { text: "Are you sure? This cannot be undone.", type: 'warning' } });
+                    dispatch({ type: 'ADD_OUTPUT', payload: { text: "Type 'DELETE' to confirm, or 'cancel'.", type: 'warning' } });
+                    dispatch({ type: 'SET_MODE', payload: 'confirm_delete' });
                     break;
                 case 'sign-out':
-                    addOutputLine("Signing out...", 'info');
-                    startAuthTransition(async () => {
+                    dispatch({ type: 'ACTION_START', payload: 'signIn' }); // Reusing signIn for consistency
+                    startSubmitTransition(async () => {
                         const result = await signOut();
                         if (result.success) {
-                            addOutputLine(result.message, 'success');
-                            setIsAuthenticated(false);
-                            setUserEmail(null);
-                            setRegistrationStatus('not_started');
-                            setLocalData({}); // Use setter to clear
+                            dispatch({ type: 'ACTION_SUCCESS', payload: { message: result.message } });
+                            dispatch({ type: 'SET_AUTH_STATE', payload: { isAuthenticated: false, email: null } });
+                            dispatch({ type: 'UPDATE_LOCAL_DATA', payload: {} }); // Clear local data on sign out
+                            dispatch({ type: 'SET_MODE', payload: 'main' });
                         } else {
-                            addOutputLine(`Sign out failed: ${result.message}`, 'error');
+                            dispatch({ type: 'ACTION_FAILURE', payload: result.message });
                         }
-                        setCurrentMode('main');
                     });
                     break;
-                case 'about':
-                     addOutputLine("Philosothon Registration Terminal v2.0", 'output');
-                     break;
                 default:
-                    addOutputLine(`Unknown command: ${command}. Type 'help'.`, 'error');
+                    dispatch({ type: 'ACTION_FAILURE', payload: `Unknown command: ${command}` });
             }
         } else {
-            // Anonymous User Commands
+            // Anonymous commands
             switch (command) {
-                 case 'register':
-                     // Display sub-menu if no arguments provided
-                     if (args.length === 0) {
-                         addOutputLine("Usage: register [new|continue]", 'info');
-                         addOutputLine("  new       - Start a new registration.", 'output');
-                         if (localData.currentQuestionIndex !== undefined && localData.email) {
-                             addOutputLine("  continue  - Resume previous registration.", 'output');
-                         }
-                         addOutputLine("  back      - Return to main menu.", 'output');
-                     } else if (args[0] === 'new') {
-                         if (localData.currentQuestionIndex !== undefined && localData.email) {
-                             addOutputLine("Existing local data found. Overwrite? (yes/no)", 'warning');
-                             setCurrentMode('confirm_new');
-                         } else {
-                             handleStartNewRegistration();
-                         }
-                     } else if (args[0] === 'continue') {
-                         if (localData.currentQuestionIndex !== undefined && localData.email) {
-                             addOutputLine("Resuming registration...", 'info');
-                             setCurrentMode('register');
-                             const resumeIndex = Math.max(0, Math.min(localData.currentQuestionIndex, questions.length -1));
-                             setCurrentQuestionIndex(resumeIndex);
-                             setIsPasswordInput(false); // Ensure password input is off when resuming
-                             addOutputLine(questions[resumeIndex].label, 'question');
-                         } else {
-                             addOutputLine("No registration in progress found. Use 'register new'.", 'error');
-                         }
-                     } else if (args[0] === 'back') {
-                         // Already handled by default case if needed, or just ignore
-                     } else {
-                         addOutputLine(`Invalid argument for register: ${args[0]}. Use 'new' or 'continue'.`, 'error');
-                     }
-                     break;
-                 // Keep 'register new' and 'register continue' for direct access if needed, though 'register' handles them now.
-                 case 'register new': // Allow direct command
-                     if (localData.currentQuestionIndex !== undefined && localData.email) {
-                         addOutputLine("Existing local data found. Overwrite? (yes/no)", 'warning');
-                         setCurrentMode('confirm_new');
-                     } else {
-                         handleStartNewRegistration();
-                     }
-                     break;
-                 case 'register continue': // Allow direct command
-                     if (localData.currentQuestionIndex !== undefined && localData.email) {
-                         addOutputLine("Resuming registration...", 'info');
-                         setCurrentMode('register');
-                         const resumeIndex = Math.max(0, Math.min(localData.currentQuestionIndex, questions.length -1));
-                         setCurrentQuestionIndex(resumeIndex);
-                         setIsPasswordInput(false);
-                         addOutputLine(questions[resumeIndex].label, 'question');
-                     } else {
-                         addOutputLine("No registration in progress found. Use 'register new'.", 'error');
-                     }
-                     break;
-                case 'sign-in':
-                    addOutputLine("Entering authentication mode...", 'info');
-                    setCurrentMode('auth');
-                    addOutputLine("Enter email:", 'question');
-                    setIsPasswordInput(false);
-                    setPasswordAttempt('');
+                case 'register':
+                    if (args[0] === 'new') {
+                        if (state.localData.currentQuestionIndex !== undefined) {
+                            dispatch({ type: 'ADD_OUTPUT', payload: { text: "Existing local data found. Overwrite? (yes/no)", type: 'warning' } });
+                            dispatch({ type: 'SET_MODE', payload: 'confirm_new' });
+                        } else {
+                            handleStartNewRegistration();
+                        }
+                    } else if (args[0] === 'continue') {
+                        if (state.localData.currentQuestionIndex !== undefined) {
+                            dispatch({ type: 'ADD_OUTPUT', payload: { text: "Resuming registration...", type: 'info' } });
+                            dispatch({ type: 'SET_MODE', payload: 'register' });
+                            // Resume index is already set during boot
+                        } else {
+                            dispatch({ type: 'ACTION_FAILURE', payload: "No registration in progress found." });
+                        }
+                    } else {
+                        dispatch({ type: 'ADD_OUTPUT', payload: { text: "Usage: register [new|continue]", type: 'info' } });
+                    }
                     break;
-                 case 'about':
-                     addOutputLine("Philosothon Registration Terminal v2.0", 'output');
+                case 'sign-in':
+                    dispatch({ type: 'SET_MODE', payload: 'auth' });
+                    dispatch({ type: 'SET_AUTH_SUBSTATE', payload: 'awaiting_email' });
+                    break;
+                case 'reset-password': // Allow from main mode too
+                     dispatch({ type: 'SET_MODE', payload: 'auth' });
+                     dispatch({ type: 'SET_AUTH_SUBSTATE', payload: 'awaiting_email' }); // Need email first
+                     dispatch({ type: 'ADD_OUTPUT', payload: { text: "Enter email to send reset link:", type: 'question' } });
+                     // Logic to trigger reset will be in handleAuthModeInput
                      break;
                 default:
-                    addOutputLine(`Unknown command: ${command}. Type 'help'.`, 'error');
+                    dispatch({ type: 'ACTION_FAILURE', payload: `Unknown command: ${command}` });
             }
         }
     };
 
-     const handleConfirmDeleteCommand = async (command: string) => {
-         if (command === 'delete') {
-             addOutputLine("Deleting registration...", 'warning');
-             startSubmitTransition(async () => {
-                 const result = await deleteRegistration();
-                 if (result.success) {
-                     addOutputLine("Registration deleted successfully.", 'success');
-                     setRegistrationStatus('not_started');
-                     setLocalData({}); // Use setter to clear
+    const handleAuthModeInput = async (input: string) => {
+        const command = input.toLowerCase(); // Check for commands within auth mode
+
+        if (command === 'back' || command === 'exit') {
+            dispatch({ type: 'SET_MODE', payload: 'main' });
+            dispatch({ type: 'UPDATE_LOCAL_DATA', payload: { email: undefined } }); // Clear email attempt
+            return;
+        }
+         if (command === 'reset-password') {
+             if (state.localData.email) {
+                 dispatch({ type: 'ACTION_START', payload: 'resetPassword' });
+                 startSubmitTransition(async () => {
+                     const result = await requestPasswordReset({ email: state.localData.email! });
+                     if (result.success) {
+                         dispatch({ type: 'ACTION_SUCCESS', payload: { message: result.message } });
+                         dispatch({ type: 'SET_MODE', payload: 'main' }); // Go back to main after request
+                     } else {
+                         dispatch({ type: 'ACTION_FAILURE', payload: result.message });
+                         // Stay in auth mode, maybe clear email?
+                         dispatch({ type: 'SET_AUTH_SUBSTATE', payload: 'awaiting_email' });
+                         dispatch({ type: 'UPDATE_LOCAL_DATA', payload: { email: undefined } });
+                     }
+                 });
+             } else {
+                 dispatch({ type: 'ACTION_FAILURE', payload: "Enter email first to reset password." });
+                 dispatch({ type: 'SET_AUTH_SUBSTATE', payload: 'awaiting_email' });
+             }
+             return;
+         }
+         // TODO: Handle magiclink command if needed
+
+        switch (state.authSubState) {
+            case 'awaiting_email':
+                if (input && input.includes('@')) {
+                    dispatch({ type: 'UPDATE_LOCAL_DATA', payload: { email: input } });
+                    dispatch({ type: 'SET_AUTH_SUBSTATE', payload: 'awaiting_password' });
+                } else {
+                    dispatch({ type: 'ACTION_FAILURE', payload: "Invalid email format." });
+                }
+                break;
+            case 'awaiting_password':
+                dispatch({ type: 'ACTION_START', payload: 'signIn' });
+                startSubmitTransition(async () => {
+                    const result = await signInWithPassword({ email: state.localData.email!, password: input });
+                    if (result.success) {
+                        dispatch({ type: 'ACTION_SUCCESS', payload: { message: result.message } });
+                        dispatch({ type: 'SET_AUTH_STATE', payload: { isAuthenticated: true, email: state.localData.email! } });
+                        // TODO: Fetch registration status
+                        dispatch({ type: 'SET_MODE', payload: 'main' });
+                    } else {
+                        dispatch({ type: 'ACTION_FAILURE', payload: result.message });
+                        // Reset to email prompt on failure
+                        dispatch({ type: 'SET_AUTH_SUBSTATE', payload: 'awaiting_email' });
+                        dispatch({ type: 'UPDATE_LOCAL_DATA', payload: { email: undefined } });
+                    }
+                });
+                break;
+            default:
+                 dispatch({ type: 'ACTION_FAILURE', payload: `Invalid auth state: ${state.authSubState}` });
+        }
+    };
+
+    const handleRegisterModeInput = async (input: string, command: string, args: string[]) => {
+        // Handle commands first
+        switch (command) {
+            case 'next':
+                // Validate current before moving? Or allow skipping optional? Let's allow skipping optional.
+                const nextIndex = findNextQuestionIndex(state.currentQuestionIndex, state.localData);
+                if (nextIndex < allQuestions.length) {
+                    dispatch({ type: 'SET_QUESTION_INDEX', payload: nextIndex });
+                } else {
+                    checkAndHandleCompletion(state.localData); // Check if complete
+                }
+                return;
+            case 'prev':
+                 const prevIndex = findPrevQuestionIndex(state.currentQuestionIndex, state.localData);
+                 if (prevIndex >= 0) {
+                     dispatch({ type: 'SET_QUESTION_INDEX', payload: prevIndex });
                  } else {
-                     addOutputLine(`Error: ${result.message}`, 'error');
+                      dispatch({ type: 'SET_INFO_MESSAGE', payload: "Already at the first question." });
                  }
-                 setCurrentMode('main');
+                return;
+            case 'save':
+                // Local data is saved on every valid answer via UPDATE_LOCAL_DATA
+                dispatch({ type: 'SET_INFO_MESSAGE', payload: "Progress saved locally." });
+                return;
+            case 'exit':
+            case 'back': // Simple back = exit for now
+                dispatch({ type: 'SET_INFO_MESSAGE', payload: "Exiting registration..." });
+                dispatch({ type: 'SET_MODE', payload: 'main' });
+                return;
+            case 'submit':
+                 if (checkCompletion(state.localData)) {
+                     handleFinalSubmit();
+                 } else {
+                     dispatch({ type: 'ACTION_FAILURE', payload: "Please complete all required questions." });
+                 }
+                 return;
+             case 'review':
+                 handleReviewCommand();
+                 dispatch({ type: 'SET_MODE', payload: 'review' });
+                 return;
+            // No 'edit' command here, handled in review mode
+        }
+
+        // If not a command, process as an answer
+        await processAnswer(input);
+    };
+
+    const processAnswer = async (answer: string) => {
+        const question = allQuestions[state.currentQuestionIndex];
+        if (!question) return;
+
+        // --- Early Auth Flow within processAnswer ---
+        if (question.id === 'firstName') {
+             if (!answer && question.required) {
+                 dispatch({ type: 'ACTION_FAILURE', payload: "First name is required." }); return;
+             }
+             dispatch({ type: 'UPDATE_LOCAL_DATA', payload: { firstName: answer } });
+             advanceToNextQuestion(answer); return;
+        }
+        if (question.id === 'lastName') {
+             if (!answer && question.required) {
+                 dispatch({ type: 'ACTION_FAILURE', payload: "Last name is required." }); return;
+             }
+             dispatch({ type: 'UPDATE_LOCAL_DATA', payload: { lastName: answer } });
+             advanceToNextQuestion(answer); return;
+        }
+        if (question.id === 'email') {
+            if (!answer.includes('@')) {
+                dispatch({ type: 'ACTION_FAILURE', payload: "Invalid email format." }); return;
+            }
+            dispatch({ type: 'UPDATE_LOCAL_DATA', payload: { email: answer } });
+            dispatch({ type: 'SET_AUTH_SUBSTATE', payload: 'awaiting_password' }); // Move to password
+            // Don't advance index here, stay on 'email' conceptually until password done
+            return;
+        }
+        if (question.id === 'password') {
+            if (answer.length < 8) {
+                dispatch({ type: 'ACTION_FAILURE', payload: "Password must be at least 8 characters." }); return;
+            }
+            dispatch({ type: 'SET_PASSWORD_ATTEMPT', payload: answer });
+            dispatch({ type: 'SET_AUTH_SUBSTATE', payload: 'awaiting_confirm_password' });
+            // Stay on 'password' conceptually
+            return;
+        }
+        if (question.id === 'confirmPassword') {
+            if (answer !== state.passwordAttempt) {
+                dispatch({ type: 'ACTION_FAILURE', payload: "Passwords do not match." });
+                // Reset to password entry
+                dispatch({ type: 'SET_AUTH_SUBSTATE', payload: 'awaiting_password' });
+                dispatch({ type: 'SET_PASSWORD_ATTEMPT', payload: '' });
+                // Find password index and set it? Or just let user re-enter? Let's reset.
+                const passwordIndex = allQuestions.findIndex(q => q.id === 'password');
+                dispatch({ type: 'SET_QUESTION_INDEX', payload: passwordIndex >= 0 ? passwordIndex : state.currentQuestionIndex });
+                return;
+            }
+            // Passwords match - Trigger signUpUser
+            dispatch({ type: 'ACTION_START', payload: 'signUp' });
+            startSubmitTransition(async () => {
+                const result = await signUpUser({
+                    email: state.localData.email!,
+                    password: state.passwordAttempt,
+                    firstName: state.localData.firstName,
+                    lastName: state.localData.lastName
+                });
+
+                if (result.success) {
+                    // Check spec: Existing user detection
+                    if (result.message.includes('User already registered')) { // Adjust based on actual Supabase error
+                         dispatch({ type: 'ACTION_FAILURE', payload: "An account with this email already exists. Please use 'sign-in' or 'reset-password'." });
+                         dispatch({ type: 'SET_MODE', payload: 'main' }); // Return to main as per spec
+                         dispatch({ type: 'UPDATE_LOCAL_DATA', payload: { email: undefined, firstName: undefined, lastName: undefined } }); // Clear sensitive info
+                    }
+                    // Check spec: Confirmation required? Assume yes for now based on spec text.
+                    else if (true) { // Replace with actual check if Supabase provides it in result
+                         dispatch({ type: 'ACTION_SUCCESS', payload: { message: "Account created. Awaiting email confirmation." } });
+                         dispatch({ type: 'UPDATE_LOCAL_DATA', payload: { isVerified: false } }); // Mark locally as awaiting server confirmation
+                         dispatch({ type: 'SET_AUTH_SUBSTATE', payload: 'idle' });
+                         dispatch({ type: 'SET_PASSWORD_ATTEMPT', payload: '' });
+                         dispatch({ type: 'SET_MODE', payload: 'awaiting_confirmation' });
+                         // User email is already set from BOOT_COMPLETE or previous steps
+                    }
+                    // Optional: Handle case where confirmation is NOT required
+                    // else {
+                    //     dispatch({ type: 'ACTION_SUCCESS', payload: { message: "Account created successfully." } });
+                    //     dispatch({ type: 'UPDATE_LOCAL_DATA', payload: { isVerified: true } }); // Mark locally as verified
+                    //     dispatch({ type: 'SET_AUTH_SUBSTATE', payload: 'idle' });
+                    //     dispatch({ type: 'SET_PASSWORD_ATTEMPT', payload: '' });
+                    //     // Advance to the first *real* question (Q3)
+                    //     const firstQIndex = allQuestions.findIndex(q => q.order === 3);
+                    //     dispatch({ type: 'SET_QUESTION_INDEX', payload: firstQIndex >= 0 ? firstQIndex : 0 });
+                    // }
+                } else {
+                    dispatch({ type: 'ACTION_FAILURE', payload: `Account creation failed: ${result.message}` });
+                    // Reset to email prompt? Or password? Let's go back to password.
+                    dispatch({ type: 'SET_AUTH_SUBSTATE', payload: 'awaiting_password' });
+                    dispatch({ type: 'SET_PASSWORD_ATTEMPT', payload: '' });
+                    const passwordIndex = allQuestions.findIndex(q => q.id === 'password');
+                    dispatch({ type: 'SET_QUESTION_INDEX', payload: passwordIndex >= 0 ? passwordIndex : state.currentQuestionIndex });
+                }
+            });
+            return; // Stop processing after handling confirmPassword
+        }
+        // --- End Early Auth Flow ---
+
+
+        // --- Standard Answer Processing & Validation ---
+        let processedAnswerValue: any = answer;
+        let validationError: string | undefined = undefined;
+
+        if (question.required && !answer) {
+            validationError = "This field is required.";
+        } else if (answer) { // Only validate non-empty answers further (unless required check failed)
+            // TODO: Implement detailed validation based on question.type and question.validationRules
+            // Example:
+            if (question.type === 'number' || question.type === 'scale') {
+                const num = parseInt(answer, 10);
+                if (isNaN(num)) validationError = "Invalid number.";
+                // Add min/max checks from validationRules
+                processedAnswerValue = num;
+            } else if (question.type === 'boolean') {
+                 const lower = answer.toLowerCase();
+                 if (['yes', 'y', '1'].includes(lower)) processedAnswerValue = true;
+                 else if (['no', 'n', '2'].includes(lower)) processedAnswerValue = false;
+                 else validationError = "Invalid input. Please enter 'yes' or 'no'.";
+            } else if (question.type === 'multi-select-numbered') {
+                 const nums = answer.split(' ').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
+                 // TODO: Add validation (valid options, min/max selections)
+                 processedAnswerValue = nums;
+            } else if (question.type === 'ranking-numbered') {
+                 // TODO: Implement parsing and validation (format, unique, minRanked)
+                 processedAnswerValue = answer; // Placeholder
+            }
+            // Add email pattern check etc.
+        }
+
+        if (validationError) {
+            dispatch({ type: 'ACTION_FAILURE', payload: validationError });
+            return;
+        }
+
+        // Save valid answer and advance
+        dispatch({ type: 'UPDATE_LOCAL_DATA', payload: { [question.id]: processedAnswerValue } });
+        advanceToNextQuestion(processedAnswerValue);
+    };
+
+    const advanceToNextQuestion = (currentAnswer: any) => {
+         const nextIndex = findNextQuestionIndex(state.currentQuestionIndex, { ...state.localData, [allQuestions[state.currentQuestionIndex].id]: currentAnswer });
+         if (nextIndex >= allQuestions.length) {
+             checkAndHandleCompletion({ ...state.localData, [allQuestions[state.currentQuestionIndex].id]: currentAnswer });
+         } else {
+             dispatch({ type: 'SET_QUESTION_INDEX', payload: nextIndex });
+         }
+    };
+
+    const findNextQuestionIndex = (currentIndex: number, currentData: FormDataStore): number => {
+        let nextIndex = currentIndex + 1;
+        while (nextIndex < allQuestions.length) {
+            const nextQuestion = allQuestions[nextIndex];
+            // Skip auth questions if already handled
+            if (['firstName', 'lastName', 'email', 'password', 'confirmPassword'].includes(nextQuestion.id)) {
+                 nextIndex++; continue;
+            }
+            if (nextQuestion.dependsOn) {
+                const dependencyValue = currentData[nextQuestion.dependsOn as keyof FormDataStore];
+                if (dependencyValue !== nextQuestion.dependsValue) {
+                    nextIndex++; continue; // Skip if dependency not met
+                }
+            }
+            return nextIndex; // Found valid next question
+        }
+        return nextIndex; // Return length if no more questions
+    };
+
+     const findPrevQuestionIndex = (currentIndex: number, currentData: FormDataStore): number => {
+         let prevIndex = currentIndex - 1;
+         while (prevIndex >= 0) {
+             const prevQuestion = allQuestions[prevIndex];
+             // Skip auth questions
+             if (['firstName', 'lastName', 'email', 'password', 'confirmPassword'].includes(prevQuestion.id)) {
+                  prevIndex--; continue;
+             }
+             if (prevQuestion.dependsOn) {
+                 const dependencyValue = currentData[prevQuestion.dependsOn as keyof FormDataStore];
+                 // This logic might be complex - if going back *changes* a dependency, subsequent questions might become invalid.
+                 // For simplicity, just check if it *would* have been shown based on current data.
+                 if (dependencyValue !== prevQuestion.dependsValue) {
+                     prevIndex--; continue; // Skip if dependency not met
+                 }
+             }
+             return prevIndex; // Found valid previous question
+         }
+         // Return -1 or 0 if no valid previous question (adjust based on desired behavior at start)
+         // Let's return index of first *real* question (Q3) if we go before it.
+         const firstQIndex = allQuestions.findIndex(q => q.order === 3);
+         return Math.max(prevIndex, firstQIndex >= 0 ? firstQIndex : 0);
+     };
+
+    const checkCompletion = (data: FormDataStore): boolean => {
+        // Filter out auth questions for completion check
+        const registrationQuestions = allQuestions.filter(q => !['firstName', 'lastName', 'email', 'password', 'confirmPassword'].includes(q.id));
+        return registrationQuestions.every(q => {
+            if (!q.required) return true; // Skip optional
+            // Skip if dependency not met
+            if (q.dependsOn && data[q.dependsOn as keyof FormDataStore] !== q.dependsValue) return true;
+            // Check if required question has an answer
+            const answer = data[q.id as keyof FormDataStore];
+            return answer !== undefined && answer !== null && answer !== '';
+        });
+    };
+
+     const checkAndHandleCompletion = (data: FormDataStore) => {
+         if (checkCompletion(data)) {
+             dispatch({ type: 'SET_INFO_MESSAGE', payload: "All questions answered. Review your answers." });
+             dispatch({ type: 'SET_MODE', payload: 'review' });
+             handleReviewCommand(); // Display review immediately
+         } else {
+             // Should not happen if findNextQuestionIndex is correct, but handle defensively
+             dispatch({ type: 'ACTION_FAILURE', payload: "Reached end but not all required questions answered." });
+         }
+     };
+
+    const handleReviewCommand = () => {
+        dispatch({ type: 'ADD_OUTPUT', payload: { text: "--- Review Answers ---", type: 'info' } });
+        allQuestions.forEach((q, idx) => {
+            // Skip auth questions in review
+            if (['password', 'confirmPassword'].includes(q.id)) return;
+            const answer = state.localData[q.id as keyof FormDataStore];
+            const displayAnswer = answer === undefined || answer === null ? '[Not Answered]' : JSON.stringify(answer); // Stringify arrays/objects
+            dispatch({ type: 'ADD_OUTPUT', payload: { text: `${idx + 1}. ${q.label}: ${displayAnswer}`, type: 'output' } });
+        });
+        dispatch({ type: 'ADD_OUTPUT', payload: { text: "--- End Review ---", type: 'info' } });
+        dispatch({ type: 'ADD_OUTPUT', payload: { text: "Use 'submit', 'edit [number]', or 'back'.", type: 'info' } });
+    };
+
+    const handleReviewModeCommand = async (command: string, args: string[]) => {
+        switch(command) {
+            case 'submit':
+                handleFinalSubmit();
+                break;
+            case 'edit':
+                const indexStr = args[0];
+                const indexToEdit = parseInt(indexStr, 10) - 1; // User enters 1-based index
+                if (!isNaN(indexToEdit) && indexToEdit >= 0 && indexToEdit < allQuestions.length) {
+                     const questionToEdit = allQuestions[indexToEdit];
+                     // Prevent editing auth fields directly here
+                     if (['firstName', 'lastName', 'email', 'password', 'confirmPassword'].includes(questionToEdit.id)) {
+                          dispatch({ type: 'ACTION_FAILURE', payload: "Cannot edit authentication fields directly." });
+                          return;
+                     }
+                     dispatch({ type: 'ADD_OUTPUT', payload: { text: `Editing question ${indexToEdit + 1}: ${questionToEdit.label}`, type: 'info' } });
+                     dispatch({ type: 'SET_MODE', payload: 'edit' });
+                     dispatch({ type: 'SET_QUESTION_INDEX', payload: indexToEdit });
+                     // Pre-fill input? Maybe not, let them re-enter.
+                } else {
+                     dispatch({ type: 'ACTION_FAILURE', payload: "Invalid question number. Use 'edit [number]' based on review list." });
+                }
+                break;
+            case 'back':
+                dispatch({ type: 'SET_MODE', payload: 'main' });
+                break;
+            default:
+                 dispatch({ type: 'ACTION_FAILURE', payload: `Unknown command: ${command}` });
+        }
+    };
+
+    const handleConfirmDeleteCommand = async (command: string) => {
+         if (command === 'delete') {
+             dispatch({ type: 'ACTION_START', payload: 'deleteReg' });
+             startSubmitTransition(async () => {
+                 // const result = await deleteRegistration(); // Assumes action exists
+                 const result = { success: true, message: "Registration deleted (simulated)." }; // Placeholder
+                 if (result.success) {
+                     dispatch({ type: 'ACTION_SUCCESS', payload: { message: result.message } });
+                     dispatch({ type: 'UPDATE_LOCAL_DATA', payload: {} }); // Clear local
+                     dispatch({ type: 'SET_MODE', payload: 'main' });
+                     // TODO: Update registrationStatus state
+                 } else {
+                     dispatch({ type: 'ACTION_FAILURE', payload: result.message });
+                     dispatch({ type: 'SET_MODE', payload: 'main' }); // Go back on failure too
+                 }
              });
          } else if (command === 'cancel') {
-             addOutputLine("Deletion cancelled.", 'info');
-             setCurrentMode('main');
+             dispatch({ type: 'SET_INFO_MESSAGE', payload: "Deletion cancelled." });
+             dispatch({ type: 'SET_MODE', payload: 'main' });
          } else {
-             addOutputLine("Invalid confirmation. Type 'DELETE' or 'cancel'.", 'error');
+             dispatch({ type: 'ACTION_FAILURE', payload: "Invalid confirmation. Type 'DELETE' or 'cancel'." });
          }
      };
 
@@ -520,517 +857,144 @@ export function RegistrationForm({ initialAuthStatus }: { initialAuthStatus?: { 
          if (command === 'yes') {
              handleStartNewRegistration();
          } else if (command === 'no') {
-             addOutputLine("Operation cancelled. Use 'register continue' or 'sign-in'.", 'info');
-             setCurrentMode('main');
+             dispatch({ type: 'SET_INFO_MESSAGE', payload: "Operation cancelled." });
+             dispatch({ type: 'SET_MODE', payload: 'main' });
          } else {
-             addOutputLine("Invalid input. Type 'yes' or 'no'.", 'error');
+             dispatch({ type: 'ACTION_FAILURE', payload: "Invalid input. Type 'yes' or 'no'." });
          }
      };
 
      const handleStartNewRegistration = () => {
-         setLocalData({}); // Use setter to clear data
-         addOutputLine("Starting new registration...", 'info');
-         // Add introductory text from Spec V3.1 Section 3.2.2
-         addOutputLine("Welcome to the Philosothon registration form! This questionnaire will help us understand your interests, background, and preferences to create balanced teams and select themes that resonate with participants. The event will take place on April 26-27, 2025. Completing this form should take approximately 10-15 minutes. Please submit your responses by Thursday, April 24th at midnight.", 'output');
-         setCurrentMode('register');
-         // Start with First Name (Q1a, assuming index 0)
-         setCurrentQuestionIndex(0);
-         setIsPasswordInput(false); // Ensure password mode is off initially
-         setPasswordAttempt(''); // Clear any previous attempts
-         setLocalData((prev: FormDataStore) => ({ ...prev, isVerified: undefined })); // Reset verification status
-         // Remove prompt add - JSX rendering handles initial prompt
-         // addOutputLine(questions[0].label, 'question');
+         dispatch({ type: 'UPDATE_LOCAL_DATA', payload: {} }); // Clear data
+         dispatch({ type: 'ADD_OUTPUT', payload: { text: "Starting new registration...", type: 'info' } });
+         dispatch({ type: 'ADD_OUTPUT', payload: { text: "Welcome to the Philosothon registration form! ... Please submit your responses by Thursday, April 24th at midnight.", type: 'output' } }); // Add full intro text
+         dispatch({ type: 'SET_MODE', payload: 'register' });
+         // Start with First Name (assuming it's the first relevant question)
+         const firstNameIndex = allQuestions.findIndex(q => q.id === 'firstName');
+         dispatch({ type: 'SET_QUESTION_INDEX', payload: firstNameIndex >= 0 ? firstNameIndex : 0 });
+         dispatch({ type: 'SET_AUTH_SUBSTATE', payload: 'idle' }); // Reset auth substate
+         dispatch({ type: 'SET_PASSWORD_ATTEMPT', payload: '' });
      };
- 
-    const handleAuthModeInput = async (input: string) => {
-        const command = input.toLowerCase();
-         if (command === 'back') {
-             addOutputLine("Returning to main menu...", 'info');
-             setCurrentMode('main');
-             setLocalData((prev: FormDataStore) => ({ ...prev, email: undefined })); // Add type
-             setIsPasswordInput(false);
-             setPasswordAttempt('');
-             return;
-         }
-         if (command === 'help' || command === 'magiclink' || command === 'reset-password') {
-             await handleAuthModeCommandInternal(command);
-             return;
-         }
 
-        if (!localData.email) {
-            if (input && input.includes('@')) {
-                setLocalData((prev: FormDataStore) => ({ ...prev, email: input })); // Add type
-                addOutputLine("Enter password:", 'question');
-                setIsPasswordInput(true);
-                setPasswordAttempt('');
-                return; // Stop execution here to wait for password input
-            } else {
-                addOutputLine("Invalid email format. Please try again.", 'error');
-                addOutputLine("Enter email:", 'question');
-            }
-        } else {
-            addOutputLine("Authenticating...", 'info');
-            setIsPasswordInput(false);
-            startAuthTransition(async () => {
-                const result = await signInWithPassword({ email: localData.email!, password: input });
-                if (result.success) {
-                    addOutputLine(result.message, 'success');
-                    setIsAuthenticated(true);
-                    setUserEmail(localData.email ?? null); // Ensure null if undefined
-                    setRegistrationStatus('incomplete');
-                    setCurrentMode('main');
-                } else {
-                    addOutputLine(`Authentication failed: ${result.message}`, 'error');
-                    addOutputLine("Enter email:", 'question');
-                    setLocalData((prev: FormDataStore) => ({ ...prev, email: undefined })); // Add type
-                }
-            });
-        }
-    };
-
-    const handleAuthModeCommandInternal = async (command: string) => {
-        switch (command) {
-            case 'magiclink':
-                if (localData.email) {
-                     addOutputLine(`Requesting magic link for ${localData.email}...`, 'info');
-                     startAuthTransition(async () => {
-                         const result = await requestPasswordReset({ email: localData.email! });
-                         if (result.success) {
-                             addOutputLine("Magic link request sent. Check your email.", 'success');
-                             setCurrentMode('main');
-                         } else {
-                             addOutputLine(`Failed to send magic link: ${result.message}`, 'error');
-                         }
-                     });
-                } else {
-                     addOutputLine("Please enter your email first.", 'error');
-                }
-                break;
-            case 'reset-password':
-                 if (localData.email) {
-                     addOutputLine(`Requesting password reset for ${localData.email}...`, 'info');
-                      startAuthTransition(async () => {
-                         const result = await requestPasswordReset({ email: localData.email! });
-                         if (result.success) {
-                             addOutputLine("Password reset email sent. Check your email.", 'success');
-                             setCurrentMode('main');
-                         } else {
-                             addOutputLine(`Failed to send reset email: ${result.message}`, 'error');
-                         }
-                     });
-                 } else {
-                     addOutputLine("Please enter your email first to reset password.", 'error');
-                 }
-                 break;
-             case 'help':
-                  handleHelpCommand([]);
+     const handleAwaitingConfirmationCommand = async (command: string) => {
+          switch(command) {
+              case 'continue':
+                  dispatch({ type: 'ACTION_START', payload: 'checkVerification' });
+                  startSubmitTransition(async () => {
+                      const result = await checkUserVerificationStatus();
+                      if (result.success) {
+                          dispatch({ type: 'ACTION_SUCCESS', payload: { message: "Email confirmed. Proceeding..." } });
+                          dispatch({ type: 'UPDATE_LOCAL_DATA', payload: { isVerified: true } }); // Mark verified locally
+                          // Find first *real* question index (Q3)
+                          const firstQIndex = allQuestions.findIndex(q => q.order === 3);
+                          dispatch({ type: 'SET_QUESTION_INDEX', payload: firstQIndex >= 0 ? firstQIndex : 0 });
+                          dispatch({ type: 'SET_MODE', payload: 'register' });
+                      } else {
+                          dispatch({ type: 'ACTION_FAILURE', payload: result.message });
+                          // Stay in awaiting_confirmation mode
+                      }
+                  });
                   break;
-            default:
-                 addOutputLine(`Unknown command in auth mode: ${command}.`, 'error');
-        }
-    };
-
-    const handleRegisterModeInput = async (input: string, command: string, args: string[]) => {
-        switch (command) {
-            case 'next':
-                const currentQ = questions[currentQuestionIndex];
-                if (currentQ?.required && !localData[currentQ.id as keyof FormDataStore]) {
-                     addOutputLine("Please answer the current question before proceeding.", 'warning');
-                     return;
-                }
-                const nextIdx = findNextQuestionIndex(currentQuestionIndex, localData);
-                if (nextIdx < questions.length) {
-                    setCurrentQuestionIndex(nextIdx);
-                    addOutputLine(questions[nextIdx].label, 'question'); // Restore prompt for next question
-                } else {
-                     addOutputLine("Already at the last question.", 'info');
-                     checkAndHandleCompletion(localData);
-                }
-                return;
-            case 'prev':
-                 const prevIdx = findPrevQuestionIndex(currentQuestionIndex, localData);
-                 if (prevIdx >= 0) {
-                     setCurrentQuestionIndex(prevIdx);
-                     addOutputLine(questions[prevIdx].label, 'question'); // Restore prompt for previous question
-                 } else {
-                      addOutputLine("Already at the first question.", 'info');
-                 }
-                return;
-            case 'save':
-                setLocalData((prev: FormDataStore) => ({ ...prev, currentQuestionIndex }));
-                addOutputLine("Progress saved locally.", 'success');
-                return;
-            case 'exit':
-            case 'back':
-                addOutputLine("Saving progress and exiting registration...", 'info');
-                setLocalData((prev: FormDataStore) => ({ ...prev, currentQuestionIndex }));
-                setCurrentMode('main');
-                return;
-             case 'submit':
-                 if (checkCompletion(localData)) {
-                     handleFinalSubmit();
-                 } else {
-                     addOutputLine("Please complete all required questions before submitting.", 'warning');
-                 }
-                 return;
-             case 'review':
-                 handleReviewCommand();
-                 return;
-            default:
-                await processAnswer(input);
-        }
-    };
-
-     const handleReviewModeCommand = async (command: string, args: string[]) => {
-         switch(command) {
-             case 'submit':
-                 handleFinalSubmit();
-                 break;
-             case 'edit':
-                 const indexStr = args[0];
-                 const indexToEdit = parseInt(indexStr, 10) - 1;
-                 if (!isNaN(indexToEdit) && indexToEdit >= 0 && indexToEdit < questions.length) {
-                      addOutputLine(`Editing question ${indexToEdit + 1}: ${questions[indexToEdit].label}`, 'info');
-                      setCurrentMode('edit');
-                      setCurrentQuestionIndex(indexToEdit);
-                      // Convert potential non-string answers to string for input field
-                      setCurrentInput(String(localData[questions[indexToEdit].id as keyof FormDataStore] ?? ''));
-                      addOutputLine(questions[indexToEdit].label, 'question');
-                 } else {
-                      addOutputLine("Invalid question number. Use 'edit [number]'.", 'error');
-                 }
-                 break;
-             case 'back':
-                 addOutputLine("Returning to main menu...", 'info');
-                 setCurrentMode('main');
-                 break;
-             default:
-                  addOutputLine(`Unknown command: ${command}. Use 'submit', 'edit [number]', or 'back'.`, 'error');
-         }
+              case 'resend':
+                   dispatch({ type: 'ACTION_START', payload: 'resendConfirmation' });
+                   startSubmitTransition(async () => {
+                       // const result = await resendConfirmationEmail({ email: state.userEmail! }); // Assuming action exists and takes email
+                       const result = { success: true, message: "Confirmation email resent (simulated)." }; // Placeholder
+                       if (result.success) {
+                           dispatch({ type: 'ACTION_SUCCESS', payload: { message: result.message } });
+                       } else {
+                           dispatch({ type: 'ACTION_FAILURE', payload: result.message });
+                       }
+                       // Stay in awaiting_confirmation mode
+                   });
+                   break;
+              case 'exit':
+              case 'back':
+                  dispatch({ type: 'SET_MODE', payload: 'main' });
+                  // Decide whether to clear local data or keep it
+                  break;
+              default:
+                   dispatch({ type: 'ACTION_FAILURE', payload: `Unknown command: ${command}` });
+          }
      };
 
-     const handleReviewCommand = () => {
-         addOutputLine("--- Review Answers ---", 'info');
-         questions.forEach((q, idx) => {
-             const answer = localData[q.id as keyof FormDataStore];
-             const displayAnswer = answer === undefined || answer === null ? '[Not Answered]' : String(answer);
-             addOutputLine(`${idx + 1}. ${q.label}: ${displayAnswer}`, 'output');
-         });
-         addOutputLine("--- End Review ---", 'info');
-     };
-
-    const processAnswer = async (answer: string) => {
-        const question = questions[currentQuestionIndex];
-        if (!question) return;
-
-        // Handle email separately to trigger password flow ONLY if not already verified
-        if (question.id === 'email' && !localData.isVerified) {
-             if (answer && answer.includes('@')) {
-                 setLocalData((prev: FormDataStore) => ({ ...prev, email: answer }));
-                 // Trigger password flow instead of advancing question index
-                 setIsPasswordInput(true);
-                 addOutputLine("Enter password:", 'question');
-                 return; // Explicitly return to wait for password input
-             } else {
-                 addOutputLine("Invalid email format.", 'error');
-                 addOutputLine(question.label, 'question'); // Re-prompt for email
+     const handleFinalSubmit = () => {
+         dispatch({ type: 'ACTION_START', payload: 'submitReg' });
+         const formDataForServer = new FormData();
+         // Populate formDataForServer from state.localData, excluding helper fields
+         Object.entries(state.localData).forEach(([key, value]) => {
+             if (key === 'currentQuestionIndex' || key === 'isVerified') return;
+             // Handle arrays (e.g., multi-select)
+             if (Array.isArray(value)) {
+                 value.forEach(item => formDataForServer.append(key, String(item)));
+             } else if (value !== undefined && value !== null) {
+                 formDataForServer.append(key, String(value));
              }
-             return; // Stop processing here for email
-        }
-
-        // Password and ConfirmPassword are now handled directly in handleSubmit
-
-        let validationError: string | undefined = undefined;
-        if (question.required && !answer) {
-            validationError = "This field is required.";
-        }
-        // TODO: Implement validation based on question.validationRules from SSOT
-        // Example:
-        // if (question.validationRules?.minLength && answer.length < question.validationRules.minLength.value) {
-        //     validationError = question.validationRules.minLength.message || `Minimum length is ${question.validationRules.minLength.value}.`;
-        // }
-        // ... add more validation checks based on type and rules ...
-
-        if (validationError) {
-            addOutputLine(`Error: ${validationError}`, 'error');
-            if (question.hint) {
-                 addOutputLine(`Hint: ${question.hint}`, 'info'); // Show hint on error
-            }
-            addOutputLine(question.label, 'question'); // Re-prompt
-            return;
-        }
-
-        // Process answer based on type
-        let processedAnswer: any = answer;
-        try {
-            switch (question.type) {
-                case 'boolean':
-                    const lowerAnswer = answer.toLowerCase();
-                    if (lowerAnswer === 'yes' || lowerAnswer === 'y' || lowerAnswer === '1') {
-                        processedAnswer = true;
-                    } else if (lowerAnswer === 'no' || lowerAnswer === 'n' || lowerAnswer === '2') {
-                        processedAnswer = false;
-                    } else if (question.required) { // Only error if required and invalid boolean
-                        throw new Error("Invalid input. Please enter 'yes' or 'no'.");
-                    } else {
-                        processedAnswer = null; // Treat invalid optional boolean as null/skipped
-                    }
-                    break;
-                case 'number':
-                case 'scale':
-                    processedAnswer = parseInt(answer, 10);
-                    if (isNaN(processedAnswer)) {
-                         if (question.required || answer) { // Error if required or if they typed something invalid
-                             throw new Error("Invalid number.");
-                         } else {
-                             processedAnswer = null; // Treat empty optional number as null
-                         }
-                    }
-                    // Add min/max validation from validationRules if needed
-                    break;
-                case 'multi-select-numbered':
-                    const selections = answer.split(' ').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
-                    // TODO: Add validation for valid numbers based on options length, min/max selections
-                    processedAnswer = selections;
-                    break;
-                case 'ranking-numbered': // Corrected typo
-                     // TODO: Implement parsing and validation for ranked choice (e.g., "5:1 2:2 8:3")
-                     // Needs robust parsing and validation against options, minRanked, uniqueSelections
-                     processedAnswer = answer; // Placeholder
-                     break;
-                // Default case handles text, email, paragraph, etc.
-                default:
-                    // Check if we are stuck waiting for password setup before processing other answers
-                    if (localData.email && !localData.isVerified && question.id !== 'firstName' && question.id !== 'lastName' && question.id !== 'email') {
-                         addOutputLine("Please complete the password setup.", 'warning');
-                         return; // Prevent processing other answers until verified
-                    }
-                    processedAnswer = answer;
-                    break;
-            }
-        } catch (err) {
-             addOutputLine(`Error: ${(err as Error).message}`, 'error');
-             if (question.hint) {
-                  addOutputLine(`Hint: ${question.hint}`, 'info');
-             }
-             addOutputLine(question.label, 'question'); // Re-prompt
-             return;
-        }
-
-
-        // Store processed answer
-        const newData: FormDataStore = { ...localData, [question.id]: processedAnswer };
-
-        // Handle edit mode submission separately
-        if (currentMode === 'edit') {
-             addOutputLine("Saving update...", 'info');
-             setLocalData(newData); // Update local state immediately for review
-             startSubmitTransition(async () => {
-                 // In edit mode, we might just update the single field or the whole record
-                 // For simplicity, let's assume updateRegistration handles the full record or diffs
-                 const formDataForUpdate = new FormData();
-                 Object.entries(newData).forEach(([key, value]) => {
-                     // Exclude helper fields
-                     if (key === 'currentQuestionIndex' || key === 'isVerified') return;
-                     if (value !== undefined && value !== null) {
-                         if (Array.isArray(value)) {
-                             value.forEach(item => formDataForUpdate.append(key, String(item)));
-                         } else {
-                             formDataForUpdate.append(key, String(value));
-                         }
-                     }
-                 });
-
-                 // Assuming updateRegistration takes the full data
-                 const result = await updateRegistration(null as any, formDataForUpdate);
-                 if (result.success) {
-                     addOutputLine("Update saved successfully.", 'success');
-                 } else {
-                     addOutputLine(`Update failed: ${result.message || 'Unknown error'}`, 'error');
-                     // Optionally revert localData or handle error state
-                 }
-                 setCurrentMode('review'); // Go back to review mode after edit attempt
-                 handleReviewCommand();
-             });
-             return; // Stop further processing in edit mode
-        }
-
-        // If not editing, advance to the next question
-        advanceQuestion(processedAnswer);
-    };
-
-    // Helper function to advance to the next question or completion
-    const advanceQuestion = (currentAnswer: any) => {
-        const currentQ = questions[currentQuestionIndex];
-        if (!currentQ) {
-            console.error("Cannot advance, current question is undefined.");
-            return;
-        }
-        const newData: FormDataStore = { ...localData, [currentQ.id]: currentAnswer };
-        setLocalData((prev: FormDataStore) => ({
-            ...newData,
-            currentQuestionIndex: currentQuestionIndex
-        }));
-
-        const nextIndex = findNextQuestionIndex(currentQuestionIndex, newData);
-
-        if (nextIndex >= questions.length) {
-            if (checkCompletion(newData)) {
-                addOutputLine("All questions answered.", 'success');
-                setIsComplete(true);
-                setCurrentMode('review');
-                addOutputLine("Review your answers. Use 'submit' or 'edit [number]'.", 'info');
-                handleReviewCommand();
-            } else {
-                 addOutputLine("Error: Could not determine next question or not all required answered.", 'error');
-            }
-        } else {
-            setCurrentQuestionIndex(nextIndex);
-            // Remove redundant label output - rendering logic handles this
-            // addOutputLine(questions[nextIndex].label, 'question');
-            setIsPasswordInput(questions[nextIndex].type === 'password');
-        }
-    };
-    // Removed duplicate advanceQuestion function
-
-     const checkCompletion = (data: FormDataStore): boolean => {
-         const registrationQuestions = questions.filter(q => q.id !== 'email' && q.id !== 'password' && q.id !== 'confirmPassword');
-         return registrationQuestions.every(q => {
-             if (!q.required) return true;
-             if (q.dependsOn && data[q.dependsOn as keyof FormDataStore] !== q.dependsValue) return true;
-             const answer = data[q.id as keyof FormDataStore];
-             return answer !== undefined && answer !== null && answer !== '';
          });
-     };
 
-     const checkAndHandleCompletion = (data: FormDataStore) => {
-         if (checkCompletion(data)) {
-             setIsComplete(true);
-             setCurrentMode('review');
-             addOutputLine("All questions answered. Review your answers.", 'info');
-             handleReviewCommand();
-         }
-     };
-
-    const handleFinalSubmit = () => {
-        addOutputLine("Submitting registration...", 'info');
-        const formDataForServer = new FormData();
-        Object.entries(localData).forEach(([key, value]) => {
-            if (key === 'currentQuestionIndex' || key === 'isVerified') return;
-            if (value !== undefined && value !== null) {
-                 if (Array.isArray(value)) {
-                     value.forEach(item => formDataForServer.append(key, String(item)));
-                 } else {
-                     formDataForServer.append(key, String(value));
-                 }
-            }
-        });
-
-        startSubmitTransition(async () => {
+         startSubmitTransition(async () => {
+             // Pass null for formState if not using useFormState directly here
              const result = await submitRegistration(null as any, formDataForServer);
              if (result.success) {
-                 addOutputLine("Registration submitted successfully!", 'success');
-                 setLocalData({});
-                 setRegistrationStatus('complete');
-                 setCurrentMode('main');
+                 dispatch({ type: 'ACTION_SUCCESS', payload: { message: "Registration submitted successfully!" } });
+                 dispatch({ type: 'UPDATE_LOCAL_DATA', payload: {} }); // Clear local data
+                 // TODO: Update registrationStatus state based on server confirmation
+                 dispatch({ type: 'SET_MODE', payload: 'main' });
              } else {
-                 addOutputLine(`Submission failed: ${result.message || 'Unknown error'}`, 'error');
+                 dispatch({ type: 'ACTION_FAILURE', payload: result.message || 'Submission failed.' });
+                 // Handle specific field errors if available in result.errors
                  if (result.errors) {
-                     Object.entries(result.errors).forEach(([field, errors]) => {
-                         if (errors) {
-                             addOutputLine(` - ${field}: ${errors.join(', ')}`, 'error');
-                         }
-                     });
+                      Object.entries(result.errors).forEach(([field, errors]) => {
+                          if (errors) {
+                              dispatch({ type: 'ADD_OUTPUT', payload: { text: ` - ${field}: ${errors.join(', ')}`, type: 'error' } });
+                          }
+                      });
                  }
-                 setCurrentMode('review');
+                 dispatch({ type: 'SET_MODE', payload: 'review' }); // Stay in review on failure
              }
-        });
-    };
-
-    const findNextQuestionIndex = (currentIndex: number, currentData: FormDataStore): number => {
-        let nextIndex = currentIndex + 1;
-        while (nextIndex < questions.length) {
-            const nextQuestion = questions[nextIndex];
-            if (nextQuestion.id === 'confirmPassword' && !passwordAttempt) continue;
-            if (nextQuestion.dependsOn) {
-                const dependencyValue = currentData[nextQuestion.dependsOn as keyof FormDataStore];
-                if (dependencyValue !== nextQuestion.dependsValue) {
-                    nextIndex++;
-                    continue;
-                }
-            }
-            return nextIndex;
-        }
-        return nextIndex;
-    };
-
-     const findPrevQuestionIndex = (currentIndex: number, currentData: FormDataStore): number => {
-         let prevIndex = currentIndex - 1;
-         while (prevIndex >= 0) {
-             const prevQuestion = questions[prevIndex];
-             if (prevQuestion.id === 'password' || prevQuestion.id === 'confirmPassword') {
-                  prevIndex--;
-                  continue;
-             }
-             if (prevQuestion.dependsOn) {
-                 const dependencyValue = currentData[prevQuestion.dependsOn as keyof FormDataStore];
-                 if (dependencyValue !== prevQuestion.dependsValue) {
-                     prevIndex--;
-                     continue;
-                 }
-             }
-             return prevIndex;
-         }
-         return prevIndex;
+         });
      };
 
+
     // --- Rendering ---
-    const currentPromptText = getPromptText(currentMode, isAuthenticated, userEmail);
-    const currentQuestion = (currentMode === 'register' || currentMode === 'edit') && currentQuestionIndex >= 0 && currentQuestionIndex < questions.length
-        ? questions[currentQuestionIndex]
-        : null;
+    const currentPromptText = getPromptText(state.mode, state.isAuthenticated, state.userEmail, state.authSubState, state.currentQuestionIndex);
+    const isInputPassword = state.authSubState === 'awaiting_password' || state.authSubState === 'awaiting_confirm_password';
+    const isProcessing = state.pendingAction !== null || isSubmitting;
 
     return (
         <div className="bg-black text-hacker-green font-mono p-4 border border-gray-700 rounded h-[70vh] flex flex-col">
             <div ref={terminalRef} className="flex-grow overflow-y-auto mb-2 scroll-smooth">
-                {outputLines.map(line => (
+                {state.outputLines.map(line => (
                     <div key={line.id} className={`whitespace-pre-wrap ${
-                        line.type === 'error' ? 'text-red-500' :
+                        line.type === 'error' ? 'text-orange-500' : // Use orange for errors
                         line.type === 'success' ? 'text-green-500' :
                         line.type === 'warning' ? 'text-yellow-500' :
                         line.type === 'info' ? 'text-blue-400' :
                         line.type === 'question' ? 'text-cyan-400' :
                         line.type === 'input' ? 'text-white' :
-                        'text-hacker-green'
+                        'text-hacker-green' // Default
                     }`}>
                         {line.type === 'input' && <span className="text-gray-500">{line.promptText}</span>}
                         {line.text}
                     </div>
                 ))}
-                {/* Restore unconditional rendering */}
-                {currentQuestion && currentMode !== 'auth' && (
-                    <div className="text-cyan-400 mt-1">{currentQuestion.label}</div>
-                )}
-                {/* Restore specific prompt for confirm password */}
-                {currentQuestion?.id === 'confirmPassword' && (
-                     <div className="text-cyan-400 mt-1">Confirm Password:</div>
-                )}
+                 {/* Display current question label if in register/edit mode */}
+                 {/* This is handled by the useEffect hook now */}
             </div>
 
-            {currentMode !== 'boot' && (
+            {state.mode !== 'boot' && (
                 <form onSubmit={handleSubmit} className="flex items-center mt-auto pt-2 border-t border-gray-700">
                     <span className="text-gray-500 mr-1">{currentPromptText}</span>
                     <input
                         ref={inputRef}
-                        type={isPasswordInput ? 'password' : 'text'}
-                        value={currentInput}
+                        type={isInputPassword ? 'password' : 'text'}
+                        value={state.currentInput}
                         onChange={handleInputChange}
                         className="bg-transparent border-none text-hacker-green outline-none flex-grow p-0 m-0 focus:ring-0"
                         autoComplete="off"
                         autoFocus
-                        data-testid="terminal-input" // Added data-testid
-                        // Temporarily remove disabled check for testing
-                        disabled={isBooting || isSubmitting || isAuthActionPending}
+                        disabled={isProcessing || state.isBooting}
+                        data-testid="terminal-input"
                     />
                 </form>
             )}

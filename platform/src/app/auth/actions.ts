@@ -98,3 +98,45 @@ export async function requestPasswordReset(credentials: { email: string }): Prom
 
     return { success: true, message: 'Password reset email sent.' };
 }
+// Placeholder function to check user verification status
+// TODO: Implement actual Supabase check for user.email_confirmed_at
+export async function checkUserVerificationStatus(): Promise<AuthActionResult> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, message: 'User not found.' };
+  }
+
+  // In a real scenario, check user.email_confirmed_at or similar
+  // For now, assume verified if user exists after potential confirmation click
+  const isVerified = !!user.email_confirmed_at; // Or simply check if user exists if auto-confirmation is on
+
+  if (isVerified) {
+      return { success: true, message: 'User is verified.' };
+  } else {
+      return { success: false, message: 'User email not confirmed yet.' };
+  }
+}
+
+// Function to resend the confirmation email
+export async function resendConfirmationEmail(credentials: { email: string }): Promise<AuthActionResult> {
+  const supabase = await createClient();
+
+  // Use the resend method for the signup type
+  const { data, error } = await supabase.auth.resend({
+    type: 'signup',
+    email: credentials.email,
+  });
+
+  if (error) {
+    console.error('Resend Confirmation Error:', error);
+    // Provide a more specific error message if possible
+    return { success: false, message: `Failed to resend confirmation email: ${error.message}` };
+  }
+
+  // Check if data indicates success (Supabase v2 might return data object on success)
+  // console.log('Resend Confirmation Data:', data);
+
+  return { success: true, message: 'Confirmation email resent successfully. Please check your inbox.' };
+}

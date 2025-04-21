@@ -1,5 +1,9 @@
 # Progress
 
+- **[2025-04-21 16:46:03] Code:** Rewrote `RegistrationForm.tsx` using `useReducer` to align with V3.1 spec (commit `8062e37`), addressing state management issues and implementing early auth, existing user detection, and confirmation flows. Added `resendConfirmationEmail` action to `auth/actions.ts`.
+
+
+
 - **[2025-04-21 16:36:00] DevOps:** Committed V3.1 registration spec update (commit 8062e37) to `feat/architecture-v2` branch.
 
 
