@@ -51,9 +51,16 @@ const InterestFormPlaceholder: React.FC<DialogProps> = ({
   const formRef = useRef<HTMLFormElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [showForm, setShowForm] = useState(false);
+  const initMessagesAdded = useRef(false); // Flag to prevent double message add
 
   // Display initial message and focus input when mode activates
   useEffect(() => {
+    // Ensure messages are added only once
+    if (initMessagesAdded.current) {
+      return;
+    }
+    initMessagesAdded.current = true;
+
     addOutputLine('--- Interest Registration ---', 'info');
     addOutputLine('γνῶθι σεαυτόν... 0xDEADBEEF...', 'output'); // Placeholder Greek/Hex
     addOutputLine('The full registration system is undergoing techne refinement.', 'output');

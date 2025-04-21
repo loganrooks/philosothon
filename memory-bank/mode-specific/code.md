@@ -2,10 +2,38 @@
 - **Purpose**: Fix double prompt and failure to advance after password confirmation.
 - **Files**: `platform/src/app/register/components/RegistrationForm.tsx` (Modified)
 - **Status**: Implemented
+
+### [2025-04-21 19:26:46] Fix: Duplicate Message in InterestFormPlaceholder
+- **Purpose**: Prevent the initial message block from appearing twice when entering the 'interest_capture' mode.
+- **Files**: `platform/src/app/register/components/InterestFormPlaceholder.tsx` (Modified)
+- **Change**: Added a `useRef` flag (`initMessagesAdded`) to the component. The `useEffect` hook responsible for adding the initial messages now checks this flag and only proceeds if it's `false`, setting it to `true` afterwards.
+- **Status**: Implemented.
+- **Related Issue**: [MB Log 2025-04-21 07:16:45]
+
+
+## Bug Fixes
+<!-- Track specific bug fixes -->
+### [2025-04-21 19:22:44] Fix: `platform/src/app/register/actions.ts` Export Error
+- **Purpose**: Resolved runtime error `Error: A "use server" file can only export async functions, found object.`
+- **Files**: `platform/src/app/register/actions.ts`
+- **Change**: Removed `export` from `const RegistrationSchema`.
+- **Status**: Implemented, Committed.
+- **Related Issue**: [MB Log 2025-04-21 07:16:45]
+
 - **Details**: Removed redundant `addOutputLine` call for the next question label after password confirmation. Added `setIsPasswordInput(false)` to the successful password confirmation block to exit password input state.
 
 
 ## Components Implemented
+### [2025-04-21 19:20:19] InterestFormPlaceholder Modification
+- **Purpose**: Refine UI to remove explicit submit button and rely on Enter key press for submission.
+- **Files**: `platform/src/app/register/components/InterestFormPlaceholder.tsx` (Modified)
+- **Status**: Implemented (Refinement)
+- **Dependencies**: No change.
+- **API Surface**: No change.
+- **Tests**: None yet.
+- **Notes**: Removed `SubmitButton` component and its usage. Form submission now relies on standard HTML behavior within the email input field.
+
+
 ### [2025-04-21 19:00:35] TerminalShell
 - **Purpose**: Provides the main interactive terminal UI shell, managing state and rendering dialogs.
 - **Files**: `platform/src/app/register/components/TerminalShell.tsx`

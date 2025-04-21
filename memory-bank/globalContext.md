@@ -1,6 +1,20 @@
 # Progress
+- **[2025-04-21 19:26:46] Code:** Fixed duplicate message bug in `InterestFormPlaceholder` by adding a `useRef` flag to prevent double execution of the initial message effect. Committed to `feat/architecture-v2`.
+
+
+- **[2025-04-21 19:20:19] Code:** Refined `InterestFormPlaceholder.tsx` to remove explicit submit button and rely on Enter key submission. Committed (642e8e4) to `feat/architecture-v2`.
+
+- **[2025-04-21 19:07:49] DevOps:** Prepared `feat/architecture-v2` branch for PR to `main` (verified status, committed MB files, deleted untracked file, merged `main`, pushed to origin).
+
+
 
 - **[2025-04-21 19:00:35] Code:** Implemented modular `TerminalShell` and `InterestFormPlaceholder` components for the `/register` page based on `docs/architecture/terminal_component_v1.md`. Updated `logInterest` server action to save emails to `interest_signups` table. Replaced previous content on `/register/page.tsx` with the new terminal shell. [See MB Log 2025-04-21 18:33:41]
+
+
+### [2025-04-21 19:22:44] Fix: Server Action Export Error
+- **File:** `platform/src/app/register/actions.ts`
+- **Change:** Removed non-async function export (`RegistrationSchema`) to comply with `'use server'` directive.
+- **Status:** Committed to `feat/architecture-v2`. Resolves error reported in [MB Log 2025-04-21 07:16:45].
 
 
 - **[2025-04-21 18:55:46] DevOps:** Created Supabase migration for `interest_signups` table (migration `20250421225316`), applied it via `db push`, and committed (commit `6e92ded`) to `feat/architecture-v2` branch.
