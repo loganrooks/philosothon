@@ -43,6 +43,27 @@ The system operates in distinct modes, each offering specific commands and visua
     *   **Visuals:** Header indicating "Authentication Mode". Password input fields must mask characters (`*`). Secure handling of credentials is paramount.
     *   **Commands:** `magiclink`, `reset-password`, `exit`, `help`. (Email/Password are entered directly at prompts).
 
+4.  **Awaiting Confirmation Mode**
+    *   **Entry:** Successful `signUpUser` call where email confirmation is required by the backend.
+    *   **Prompt:** `[awaiting_confirmation]>`
+    *   **Purpose:** Waits for the user to confirm their email address via a link sent by the backend.
+    *   **Visuals:** Header indicating "Awaiting Confirmation". Displays message: "Account created. Please check your email ([user_email]) for a confirmation link. Enter 'continue' here once confirmed, or 'resend' to request a new link."
+    *   **Commands:** `continue`, `resend`, `exit`, `help`.
+    *   **`continue` Logic:** Calls backend action `checkUserVerificationStatus`.
+        *   On Success: Transitions to Registration Mode, starting at the first unanswered question (Q3 - Year of Study).
+        *   On Failure: Displays error message ("Email not confirmed yet. Please check your email or use 'resend'.") in orange. Remains in `awaiting_confirmation` mode.
+    *   **`resend` Logic:** Calls backend action `resendConfirmationEmail`. Displays confirmation message ("Confirmation email resent to [user_email]."). Remains in `awaiting_confirmation` mode.
+    *   **`exit` Logic:** Returns to Main Terminal Mode (anonymous state, as session isn't fully active yet). Progress *should* be implicitly saved by the backend user creation, but local state might be cleared or kept depending on final implementation choices.
+    *   *TDD Anchor:* Test mode header "Awaiting Confirmation" is displayed.
+    *   *TDD Anchor:* Test prompt `[awaiting_confirmation]>` is displayed.
+    *   *TDD Anchor:* Test initial message with user email is displayed.
+    *   *TDD Anchor:* Test `continue` command calls `checkUserVerificationStatus`.
+    *   *TDD Anchor:* Test `continue` transitions to Q3 on success.
+    *   *TDD Anchor:* Test `continue` displays error and stays in mode on failure.
+    *   *TDD Anchor:* Test `resend` command calls `resendConfirmationEmail` and displays confirmation.
+    *   *TDD Anchor:* Test `exit` command returns to Main Mode (anonymous).
+
+
 ### 2.2 Command Visibility & Discovery
 
 1.  **Command Hints:**
@@ -98,7 +119,12 @@ The system operates in distinct modes, each offering specific commands and visua
     *   Next, collect **University Email Address** (Outline Q2). Basic client-side format validation.
     *   Immediately after a valid email is provided, prompt for "Password:" (masked) and "Confirm Password:" (masked).
     *   Client-side validation: Passwords match, minimum length 8 characters.
-    *   On successful password creation, the backend `signUpUser` action is called *immediately* to create the user account. If the user already exists (based on email), this action should verify the provided password.
+    *   On successful password creation, the backend `signUpUser` action is called *immediately*.
+        *   **Existing User Detection:** If `signUpUser` detects the email already exists (e.g., via a specific error code or return value like 'user_already_exists'):
+            *   Display error message: "An account with this email already exists. Please use 'sign-in' or 'reset-password'." (in orange).
+            *   Return to Main Terminal Mode (anonymous state). Do NOT proceed to `awaiting_confirmation` or further questions.
+        *   **New User Creation:** If the email does not exist, the action proceeds to create the user account. If email confirmation is required by the backend, transition to **Awaiting Confirmation Mode** (Section 2.1.4). If confirmation is *not* required (or auto-confirmed), proceed directly to Step 4 (Answering Remaining Questions).
+        *   *TDD Anchor:* Test existing user detection displays error and returns to Main Mode.
     *   The email and an indication of successful user creation/verification are stored locally. First and Last Name are also stored locally.
     *   If `signUpUser` fails, display error and remain at password step.
     *   *TDD Anchor:* Test First Name prompt appears first.
