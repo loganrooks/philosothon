@@ -1,6 +1,21 @@
 # Debug Specific Memory
 
 ## Issue History
+### Issue: INT-FORM-ENTER-001 - Interest form not submitting on Enter - [Status: Resolved (Cannot Reproduce)] - [2025-04-21 19:54:12]
+- **Reported**: 2025-04-21 07:44:55 (MB Log) / **Severity**: Medium / **Symptoms**: User reported Enter key press in `InterestFormPlaceholder` email field did not submit the form.
+- **Investigation**: 
+    1. Verified branch `feat/architecture-v2`. (2025-04-21 19:47:41)
+    2. Read `InterestFormPlaceholder.tsx` and `actions.ts`. Form structure and action binding appeared correct. (2025-04-21 19:48:02)
+    3. Added server-side `console.log` to `logInterest` action. (2025-04-21 19:48:30)
+    4. User tested: Log did *not* appear initially. (2025-04-21 19:51:29)
+    5. User re-tested after confirming Enter press: Log *did* appear. (2025-04-21 19:53:18)
+    6. User confirmed success message appeared in UI after log confirmation. (2025-04-21 19:53:38)
+- **Root Cause**: Original issue could not be reproduced. Testing confirmed the form submission via Enter key triggers the server action and updates the UI as expected.
+- **Fix Applied**: None required. Removed debug log statement. (2025-04-21 19:54:12)
+- **Verification**: Manual testing by user confirmed expected behavior.
+- **Related Issues**: [MB Log 2025-04-21 07:44:55]
+
+
 ### Issue: REG-FLOW-STATE-001 - Stuck flows, double prompts, verification issues - [Status: Fix Attempted] - [2025-04-21 16:03:00]
 - **Reported**: 2025-04-21 15:46:57 (Task Context) / **Severity**: High / **Symptoms**: Stuck flows, double/missing prompts, profile creation/verification issues in `RegistrationForm.tsx`.
 - **Investigation**: Analyzed component state logic, spec, auth actions, profile trigger. Hypothesized issues with premature verification setting, state update timing, redundant prompts, handling of authenticated 'continue', existing user signup, and incorrect question display after confirmation.

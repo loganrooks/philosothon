@@ -1,6 +1,19 @@
 # DevOps Specific Memory
 
 ## Deployment History Log
+### Git Commit: [2025-04-21 19:07:49] - chore: Prepare feat/architecture-v2 for PR
+- **Branch**: feat/architecture-v2
+- **Commit ID**: 50f9337 (Merge commit after pulling main)
+- **Files**: N/A (Merge commit)
+- **Notes**: Merged origin/main into feat/architecture-v2 and pushed branch to origin in preparation for PR.
+
+### Git Commit: [2025-04-21 19:03:45] - chore: Update Memory Bank files
+- **Branch**: feat/architecture-v2
+- **Commit ID**: f7b875d
+- **Files**: `memory-bank/mode-specific/devops.md`, `memory-bank/mode-specific/sparc.md`
+- **Notes**: Committed Memory Bank updates before preparing branch for PR.
+
+
 ### Git Commit: [2025-04-21 18:55:46] - feat: Create interest_signups table and RLS policies
 - **Branch**: feat/architecture-v2
 - **Commit ID**: 6e92ded

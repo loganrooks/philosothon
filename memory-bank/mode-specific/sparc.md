@@ -1,6 +1,33 @@
 # SPARC Orchestrator Specific Memory
 <!-- Entries below should be added reverse chronologically (newest first) -->
 
+### [2025-04-21 07:44:55] Intervention: Interest Form 'Submit on Enter' Not Working
+- **Trigger**: User feedback reporting Enter key does not submit the interest form.
+- **Context**: `code` mode previously reported fixing this (commit `642e8e4`) by removing the button and relying on standard form behavior. User reports this is not functional.
+- **Action Taken**: Logging feedback. Updating workflow state to debug the form submission.
+- **Rationale**: Address the bug preventing the core functionality of the placeholder form.
+- **Outcome**: Workflow pivoted to debugging form submission.
+- **Follow-up**: Delegate task to `debug` mode to investigate and fix the 'submit on enter' issue.
+
+
+### [2025-04-21 07:18:06] Intervention: Refine Interest Form - Submit on Enter (No Button)
+- **Trigger**: User feedback after reviewing placeholder implementation.
+- **Context**: User wants the email capture in `InterestFormPlaceholder` to behave like a terminal prompt, submitting on Enter key press instead of requiring a button click.
+- **Action Taken**: Logging refinement. Updating workflow state.
+- **Rationale**: Align placeholder behavior more closely with the terminal aesthetic and user expectation.
+- **Outcome**: Plan refined for placeholder UI.
+- **Follow-up**: Delegate task to `code` mode to modify `InterestFormPlaceholder.tsx`.
+
+
+### [2025-04-21 07:16:45] Intervention: Placeholder Bugs & Missing Features
+- **Trigger**: User feedback after reviewing the implemented terminal placeholder.
+- **Context**: User reported multiple issues: missing bootup sequence, doubled interest form message, missing submit button, and a 500 server action error (`use server` export issue) on email submission.
+- **Action Taken**: Halted deployment prep. Logging feedback and identified bugs. Updating workflow state to address fixes.
+- **Rationale**: Correct critical bugs and missing features in the placeholder implementation before proceeding with deployment.
+- **Outcome**: Workflow pivoted to bug fixing.
+- **Follow-up**: Delegate tasks sequentially: 1. Fix server action error. 2. Fix UI bugs (double message, missing button). 3. Implement bootup sequence.
+
+
 ### [2025-04-21 06:45:30] Intervention: Refine Placeholder Plan - Design Modular Terminal Architecture First
 - **Trigger**: User instruction refining the placeholder implementation plan.
 - **Context**: Workflow was about to proceed with implementing the themed email capture placeholder. User requested to first design a more modular architecture for a main "Terminal" component capable of hosting various dialog flows (Interest Form, Sign-in, Registration, Gamification).
@@ -301,6 +328,34 @@
 # Workflow State (Current - Overwrite this section)
 - Current phase: Implementation (TDD - Registration Terminal V3 - Red Phase - Attempt 2)
 - Phase start: [2025-04-20 14:06:57]
+# Workflow State (Current - Overwrite this section)
+- Current phase: Debugging (Interest Form Placeholder - Submit on Enter)
+- Phase start: [2025-04-21 07:44:55]
+- Current focus: Debug why pressing Enter in the email input of `InterestFormPlaceholder.tsx` does not trigger the `logInterest` server action.
+- Next actions: Delegate debugging task to `debug` mode.
+- Last Updated: [2025-04-21 07:44:55]
+
+# Workflow State (Current - Overwrite this section)
+- Current phase: Refinement (Placeholder Bug Fixing - Doubled Message)
+- Phase start: [2025-04-21 07:21:27]
+- Current focus: Fix the bug causing the interest registration message to appear twice in the terminal output ([MB Log 2025-04-21 07:16:45]).
+- Next actions: Delegate UI bug fix task to `code` mode.
+- Last Updated: [2025-04-21 07:21:27]
+
+# Workflow State (Current - Overwrite this section)
+- Current phase: Refinement (Placeholder Bug Fixing - Doubled Message)
+- Phase start: [2025-04-21 07:23:33]
+- Current focus: Fix the bug causing the interest registration message to appear twice in the terminal output.
+- Next actions: Delegate UI bug fix task to `code` mode.
+- Last Updated: [2025-04-21 07:23:33]
+
+# Workflow State (Current - Overwrite this section)
+- Current phase: Refinement (Placeholder Bug Fixing - Server Action Error)
+- Phase start: [2025-04-21 07:21:27]
+- Current focus: Fix the server action error (`Error: A "use server" file can only export async functions, found object.`) in `platform/src/app/register/actions.ts` related to the `logInterest` action.
+- Next actions: Delegate server action fix to `code` mode.
+- Last Updated: [2025-04-21 07:21:27]
+
 - Current focus: Re-attempt TDD Red Phase for the V3 terminal registration UI and password auth, now that V3 SSOT config/generated files are available.
 - Next actions: Re-delegate TDD Red Phase task to `tdd` mode.
 - Last Updated: [2025-04-20 14:06:57]
@@ -310,6 +365,13 @@
 - Description: Implement minimal code for redesigned terminal UI, SSOT script, password auth to pass Red Phase tests.
 - Expected deliverable: Passing tests, committed code.
 # Workflow State (Current - Overwrite this section)
+# Workflow State (Current - Overwrite this section)
+- Current phase: Refinement (Interest Form Placeholder UI)
+- Phase start: [2025-04-21 07:18:06]
+- Current focus: Modify `InterestFormPlaceholder.tsx` to remove the explicit submit button and ensure email submission occurs via the form's `onSubmit` event (triggered by Enter key in the input field).
+- Next actions: Delegate UI refinement task to `code` mode.
+- Last Updated: [2025-04-21 07:18:06]
+
 - Current phase: Implementation (Registration Terminal V3 - SSOT Update)
 - Phase start: [2025-04-20 13:56:38]
 - Current focus: Update the SSOT configuration (`platform/config/registrationSchema.ts`) and generation script (`platform/scripts/generate-registration.ts`) to align with the V3 specification (`docs/specs/p0_registration_terminal_ui_spec_v2.md`). Run the script.
@@ -319,6 +381,20 @@
 - Status: blocked
 - Completion time: [2025-04-19 23:14:06]
 - Outcome: Implemented SSOT script (`generate-registration.ts`), auth actions (`auth/actions.ts`), registration actions (`register/actions.ts`), and rewrote `RegistrationForm.tsx`. Most tests pass (SSOT, auth, register actions - except 1 skipped). **Blocked by intractable Vitest mocking error (`ReferenceError: Cannot access 'mockQuestions' before initialization`) in `RegistrationForm.test.tsx`.** Cannot verify UI component tests.
+# Workflow State (Current - Overwrite this section)
+- Current phase: Refinement (Placeholder Bug Fixing - Server Action)
+- Phase start: [2025-04-21 07:16:45]
+- Current focus: Fix the server action error (`Error: A "use server" file can only export async functions, found object.`) in `platform/src/app/register/actions.ts`.
+- Next actions: Delegate server action fix to `code` mode.
+- Last Updated: [2025-04-21 07:16:45]
+
+# Workflow State (Current - Overwrite this section)
+- Current phase: Integration & Deployment (Awaiting User PR Creation)
+- Phase start: [2025-04-21 07:08:47]
+- Current focus: Waiting for the user to create a Pull Request from `feat/architecture-v2` to `main` and monitor the automated checks.
+- Next actions: Await user confirmation of PR creation/merge or report on check status.
+- Last Updated: [2025-04-21 07:08:47]
+
 # Workflow State (Current - Overwrite this section)
 - Current phase: Integration & Deployment (Placeholder to Main)
 - Phase start: [2025-04-21 07:01:43]
@@ -723,6 +799,16 @@
 - Current focus: Investigate why deployed preview doesn't show P0 changes on landing, proposal, and registration pages. Check frontend component integration and `lib/data` usage.
 - Next actions: Read relevant page and data files. Delegate fixes to `code` mode.
 - Last Updated: [2025-04-19 16:29:39]
+### [2025-04-21 07:18:24] Task: Refine Interest Form Placeholder UI (Submit on Enter)
+- Assigned to: code
+- Description: Remove submit button from `InterestFormPlaceholder.tsx` and ensure form submits on Enter key press.
+- Expected deliverable: Modified component file, commit confirmation.
+- Status: failed (post-completion verification)
+- Completion time: [2025-04-21 07:21:27]
+- Outcome: Code mode removed button and committed (`642e8e4`), but user reported 'submit on enter' is not functional.
+- Link to Progress Entry: [SPARC Log 2025-04-21 07:44:55]
+
+
 
 - Current focus: Initiate TDD cycle for P1 Team Management features (Req 3.4).
 - Next actions: Delegate TDD task (Red phase) for Team Management.
@@ -730,6 +816,16 @@
 # Workflow State (Current - Overwrite this section)
 - Current phase: Integration & Deployment Testing (P0)
 - Phase start: [2025-04-19 15:40:08]
+### [2025-04-21 07:18:24] Task: Refine Interest Form Placeholder UI (Submit on Enter)
+- Assigned to: code
+- Description: Remove submit button from `InterestFormPlaceholder.tsx` and ensure form submits on Enter key press.
+- Expected deliverable: Modified component file, commit confirmation.
+- Status: completed
+- Completion time: [2025-04-21 07:21:27]
+- Outcome: Successfully removed button and confirmed form structure supports submit on Enter. Committed changes (`642e8e4`).
+- Link to Progress Entry: [Code Log 2025-04-21 07:21:27]
+
+
 - Current focus: Verify Git status, push `feature/architecture-v2`, guide user through PR creation, monitor Vercel checks.
 - Next actions: Delegate Git/PR task to `devops`.
 - Last Updated: [2025-04-19 15:40:08]
@@ -737,6 +833,16 @@
 
 - **Context**: Multiple tasks completed (public page fixes, admin rebuild, dynamic themes, build fixes, dependency downgrade, testing) but UI state regressed/remained unsatisfactory, and Git hygiene was neglected. Build error with `@apply font-philosopher` persisted despite downgrade.
 - **Action Taken**: Halted planned task (Task 24: Re-enable Global Font Rule). Reprioritized workflow: 1) Log intervention. 2) Address Git debt. 3) Systematically debug UI/font/spacing issues. 4) Refactor Navbar. 5) Refactor hyperlinks.
+### [2025-04-21 07:21:47] Task: Fix Server Action Export Error in `actions.ts`
+- Assigned to: code
+- Description: Fix `use server` export error caused by exporting non-async function/object.
+- Expected deliverable: Fixed `actions.ts` file, commit confirmation.
+- Status: completed
+- Completion time: [2025-04-21 07:23:33]
+- Outcome: Successfully fixed error by removing `export` from the `RegistrationSchema` constant in `actions.ts`. Committed fix (`1e602d9`).
+- Link to Progress Entry: [Code Log 2025-04-21 07:23:33]
+
+
 - **Rationale**: Essential to establish a stable codebase state (clean Git history, working build, reliable styling foundation) before adding more features or complex refactors. Adheres to best practices and user's explicit concerns.
 - **Outcome**: Intervention logged. Next step is delegating Git cleanup task.
 - **Follow-up**: Ensure subsequent tasks adhere strictly to the defined Git workflow. Add build verification step to standard post-code/post-test workflow.
@@ -744,6 +850,16 @@
 ## Workflow State
 ### [2025-04-19 15:38:15] Task: Fix Failing Registration Server Action Tests
 - Assigned to: tdd
+### [2025-04-21 07:18:24] Task: Refine Interest Form Placeholder UI (Submit on Enter)
+- Assigned to: code
+- Description: Remove submit button from `InterestFormPlaceholder.tsx` and ensure form submits on Enter key press.
+- Expected deliverable: Modified component file, commit confirmation.
+- Status: completed
+- Completion time: [2025-04-21 07:21:27]
+- Outcome: Successfully removed button and confirmed form structure supports submit on Enter. Committed changes (`642e8e4`).
+- Link to Progress Entry: [Code Log 2025-04-21 07:21:27]
+
+
 - Description: Update and fix 7 failing tests in `platform/src/app/register/actions.test.ts` to align with refactored `createRegistration` action (spec v1.1).
 - Expected deliverable: Passing tests in `actions.test.ts`, passing full suite (263/3), committed changes.
 - Status: completed
@@ -776,6 +892,16 @@
 - Completion time: [2025-04-19 15:22:44]
 - Outcome: Supabase types generated and applied. Registration form/action/types updated per spec v1.1. Commits `63bef92`, `6549dbd` made to `feature/architecture-v2`. **Test suite run resulted in 256 passed, 3 skipped, 7 failed (in `register/actions.test.ts`).**
 - Link to Progress Entry: [See Refinement completion message 2025-04-19 15:22:44]
+### [2025-04-21 07:01:59] Task: Prepare `feat/architecture-v2` for PR to `main`
+- Assigned to: devops
+- Description: Ensure branch is clean, up-to-date, pushed, and provide PR instructions.
+- Expected deliverable: Confirmation of branch readiness and user instructions.
+- Status: superseded
+- Completion time: [2025-04-21 07:16:45]
+- Outcome: Task superseded by user feedback identifying critical bugs in the implemented placeholder that need fixing before deployment.
+- Link to Progress Entry: [SPARC Log 2025-04-21 07:16:45]
+
+
 
 
 
@@ -783,6 +909,16 @@
 - Current phase: Implementation (TDD)
 - Phase start: [2025-04-19 12:43:20] <!-- Starting Content Mgmt Green phase -->
 - Current focus: P0 Content Management Red phase complete (failing tests exist). Proceeding with Green phase.
+### [2025-04-21 07:01:59] Task: Prepare `feat/architecture-v2` for PR to `main`
+- Assigned to: devops
+- Description: Ensure branch is clean, up-to-date with main, pushed, and provide PR instructions.
+- Expected deliverable: Confirmation of branch readiness and user instructions.
+- Status: completed
+- Completion time: [2025-04-21 07:08:47]
+- Outcome: Committed MB changes (`f7b875d`), deleted untracked file, merged `main` into `feat/architecture-v2` (`50f9337`), pushed branch to origin. Provided user with instructions to create PR.
+- Link to Progress Entry: [DevOps Log 2025-04-21 07:08:47]
+
+
 - Next actions: Delegate TDD task (Green phase) for Content Management (Req 3.3).
 - Last Updated: [2025-04-19 12:43:20]
 
