@@ -36,19 +36,8 @@ const initialState: FormState = {
   success: false,
 };
 
-// --- Submit Button Component ---
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="mt-2 px-4 py-1 bg-hacker-green text-black font-bold hover:bg-opacity-80 disabled:bg-gray-500 disabled:cursor-not-allowed"
-    >
-      {pending ? 'Submitting...' : 'Submit'}
-    </button>
-  );
-}
+// --- Submit Button Component (Removed) ---
+// The form now submits automatically when Enter is pressed in the email field.
 
 // --- InterestFormPlaceholder Component ---
 const InterestFormPlaceholder: React.FC<DialogProps> = ({
@@ -119,7 +108,7 @@ const InterestFormPlaceholder: React.FC<DialogProps> = ({
             className="w-full px-2 py-1 bg-gray-800 border border-medium-gray text-hacker-green focus:outline-none focus:ring-1 focus:ring-hacker-green"
             autoComplete="off"
           />
-          <SubmitButton />
+          {/* Submit button removed; form submits on Enter key press */}
         </form>
       )}
     </div>
