@@ -1,4 +1,18 @@
+### [2025-04-21 14:57:38] RegistrationForm.tsx Logic Fix (Attempt 2)
+- **Purpose**: Fix double prompt and failure to advance after password confirmation.
+- **Files**: `platform/src/app/register/components/RegistrationForm.tsx` (Modified)
+- **Status**: Implemented
+- **Details**: Removed redundant `addOutputLine` call for the next question label after password confirmation. Added `setIsPasswordInput(false)` to the successful password confirmation block to exit password input state.
+
+
 ## Components Implemented
+
+### [2025-04-21 13:36:31] RegistrationForm.tsx Logic Fix
+- **Purpose**: Fix bugs related to password flow and `register` command handling.
+- **Files**: `platform/src/app/register/components/RegistrationForm.tsx` (Modified)
+- **Status**: Implemented & Committed (eb43f2c)
+- **Details**: Refactored `handleSubmit` to handle password/confirmation steps explicitly after email entry, independent of the main question array. Corrected `handleMainModeCommand` to show sub-menu for `register` command and added intro text display to `handleStartNewRegistration`.
+
 
 ### [2025-04-21 12:32:00] generate-registration.ts Script Fix
 - **Purpose**: Generation script for registration questions, actions, and migrations.

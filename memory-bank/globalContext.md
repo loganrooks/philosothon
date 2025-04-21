@@ -1,5 +1,23 @@
 # Progress
 
+- **[2025-04-21 16:36:00] DevOps:** Committed V3.1 registration spec update (commit 8062e37) to `feat/architecture-v2` branch.
+
+
+
+- **[2025-04-21 16:32:00] SpecPseudo:** Updated V3.1 registration spec (`docs/specs/p0_registration_terminal_ui_spec_v2.md`) to explicitly define the `awaiting_confirmation` state after signup and the correct flow for handling existing users during the `register new` process, based on debugging feedback.
+
+
+
+- **[2025-04-21 16:14:00] Debug:** Applied further fixes to `RegistrationForm.tsx` based on user feedback: removed prompt from input history, separated new/existing user signup logic, added explicit prompt after confirmation check.
+
+
+- **[2025-04-21 16:03:00] Debug:** Applied fixes to `RegistrationForm.tsx` and `auth/actions.ts` to handle email confirmation wait state, refactor state updates, remove redundant prompts, and adjust 'register continue' logic.
+
+
+- **[2025-04-21 14:53:25] Code:** Fixed `signUpUser` deadlock logic in `RegistrationForm.tsx` by correcting condition for password confirmation handling.
+
+- **[2025-04-21 13:36:31] Code:** Fixed logic bugs in `RegistrationForm.tsx` (password flow, register command, intro text) per V3.1 spec. Committed (eb43f2c).
+
 - **[2025-04-21 12:32:00] Code:** Fixed `generate-registration.ts` script logic to correctly map all fields from schema to frontend questions file.
 
 ---

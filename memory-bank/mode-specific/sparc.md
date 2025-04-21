@@ -320,6 +320,62 @@
 - Phase start: [2025-04-20 13:20:53]
 - Current focus: Update the dynamic theme page component (`/themes/[id]/page.tsx`) to read and parse content from the individual theme Markdown files in `docs/event_info/themes/`.
 # Workflow State (Current - Overwrite this section)
+- Current phase: Implementation (RegistrationForm.tsx Refactor/Rewrite)
+- Phase start: [2025-04-21 04:37:35]
+- Current focus: Refactor or rewrite `platform/src/app/register/components/RegistrationForm.tsx` to correctly implement the V3.1 specification (commit `8062e37`), focusing on robust state management for early auth, email confirmation, existing user handling, and question progression.
+- Next actions: Delegate component implementation/refactor task to `code` mode.
+- Last Updated: [2025-04-21 04:37:35]
+
+# Workflow State (Current - Overwrite this section)
+- Current phase: Specification (Registration Flow Update - Confirmation State & Existing User Handling)
+- Phase start: [2025-04-21 04:29:29]
+- Current focus: Update the V3.1 registration specification (`docs/specs/p0_registration_terminal_ui_spec_v2.md`) to explicitly detail the `awaiting_confirmation` state and the correct flow for handling existing users during signup, based on debugging findings.
+- Next actions: Delegate spec update task to `spec-pseudocode` mode.
+- Last Updated: [2025-04-21 04:29:29]
+
+# Workflow State (Current - Overwrite this section)
+- Current phase: Debugging (RegistrationForm.tsx Component Logic & State)
+- Phase start: [2025-04-21 03:47:43]
+- Current focus: Debug complex state management, regressions (stuck flows, prompt issues), and potential profile creation/email confirmation issues in `platform/src/app/register/components/RegistrationForm.tsx` (latest commit `4669656`).
+- Next actions: Delegate debugging task to `debug` mode.
+- Last Updated: [2025-04-21 03:47:43]
+
+# Workflow State (Current - Overwrite this section)
+- Current phase: Implementation (Component Bug Fixing - RegistrationForm.tsx - Attempt 2)
+- Phase start: [2025-04-21 02:50:42]
+- Current focus: Fix remaining component logic bugs in `platform/src/app/register/components/RegistrationForm.tsx` identified by TDD mode (confirm password input type, `signUpUser` call deadlock).
+- Next actions: Delegate component fixing task to `code` mode.
+- Last Updated: [2025-04-21 02:50:42]
+
+# Workflow State (Current - Overwrite this section)
+- Current phase: Implementation (TDD - Registration V3.1 - Fix Failing Tests - Attempt 2)
+- Phase start: [2025-04-21 01:39:08]
+- Current focus: Update and fix the remaining failing tests (previously 13) in `platform/src/app/register/components/RegistrationForm.test.tsx` now that the component logic bugs are resolved (commit `eb43f2c`).
+- Next actions: Delegate test fixing task back to `tdd` mode.
+- Last Updated: [2025-04-21 01:39:08]
+
+# Workflow State (Current - Overwrite this section)
+- Current phase: Implementation (Component Bug Fixing - RegistrationForm.tsx)
+- Phase start: [2025-04-21 01:28:08]
+- Current focus: Fix bugs in `platform/src/app/register/components/RegistrationForm.tsx` related to password flow handling and `register`/`register new` command/output logic, as identified by TDD mode.
+- Next actions: Delegate component fixing task to `code` mode.
+- Last Updated: [2025-04-21 01:28:08]
+
+# Workflow State (Current - Overwrite this section)
+- Current phase: Implementation (TDD - Registration V3.1 - Fix Failing Tests)
+- Phase start: [2025-04-21 01:10:16]
+- Current focus: Update and fix the 13 failing tests in `platform/src/app/register/components/RegistrationForm.test.tsx` to align with the V3.1 specification and the correct 45-question structure.
+- Next actions: Delegate test fixing task to `tdd` mode.
+- Last Updated: [2025-04-21 01:10:16]
+
+# Workflow State (Current - Overwrite this section)
+- Current phase: Implementation (TDD - Registration V3.1 - Test Verification)
+- Phase start: [2025-04-21 01:05:43]
+- Current focus: Verify if the corrected SSOT generation (commit `e7b2b81`) resolved the failures in `RegistrationForm.test.tsx`.
+- Next actions: Delegate task to `tdd` mode to run the tests.
+- Last Updated: [2025-04-21 01:05:43]
+
+# Workflow State (Current - Overwrite this section)
 - Current phase: Implementation (SSOT Generation Script Debugging)
 - Phase start: [2025-04-21 12:30:00]
 - Current focus: Debug and fix the SSOT generation script (`platform/scripts/generate-registration.ts`) so that it correctly generates the full `Question` interface structure (including `hint`, `description`, `validationRules`) in `registrationQuestions.ts` based on the 45-question schema in `registrationSchema.ts`.
@@ -734,11 +790,31 @@
 ### [2025-04-19 08:24:59] Task: Apply Supabase Profile Creation Trigger
 - Assigned to: devops
 - Description: Create and apply Supabase migration for profile creation trigger/function.
+### [2025-04-21 04:29:52] Task: Update V3.1 Registration Spec for Confirmation State & Existing User Flow
+- Assigned to: spec-pseudocode
+- Description: Update V3.1 spec (`p0_registration_terminal_ui_spec_v2.md`) to define `awaiting_confirmation` state and existing user flow during signup.
+- Expected deliverable: Updated spec file, commit confirmation.
+- Status: completed
+- Completion time: [2025-04-21 04:37:35]
+- Outcome: Successfully updated spec with new state definition, existing user flow logic, and TDD anchors. Committed changes (`8062e37`).
+- Link to Progress Entry: [Spec Log 2025-04-21 04:37:35]
+
+
 - Expected deliverable: Applied migration, committed migration file.
 - Status: blocked
 - Completion time: [2025-04-19 08:24:59]
 - Outcome: Blocked. Migration file `supabase/migrations/20250419121817_add_profile_trigger.sql` created, but `supabase db push` failed due to unlinked project (`Cannot find project ref`).
 - Link to Progress Entry: [See DevOps completion message 2025-04-19 08:24:59]
+
+
+### [2025-04-21 03:48:03] Task: Debug `RegistrationForm.tsx` Logic, State, and Profile Creation Issues
+- Assigned to: debug
+- Description: Debug complex state management, regressions, and profile creation issues in `RegistrationForm.tsx` (commit `4669656`).
+- Expected deliverable: Fixed component/action files, explanation, commit confirmation.
+- Status: blocked
+- Completion time: [2025-04-21 04:29:29]
+- Outcome: Task Blocked (Early Return). Debugging failed to resolve persistent critical bugs: incorrect handling of existing users during signup, stuck flow/repeated prompts after email confirmation. Component state management complexity identified as root cause. Recommended spec update and component refactor/rewrite.
+- Link to Progress Entry: [Debug Log 2025-04-21 04:29:29]
 
 
 ### [2025-04-19 06:30:55] Task: Philosothon Platform V2 - P0 Auth/RBAC TDD (Green Phase - Middleware & Profile Creation)
@@ -748,6 +824,16 @@
 - Status: completed
 - Completion time: [2025-04-19 06:30:55]
 - Outcome: Green phase complete. Middleware tests passed without changes. Profile creation tests passed with updated mocks simulating SQL trigger. Recommended applying SQL trigger/function to database.
+### [2025-04-21 01:28:27] Task: Fix Remaining Bugs in `RegistrationForm.tsx` Component Logic (Attempt 2)
+- Assigned to: code
+- Description: Fix component logic bugs (confirm password type, `signUpUser` deadlock) identified by TDD mode.
+- Expected deliverable: Fixed component file, commit confirmation.
+- Status: blocked
+- Completion time: [2025-04-21 03:47:43]
+- Outcome: Task Blocked (Early Return). Multiple attempts made, including fixes to password flow, sign-in prompt, and profile creation logic/migrations. Persistent regressions (double prompts, stuck flows), tool failures (`apply_diff`), and unresolved profile creation issues occurred. Component state management complexity identified as likely root cause. Final state committed (`4669656`).
+- Link to Progress Entry: [Code Log 2025-04-21 03:47:43]
+
+
 - Link to Progress Entry: [See TDD completion message 2025-04-19 06:30:55]
 
 
@@ -755,6 +841,16 @@
 - Assigned to: refinement-optimization-mode
 - Description: Refactor code interacting with Supabase RLS touchpoints to improve unit testability and resolve test timeouts.
 - Expected deliverable: Refactored code (DAL introduced), updated tests (timeouts resolved), committed to `feature/architecture-v2`.
+### [2025-04-21 01:40:16] Task: Fix Failing Tests in `RegistrationForm.test.tsx` (Attempt 2)
+- Assigned to: tdd
+- Description: Update and fix the remaining 13 failing tests after component logic fixes.
+- Expected deliverable: Fixed test file with all tests passing, commit confirmation.
+- Status: blocked
+- Completion time: [2025-04-21 02:50:42]
+- Outcome: Task Blocked (Early Return). 8 tests passed, 9 failed. 4 failures stem from intractable `useLocalStorage` initial state mocking. 3 failures correctly identify remaining component bugs (confirm password type, `signUpUser` deadlock). 2 failures likely cascade from mocking issue. Cannot proceed further in TDD mode.
+- Link to Progress Entry: [TDD Log 2025-04-21 02:50:42]
+
+
 - Status: completed
 - Completion time: [2025-04-19 06:26:44]
 - Outcome: Successfully refactored code using a Data Access Layer (`platform/src/lib/data/`). RLS test timeouts in `rls.test.ts` resolved. Test suite passes (211 passed, 3 skipped).
@@ -762,6 +858,16 @@
 
 
 ### [2025-04-19 05:44:50] Task: Debug RLS Test Timeouts
+### [2025-04-21 01:28:27] Task: Fix Bugs in `RegistrationForm.tsx` Component Logic
+- Assigned to: code
+- Description: Fix component logic bugs (password flow, register command/output) identified by TDD mode.
+- Expected deliverable: Fixed component file, commit confirmation.
+- Status: completed
+- Completion time: [2025-04-21 01:39:08]
+- Outcome: Successfully fixed password flow handling and `register`/`register new` command/output logic in `RegistrationForm.tsx`. Committed fix (`eb43f2c`).
+- Link to Progress Entry: [Code Log 2025-04-21 01:39:08]
+
+
 - Assigned to: debug
 - Description: Diagnose and resolve persistent test timeouts in `platform/src/lib/supabase/rls.test.ts`.
 - Expected deliverable: Fixed test file or diagnosis and recommendations.
@@ -769,6 +875,16 @@
 - Completion time: [2025-04-19 05:44:50]
 - Outcome: Blocked. Debugger confirmed intractable issue mocking async Supabase client promise chains (`.then()`) in Vitest, causing timeouts. Tests using `.single()` were fixed. Issue logged as RLS-TEST-TIMEOUT-001.
 - Link to Progress Entry: [See Debugger completion message 2025-04-19 05:44:50]
+### [2025-04-21 01:10:31] Task: Fix Failing Tests in `RegistrationForm.test.tsx`
+- Assigned to: tdd
+- Description: Update and fix the 13 failing tests to align with V3.1 spec / 45-question structure.
+- Expected deliverable: Fixed test file with all tests passing, commit confirmation.
+- Status: blocked
+- Completion time: [2025-04-21 01:28:08]
+- Outcome: Task Blocked. TDD mode identified component bugs in `RegistrationForm.tsx` as the primary blocker: incorrect password flow handling and incorrect `register`/`register new` command/output logic. Tests cannot be fully fixed until component is corrected.
+- Link to Progress Entry: [TDD Log 2025-04-21 01:28:08]
+
+
 
 
 ### [2025-04-19 05:36:09] Task: Philosothon Platform V2 - P0 Auth/RBAC TDD (Red Phase)
@@ -776,6 +892,16 @@
 - Description: Implement Red phase TDD for P0 Auth/RBAC features.
 - Expected deliverable: Failing tests committed to `feature/architecture-v2`.
 - Status: blocked
+### [2025-04-21 01:06:00] Task: Verify `RegistrationForm.test.tsx` Tests After SSOT Fix
+- Assigned to: tdd
+- Description: Run tests for `RegistrationForm.test.tsx` to verify if corrected generated data resolves failures.
+- Expected deliverable: Test results (pass/fail count) and summary of failures.
+- Status: completed
+- Completion time: [2025-04-21 01:10:16]
+- Outcome: Tests still fail (4 passed, 13 failed). Corrected data did not resolve failures, confirming the tests themselves are outdated and need updating to align with V3.1 spec / 45-question structure.
+- Link to Progress Entry: [TDD Log 2025-04-21 01:10:16]
+
+
 - Completion time: [2025-04-19 05:36:09]
 - Outcome: Red phase completed for Middleware RBAC and Profile Creation logic (tests added/failing as expected). Blocked on writing tests for RLS policies due to async Supabase client mocking timeouts in `platform/src/lib/supabase/rls.test.ts`.
 - Link to Progress Entry: [See TDD completion message 2025-04-19 05:36:09]
@@ -783,6 +909,16 @@
 
 ### [2025-04-19 05:09:30] Task: Philosothon Platform V2 - Architecture Design
 - Assigned to: architect
+### [2025-04-21 12:30:17] Task: Debug and Fix SSOT Generation Script (`generate-registration.ts`)
+- Assigned to: code
+- Description: Debug and fix the generation script to correctly include all fields (`hint`, `description`, `validationRules`, etc.) in `registrationQuestions.ts`.
+- Expected deliverable: Fixed script file, commit confirmation.
+- Status: completed
+- Completion time: [2025-04-21 01:05:43]
+- Outcome: Successfully fixed script logic. Re-ran script (`npm run generate:reg`). Verified output `registrationQuestions.ts` now correctly includes all fields for the 45 questions. Amended previous commit (`e7b2b81`) to include fixed script and correctly generated files.
+- Link to Progress Entry: [Code Log 2025-04-21 01:05:43]
+
+
 - Description: Design V2 architecture based on spec, investigate options, propose updates.
 - Expected deliverable: Updated architecture docs (diagrams, ADRs) on feature branch.
 - Status: completed

@@ -1,6 +1,14 @@
 # DevOps Specific Memory
 
 ## Deployment History Log
+### Git Commit: [2025-04-21 16:36:00] - docs(spec): Update V3.1 reg spec for confirmation state & existing user flow
+- **Branch**: feat/architecture-v2
+- **Commit ID**: 8062e37
+- **Files**: `docs/specs/p0_registration_terminal_ui_spec_v2.md`
+- **Notes**: Committed updates to the V3.1 registration specification to define the `awaiting_confirmation` state and the flow for handling existing users during `register new`.
+
+
+
 ### Script Execution: [2025-04-21 12:16:18] - npm run generate:reg (Attempt 2)
 - **Branch**: feat/architecture-v2
 - **Triggered By**: Manual (DevOps Task)

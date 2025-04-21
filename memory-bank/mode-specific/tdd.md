@@ -1,6 +1,25 @@
 # TDD Specific Memory
 
 ## Test Execution Results
+### Test Execution: RegistrationForm.test.tsx (V3.1 Fix Attempt 1 - Corrected Analysis) - [2025-04-21 13:21:00]
+- **Trigger**: Manual (Attempt to fix failing tests)
+- **Outcome**: FAIL / **Summary**: 5 tests passed, 12 failed
+- **Failed Tests**: 12 tests failed, primarily due to:
+    - Incorrect command handling ('register' without args).
+    - Missing intro/warning text on 'register new'.
+    - **Component Bug:** Component skips password/confirmPassword steps because its logic incorrectly relies on finding `password`/`confirmPassword` IDs within the `questions` array, but these are intentionally excluded from the array per the schema design.
+    - Outdated assertions for status line, help text, prompts.
+    - Multiple elements found for some assertions.
+- **Notes**: Applied partial fixes for non-password related tests (scoping, basic assertions). Task blocked because fixing password flow tests requires correcting the component logic in `RegistrationForm.tsx` to handle password steps as special cases (e.g., based on index after email) rather than relying on the `questions` array.
+
+
+### Test Execution: RegistrationForm.test.tsx (Post-SSOT Fix Verification) - [2025-04-21 13:09:00]
+- **Trigger**: Manual (Verify SSOT fix)
+- **Outcome**: FAIL / **Summary**: 4 tests passed, 13 failed
+- **Failed Tests**: 13 tests failed due to assertion errors (mismatched text, missing elements, incorrect mock calls) and logic expecting outdated 36-question structure (e.g., incorrect prompt assertions, undefined question lookups). See details in terminal output.
+- **Notes**: Confirmed that the SSOT fix (generating correct 45-question `registrationQuestions.ts`) did not resolve test failures. The tests themselves in `RegistrationForm.test.tsx` require updates to align with the V3.1 spec and 45-question structure.
+
+
 ### Test Execution: RegistrationForm.test.tsx (Post-Cleanup) - [2025-04-21 04:45:58]
 - **Trigger**: Manual (Post-Cleanup Task)
 - **Outcome**: FAIL (Expected) / **Summary**: 13 tests failed, 4 passed
@@ -702,3 +721,17 @@ ${tddModeUpdateCycleLog}
 - **Trigger**: Manual / **Env**: Local / **Suite**: `platform/src/app/admin/faq/actions.test.ts`
 - **Result**: PASS / **Summary**: 49 Total/49 Passed/0 Failed/0 Skipped (Includes other test files run by Vitest)
 - **Report Link**: N/A / **Failures**: None
+### Test Execution: RegistrationForm.test.tsx (Post-Mocking Fix Attempts) - [2025-04-21 14:40:00]
+- **Trigger**: Manual (Verify mocking fixes)
+- **Outcome**: FAIL / **Summary**: 8 tests passed, 9 failed
+- **Failed Tests**:
+    - `should show status line indicating local data exists`: Fails finding text (Test Setup Issue: `useLocalStorage` mock ineffective for initial render).
+    - `should show "continue" in register sub-menu if local data exists`: Fails finding text (Test Setup Issue: `useLocalStorage` mock ineffective for initial render).
+    - `should warn before overwriting local data on "register new"`: Fails finding text (Test Setup Issue: `useLocalStorage` mock ineffective for initial render).
+    - `should resume registration from correct index on "register continue"`: Fails finding text (Test Setup Issue: `useLocalStorage` mock ineffective for initial render).
+    - `should proceed through early auth flow...`: Fails checking `confirmPwInput` type (Component Logic Issue: `isPasswordInput` state not set correctly for confirmation). Also fails `signUpUser` call assertion (Component Logic Issue: State logic prevents reaching call).
+    - `should show validation error for invalid email format`: Fails finding error text (Test Setup Issue: Component state likely incorrect due to local storage mock issue).
+    - `should show validation error for non-matching passwords`: Fails finding error text (Test Setup Issue: Component state likely incorrect due to local storage mock issue).
+    - `should show validation error for short password`: Fails finding error text (Test Setup Issue: Component state likely incorrect due to local storage mock issue).
+    - `should show error and stay at password step if signUpUser fails`: Fails `signUpUser` call assertion (Component Logic Issue: State logic prevents reaching call).
+- **Notes**: `vi.doMock` approach failed to resolve local storage mocking issues and introduced new failures. Reverted to `vi.mock` + setting store before render. Local storage tests remain blocked by setup issue. Other failures correctly indicate component logic bugs.

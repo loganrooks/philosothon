@@ -1,3 +1,44 @@
+[2025-04-21 16:36:00] - DevOps - Committed Spec Update - Committed changes to `docs/specs/p0_registration_terminal_ui_spec_v2.md` (commit 8062e37) on branch `feat/architecture-v2`.
+
+
+
+[2025-04-21 16:32:00] - SpecPseudo - Completed Task (Update V3.1 Registration Spec) - Updated `docs/specs/p0_registration_terminal_ui_spec_v2.md` to define the `awaiting_confirmation` state and the flow for handling existing users during `register new`, addressing issues from debug feedback. Preparing commit.
+
+
+
+[2025-04-21 16:14:00] - Debug - Applied Fixes based on User Feedback (RegistrationForm.tsx) - Removed prompt from input history; separated logic for new vs existing users in signup flow; added explicit prompt display after confirmation check.
+
+
+[2025-04-21 16:03:00] - Debug - Applied Fixes (RegistrationForm.tsx / auth/actions.ts) - Implemented email confirmation wait state ('awaiting_confirmation' mode + check action), refactored state updates, removed redundant prompts, adjusted 'register continue' logic.
+
+
+[2025-04-21 15:46:57] - Code - Task Blocked (Fix Bugs in RegistrationForm.tsx - Attempt 5 - EARLY RETURN) - User invoked Early Return Clause due to repeated failures, regressions (double/missing prompts, stuck flows), and unresolved profile creation issue. Committed current state (4669656) for debugging. Recommend delegation to debug mode.
+
+
+[2025-04-21 15:32:36] - Code - Fixed Logic Bugs (RegistrationForm.tsx - Attempt 5) - Restored JSX rendering for question prompt. Moved check for password setup completion into processAnswer default case to allow initial name/email entry during 'register new'.
+
+
+[2025-04-21 15:19:18] - Code - Fixed Logic Bugs & Syntax (RegistrationForm.tsx - Attempt 4) - Added check to prevent re-triggering password flow if verified. Removed redundant question label rendering from JSX to fix double prompt. Fixed syntax error from previous diff. Passed names to signUpUser call.
+
+
+[2025-04-21 15:15:22] - Code - Fixed Logic Bugs (RegistrationForm.tsx - Attempt 3) - Added check to prevent re-triggering password flow if user is verified. Removed redundant `addOutputLine` calls for question labels to fix double prompt issue.
+
+
+[2025-04-21 15:09:48] - Code - Updated Profile Creation Logic - Modified `signUpUser` action to pass first/last name metadata. Created new migration (`20250421150900...`) to update `handle_new_user` trigger to correctly populate `profiles` table (id, email, first_name, last_name, role) from `auth.users` and metadata.
+
+
+[2025-04-21 15:04:10] - Code - Fixed Logic Bug (RegistrationForm.tsx - Sign-In Flow) - Added missing 'return' statement in handleAuthModeInput to correctly prompt for password after email entry.
+
+
+[2025-04-21 14:53:25] - Code - Fixed Logic Bug (RegistrationForm.tsx) - Corrected conditional logic in handleSubmit to resolve deadlock preventing signUpUser call during password confirmation. Verified fix aligns with V3.1 spec early auth flow.
+
+
+[2025-04-21 13:36:31] - Code - Completed Task (Fix Bugs in RegistrationForm.tsx) - Corrected password flow logic to handle steps independently of the main question array. Fixed `register` command to show sub-menu and added missing introductory text for `register new`. Committed fix (eb43f2c) to `feat/architecture-v2`.
+
+
+[2025-04-21 13:21:00] - TDD - Task Blocked (Fix Failing Tests in RegistrationForm.test.tsx - Corrected Analysis) - Ran tests (12/17 failing). Initial analysis incorrectly blamed data generation script. **Corrected Analysis:** Schema (`registrationSchema.ts`) intentionally excludes password/confirmPassword from the question array. The bug is in `RegistrationForm.tsx`, which incorrectly tries to handle password steps by checking `questions[currentQuestionIndex].id`, logic that never runs because those IDs aren't in the array. Component skips password steps. Partial test fixes applied. Task blocked by component bug. Recommend fixing component logic before retrying test fixes.
+
+
 [2025-04-21 12:51:25] - Code - [EXECUTED] - Re-ran `npm run generate:reg` script as requested by user.
 
 [2025-04-21 12:32:00] - Code - [FIXED] - Corrected `platform/scripts/generate-registration.ts` to include all required fields (hint, description, validationRules, etc.) in the generated `registrationQuestions.ts` based on `registrationSchema.ts` and V3.1 spec.
@@ -595,3 +636,4 @@ This file tracks the project's current status, including recent changes, current
 -   Need to get Google Form embed code for Register page.
 -   Need to implement Supabase data fetching (SSG/ISR) and auth flows.
 -   Need to build Admin UI components (DataTable, StatusFilters, Content Forms).
+[2025-04-21 14:45:00] - TDD - Task Blocked (Fix Failing Tests in `RegistrationForm.test.tsx` - Attempt 2 - Early Return) - Test run shows 9/17 failures. 4 failures persist due to intractable issues mocking initial state from `useLocalStorage` hook. 3+ failures correctly identify component logic bugs (`confirmPassword` input type, `signUpUser` not called due to state logic deadlock). Invoking Early Return Clause per user instruction and task definition due to persistent test setup blocker and identified component bugs requiring implementation. Recommend delegating component fixes to `code` mode and potentially mocking debug to `debug` mode.

@@ -1,6 +1,24 @@
 # Debug Specific Memory
 
 ## Issue History
+### Issue: REG-FLOW-STATE-001 - Stuck flows, double prompts, verification issues - [Status: Fix Attempted] - [2025-04-21 16:03:00]
+- **Reported**: 2025-04-21 15:46:57 (Task Context) / **Severity**: High / **Symptoms**: Stuck flows, double/missing prompts, profile creation/verification issues in `RegistrationForm.tsx`.
+- **Investigation**: Analyzed component state logic, spec, auth actions, profile trigger. Hypothesized issues with premature verification setting, state update timing, redundant prompts, handling of authenticated 'continue', existing user signup, and incorrect question display after confirmation.
+- **Fix Applied**:
+    1. Modified `signUpUser` success block to enter 'awaiting_confirmation' mode instead of setting local `isVerified` or returning to 'main'.
+    2. Added `handleAwaitingConfirmationModeCommand` to check verification status via new `checkUserVerificationStatus` server action before proceeding.
+    3. Refactored `advanceQuestion` to combine `setLocalData` and `setCurrentQuestionIndex` updates.
+    4. Removed redundant `addOutputLine` calls for prompts in `next`/`prev` handlers.
+    5. Modified `register continue` handler to direct authenticated users to `view`/`edit`.
+    6. Removed obsolete `!localData.isVerified` check from `processAnswer`.
+    7. Removed prompt text from input history lines in `handleSubmit`.
+    8. Separated logic in `signUpUser` success block to handle new vs. existing users (prompts existing users to sign in).
+    9. Added explicit `addOutputLine` for the next question label within `handleAwaitingConfirmationModeCommand` after verification success.
+- **Verification**: Code changes applied. Manual testing required.
+- **Related Issues**: Previous `code` mode attempts ([MB Log 2025-04-21 15:46:57]), User Feedback [2025-04-21 15:59:40], [2025-04-21 16:12:01].
+
+
+
 ### Issue: REG-TEST-SOURCE-MISMATCH-001 - Tests fail due to incorrect source/assertions - [Status: Blocked] - [2025-04-21 12:09:00]
 - **Reported**: 2025-04-21 11:47:23 (Task Context) / **Severity**: High / **Symptoms**: Tests in `RegistrationForm.test.tsx` fail, showing `[reg X/45]>` prompt.
 - **Investigation (Attempt 4 - Final Corrected)**:

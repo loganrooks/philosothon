@@ -1,5 +1,130 @@
 # Specification Writer Specific Memory
 
+### Pseudocode: Terminal Registration - Awaiting Confirmation Mode Logic
+- Created: [2025-04-21 16:33:00]
+- Updated: [2025-04-21 16:33:00]
+```pseudocode
+// Within Awaiting Confirmation Mode
+
+DisplayHeader("Awaiting Confirmation")
+DisplayMessage("Account created. Please check your email ([user_email]) for a confirmation link. Enter 'continue' here once confirmed, or 'resend' to request a new link.")
+DisplayCommandHints(['continue', 'resend', 'exit', 'help'])
+
+LOOP:
+  DisplayPrompt("[awaiting_confirmation]>")
+  Await UserInput() -> command
+
+  SWITCH command:
+    CASE 'continue':
+      TRY
+        status = AWAIT ServerAction.checkUserVerificationStatus()
+        IF status == 'confirmed':
+          DisplaySuccess("Email confirmed.")
+          // Transition to Registration Mode, Q3 (Year of Study)
+          SetMode('Registration')
+          currentQuestionIndex = GetIndexForQuestion('yearOfStudy')
+          DisplayQuestion(QuestionDefinitions[currentQuestionIndex])
+          BREAK LOOP
+        ELSE:
+          DisplayError("Email not confirmed yet. Please check your email or use 'resend'.")
+      CATCH (error):
+        DisplayError("Failed to check status. Please try again later.")
+    CASE 'resend':
+      TRY
+        AWAIT ServerAction.resendConfirmationEmail()
+        DisplaySuccess("Confirmation email resent to [user_email].")
+      CATCH (error):
+        DisplayError("Failed to resend email. Please try again later.")
+    CASE 'exit':
+      SetMode('Main') // Return to anonymous main mode
+      BREAK LOOP
+    CASE 'help':
+      DisplayHelpForMode('awaiting_confirmation')
+    DEFAULT:
+      DisplayError("Unknown command.")
+```
+#### TDD Anchors:
+- Test mode header and initial message display.
+- Test `continue` calls backend action.
+- Test `continue` transitions on success.
+- Test `continue` shows error on failure.
+- Test `resend` calls backend action and shows confirmation.
+- Test `exit` returns to Main Mode.
+
+
+### Pseudocode: Terminal Registration - Early Auth Flow (Updated for Existing User)
+- Created: [2025-04-20 1:49:00]
+- Updated: [2025-04-21 16:33:00]
+```pseudocode
+// Within Registration Mode, after 'register new' or 'register continue' (if needed)
+
+// Step 1: Collect Name (First, Last)
+// ... (as before)
+
+// Step 2: Collect Email
+// ... (as before)
+
+// Step 3: Collect Password
+// ... (as before)
+
+// Step 4: Validate & Create/Verify User
+ClientValidatePassword(password, confirmPassword) // Length >= 8, match
+IF (!isValid) DisplayError("Passwords do not match or are too short."); GOTO Step 3;
+
+TRY
+  result = AWAIT ServerAction.signUpUser(email, password, firstName, lastName)
+
+  IF (result.error == 'user_already_exists'):
+    DisplayError("An account with this email already exists. Please use 'sign-in' or 'reset-password'.")
+    SetMode('Main') // Return to Main Mode (anonymous)
+    RETURN // Exit registration flow
+
+  ELSE IF (result.error):
+    DisplayError(result.error) // Other signup error
+    GOTO Step 3 // Retry password
+
+  ELSE IF (result.requiresConfirmation):
+    // User created, needs email confirmation
+    SaveToLocalStorage('userVerified', false) // Indicate confirmation needed
+    SaveToLocalStorage('formData.email', email) // Store email for display
+    SetMode('AwaitingConfirmation')
+    // Awaiting Confirmation Mode handles the rest
+    RETURN // Exit current flow step
+
+  ELSE:
+    // User created AND auto-confirmed (or confirmation not needed)
+    SaveToLocalStorage('userVerified', true)
+    DisplaySuccess("Account verified/created.")
+    // Proceed directly to next registration question
+    currentQuestionIndex = GetIndexForQuestion('yearOfStudy')
+    DisplayQuestion(QuestionDefinitions[currentQuestionIndex]) // Start main question loop
+
+CATCH (error):
+  DisplayError("Failed to verify/create account. Please try again."); GOTO Step 3;
+
+// Step 5: Proceed to next registration question (Handled within Step 4 logic now)
+
+```
+#### TDD Anchors:
+- Test name collection and saving.
+- Test email collection, validation, and saving.
+- Test password masking and validation (length, match).
+- Test `signUpUser` action call on valid password.
+- **Test `signUpUser` detecting existing user displays error and returns to Main Mode.**
+- Test `signUpUser` handling other errors (retry password step).
+- **Test `signUpUser` requiring confirmation transitions to AwaitingConfirmation Mode.**
+- **Test `signUpUser` *not* requiring confirmation proceeds directly to Q3.**
+- Test local storage indicates user verification status.
+
+
+### Edge Case: Registration - `signUpUser` Detects Existing User
+- Identified: [2025-04-21 16:33:00]
+- Scenario: During the `register new` flow, after entering email and password, the `signUpUser` backend action determines the email address already belongs to an existing user.
+- Expected behavior: The action should return a specific indicator (e.g., error code 'user_already_exists'). The frontend should display an error message ("An account with this email already exists. Please use 'sign-in' or 'reset-password'."), abort the registration flow, and return the user to the Main Terminal Mode (anonymous state).
+- Testing approach: Mock `signUpUser` action to return the 'user_already_exists' indicator. Verify error message display and transition back to Main Mode.
+
+
+
 ### Feature: Responsive Google Form Embed
 - Added: [2025-04-18 19:20:37]
 - Description: Ensure the embedded Google Form (`FormEmbed.tsx`) displays correctly across various screen sizes.
@@ -99,6 +224,16 @@
 - Acceptance criteria: 1. UI implements specified modes and commands. 2. Registration flow collects email/password early, then remaining questions. 3. SSOT strategy implemented for question definition and generation. 4. Password auth works site-wide (sign-up, sign-in, reset via email link, sign-out). 5. Authenticated users can view/edit/delete their registration. 6. Local storage uses basic obfuscation.
 - Dependencies: Supabase Auth (Password), Supabase DB (`registrations`, `profiles`), SSOT generation script, Frontend UI framework.
 - Status: Specified (Final Draft)
+
+
+### Feature: Terminal Registration UI V3.1 (Revised)
+- Added: [2025-04-20 17:33:00]
+- Updated: [2025-04-21 16:33:00]
+- Description: Redesigned terminal-style UI for user registration incorporating structure from the latest `registration_outline.md` (36 questions, including Discord/Availability). Features distinct modes (Main, Registration, Auth, **Awaiting Confirmation**), command-driven interaction, SSOT for questions (with enhanced metadata and validation rules), site-wide password-based authentication (early First/Last Name/Email/Password collection, **handling existing users**, **email confirmation step**), local storage for progress saving (obfuscated), `back` command for corrections, conditional command visibility, flexible input handling (y/n, partial match), specific input methods for multi-select (space-separated numbers) and ranked-choice (numbered top-N), hints, and enhanced validation/error recovery.
+- Acceptance criteria: 1. UI implements specified modes, commands, prompts, and colors (#39FF14 text, #FFA500 highlights). 2. Registration flow follows outline structure (Q1-36). 3. Early auth flow (FirstName->LastName->Email->Password->signUpUser) implemented, **correctly handles existing users**. 4. **Awaiting Confirmation mode functions as specified (displays message, handles `continue`/`resend`).** 5. SSOT strategy implemented (incl. outline checks, metadata warnings, `minRanked` validation). 6. Password auth works site-wide. 7. Authenticated users can view/edit/delete registration. 8. Local storage uses basic obfuscation. 9. `back` command correctly undoes last answer. 10. Flexible input and specific multi-select/ranking inputs function as specified. 11. Conditional commands display correctly. 12. Hints and validation messages (with error recovery) displayed.
+- Dependencies: Supabase Auth (Password), Supabase DB (`registrations`, `profiles`), SSOT generation script, Frontend UI framework, Backend actions (`checkUserVerificationStatus`, `resendConfirmationEmail`).
+- Status: Specified (Draft V3.1 Revised + Confirmation/Existing User Flow)
+
 
 
 ### Feature: Terminal Registration UI V3.1 (Revised)
