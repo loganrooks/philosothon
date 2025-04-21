@@ -17,6 +17,7 @@ import { Database, Json } from '@/lib/supabase/database.types'; // Import genera
 // Generated Zod schema based on central configuration
 // Generated Zod schema based on central configuration
 // Generated Zod schema based on central configuration
+// Generated Zod schema based on central configuration
 export const RegistrationSchema = generateRegistrationSchema();
 // Define an inferred type based on the Zod schema
 type ValidatedRegistrationData = z.infer<typeof RegistrationSchema>;
@@ -380,4 +381,41 @@ export async function deleteRegistration(): Promise<RegistrationState> {
     redirect('/register'); // Redirect back to the main register page after deletion
 
     // return { success: true, message: 'Registration deleted successfully.' }; // Unreachable
+}
+
+
+// Type for state for the simple interest form
+export type LogInterestState = {
+  message: string | null;
+  success: boolean;
+};
+
+// Server action for the simple interest form
+export async function logInterest(
+  previousState: LogInterestState,
+  formData: FormData
+): Promise<LogInterestState> {
+  const email = formData.get('email');
+
+  // Basic validation
+  if (!email || typeof email !== 'string' || !email.includes('@')) {
+    return { success: false, message: 'Please enter a valid email address.' };
+  }
+
+  try {
+    // Placeholder: Log the email server-side
+    // In a real scenario, you might save this to a 'leads' table or mailing list
+    console.log(`Registration Interest Received: ${email}`);
+
+    // Simulate potential database error
+    // if (email.includes('error')) {
+    //   throw new Error('Simulated database error.');
+    // }
+
+    return { success: true, message: `Thank you! We'll notify ${email} when registration opens.` };
+
+  } catch (error: any) {
+    console.error('Log Interest Error:', error);
+    return { success: false, message: `Failed to record interest: ${error.message}` };
+  }
 }

@@ -13,7 +13,7 @@ import { fetchWorkshops, type Workshop } from '@/lib/data/workshops'; // Assumin
 async function getMarkdownContent(): Promise<string> {
   try {
     // Construct the path relative to the project root (assuming cwd is /platform)
-    const filePath = path.join(process.cwd(), '..', 'markdown', 'proposal_to_students.md');
+    const filePath = path.join(process.cwd(), 'markdown', 'proposal_to_students.md');
     const fileContents = await fs.readFile(filePath, 'utf8');
     // --- Modification: Remove hardcoded sections from Markdown ---
     // This is a simplified approach. Ideally, the Markdown would only contain the core text.

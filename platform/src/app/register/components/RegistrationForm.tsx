@@ -169,15 +169,18 @@ const getPromptText = (mode: TerminalMode, auth: boolean, email: string | null, 
         if (authSubState === 'awaiting_password') return '[auth] Password: ';
     }
     if (mode === 'register' || mode === 'edit') {
-        // Use specific prompts during auth sub-states within registration
+        // Use specific prompts during auth sub-states within registration, NO question count
         if (authSubState === 'awaiting_password') return '[reg] Password: ';
         if (authSubState === 'awaiting_confirm_password') return '[reg] Confirm Password: ';
+        // Also handle email prompt specifically if needed, though question display effect might cover it
+        // if (authSubState === 'awaiting_email') return '[reg] Email: ';
 
         // Default registration prompt shows progress for other questions
         const question = allQuestions[questionIndex];
-         // Add check for valid index
         const displayIndex = questionIndex >= 0 && questionIndex < allQuestions.length ? questionIndex + 1 : '?';
-        return `[reg ${displayIndex}/${TOTAL_QUESTIONS}]> `;
+        // Only show count for actual questions, not auth steps
+        const isAuthStep = ['firstName', 'lastName', 'email', 'password', 'confirmPassword'].includes(question?.id);
+        return isAuthStep ? `[reg]> ` : `[reg ${displayIndex}/${TOTAL_QUESTIONS}]> `;
     }
 
     switch (mode) {
@@ -684,10 +687,42 @@ export function RegistrationForm({ initialAuthStatus }: { initialAuthStatus?: { 
             if (!answer.includes('@')) {
                 dispatch({ type: 'ACTION_FAILURE', payload: "Invalid email format." }); return;
             }
-            dispatch({ type: 'UPDATE_LOCAL_DATA', payload: { email: answer } });
-            dispatch({ type: 'ADD_OUTPUT', payload: { text: "Enter password:", type: 'question' } }); // Add explicit prompt
-            dispatch({ type: 'SET_AUTH_SUBSTATE', payload: 'awaiting_password' }); // Move to password
-            // Don't advance index here, stay on 'email' conceptually until password done
+            // Check if user exists BEFORE asking for password
+            dispatch({ type: 'ACTION_START', payload: 'signIn' }); // Use 'signIn' pending state for the check
+            startSubmitTransition(async () => {
+                // Attempt sign-in with a dummy password to check existence
+                const checkResult = await signInWithPassword({ email: answer, password: 'check-existence-dummy-password' });
+
+                // Check specific error messages
+                if (checkResult.message.includes('Invalid login credentials')) {
+                    // User exists
+                    dispatch({ type: 'ACTION_FAILURE', payload: "An account with this email already exists. Please use 'sign-in' or 'reset-password'." });
+                    dispatch({ type: 'SET_AUTH_SUBSTATE', payload: 'awaiting_email' }); // Reset to ask for email again
+                    // Clear the attempted email from local data? Optional, maybe keep it for sign-in convenience? Let's clear it for now.
+                    dispatch({ type: 'UPDATE_LOCAL_DATA', payload: { email: undefined } });
+                } else if (checkResult.message.includes('Email not confirmed')) {
+                     // User exists but not confirmed
+                    dispatch({ type: 'ACTION_FAILURE', payload: "An account with this email exists but is not confirmed. Please use 'sign-in' to trigger confirmation email." });
+                    dispatch({ type: 'SET_AUTH_SUBSTATE', payload: 'awaiting_email' });
+                    dispatch({ type: 'UPDATE_LOCAL_DATA', payload: { email: undefined } });
+                }
+                // Assuming other errors (like network error, or potentially 'User not found' - needs verification of exact Supabase message) mean we can proceed
+                else {
+                    // User likely does not exist, proceed to password
+                    dispatch({ type: 'UPDATE_LOCAL_DATA', payload: { email: answer } });
+                    dispatch({ type: 'ADD_OUTPUT', payload: { text: "Enter password:", type: 'question' } });
+                    dispatch({ type: 'SET_AUTH_SUBSTATE', payload: 'awaiting_password' });
+                    // ACTION_SUCCESS will clear pendingAction implicitly if needed, or clear manually:
+                    dispatch({ type: 'ACTION_SUCCESS' }); // Clear pending state
+                }
+                 // Handle unexpected success with dummy password (shouldn't happen)
+                 if (checkResult.success) {
+                     dispatch({ type: 'ACTION_FAILURE', payload: "Unexpected sign-in success during check. Account may exist." });
+                     dispatch({ type: 'SET_AUTH_SUBSTATE', payload: 'awaiting_email' });
+                     dispatch({ type: 'UPDATE_LOCAL_DATA', payload: { email: undefined } });
+                 }
+            });
+            // Don't advance index here, stay on 'email' conceptually until check/password done
             return;
         }
         if (question.id === 'password') {
@@ -742,11 +777,13 @@ export function RegistrationForm({ initialAuthStatus }: { initialAuthStatus?: { 
                 // Handle other signup failures
                 else {
                     dispatch({ type: 'ACTION_FAILURE', payload: `Account creation failed: ${result.message}` });
-                    // Reset to password prompt on failure
-                    dispatch({ type: 'ADD_OUTPUT', payload: { text: "Enter password:", type: 'question' } }); // Re-prompt
+                    // Reset to password prompt on failure, ensuring the prompt is shown
+                    dispatch({ type: 'ADD_OUTPUT', payload: { text: "Enter password:", type: 'question' } }); // Re-prompt explicitly
                     dispatch({ type: 'SET_AUTH_SUBSTATE', payload: 'awaiting_password' });
                     dispatch({ type: 'SET_PASSWORD_ATTEMPT', payload: '' });
-                    // Don't change question index, stay conceptually on password step
+                    // Ensure we don't accidentally advance index if it was somehow changed
+                    const passwordIndex = allQuestions.findIndex(q => q.id === 'password');
+                    dispatch({ type: 'SET_QUESTION_INDEX', payload: passwordIndex >= 0 ? passwordIndex : state.currentQuestionIndex });
                 }
             });
             return; // Stop processing after handling confirmPassword

@@ -1,5 +1,5 @@
-import { RegistrationForm } from "@/app/register/components/RegistrationForm"; // Use named import
 import InstructionBlock from "@/components/InstructionBlock";
+import { InterestForm } from "@/app/register/components/InterestForm"; // Import the new form
 
 export default function RegisterPage() {
   return (
@@ -10,8 +10,8 @@ export default function RegisterPage() {
         Sign up below to participate in the upcoming Philosothon event. We look forward to seeing you there!
       </p>
 
-      {/* New Registration Form */}
-      <RegistrationForm />
+      {/* Render InterestForm */}
+      <InterestForm />
 
       {/* Instructions */}
       <InstructionBlock />

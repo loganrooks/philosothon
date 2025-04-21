@@ -33,7 +33,7 @@ export default async function ThemeDetailPage({ params }: ThemeDetailPageProps) 
   try {
     // Construct file path relative to project root
     // process.cwd() should be /home/rookslog/philosothon
-    const filePath = path.join(process.cwd(), 'docs', 'event_info', 'themes', `${id}.md`);
+    const filePath = path.join(process.cwd(), 'markdown', 'themes', `${id}.md`);
     const fileContent = await fs.readFile(filePath, 'utf8');
 
     // Split content at the "Suggested Readings" heading

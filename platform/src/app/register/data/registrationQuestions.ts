@@ -16,7 +16,7 @@ export type QuestionType =
   | 'ranking-numbered'; // Added V3 type
 
 // Re-import QuestionDefinition to reuse nested types if needed
-import { QuestionDefinition } from '../config/registrationSchema';
+import { QuestionDefinition } from '../../../../config/registrationSchema';
 
 export interface Question {
   id: string;
