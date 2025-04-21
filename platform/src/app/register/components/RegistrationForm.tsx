@@ -169,14 +169,15 @@ const getPromptText = (mode: TerminalMode, auth: boolean, email: string | null, 
         if (authSubState === 'awaiting_password') return '[auth] Password: ';
     }
     if (mode === 'register' || mode === 'edit') {
+        // Use specific prompts during auth sub-states within registration
+        if (authSubState === 'awaiting_password') return '[reg] Password: ';
+        if (authSubState === 'awaiting_confirm_password') return '[reg] Confirm Password: ';
+
+        // Default registration prompt shows progress for other questions
         const question = allQuestions[questionIndex];
-        if (question) {
-            if (question.id === 'email' && authSubState === 'awaiting_email') return '[reg] Email: ';
-            if (question.id === 'password' && authSubState === 'awaiting_password') return '[reg] Password: ';
-            if (question.id === 'confirmPassword' && authSubState === 'awaiting_confirm_password') return '[reg] Confirm Password: ';
-        }
-        // Default registration prompt shows progress
-        return `[reg ${questionIndex + 1}/${TOTAL_QUESTIONS}]> `;
+         // Add check for valid index
+        const displayIndex = questionIndex >= 0 && questionIndex < allQuestions.length ? questionIndex + 1 : '?';
+        return `[reg ${displayIndex}/${TOTAL_QUESTIONS}]> `;
     }
 
     switch (mode) {
@@ -684,6 +685,7 @@ export function RegistrationForm({ initialAuthStatus }: { initialAuthStatus?: { 
                 dispatch({ type: 'ACTION_FAILURE', payload: "Invalid email format." }); return;
             }
             dispatch({ type: 'UPDATE_LOCAL_DATA', payload: { email: answer } });
+            dispatch({ type: 'ADD_OUTPUT', payload: { text: "Enter password:", type: 'question' } }); // Add explicit prompt
             dispatch({ type: 'SET_AUTH_SUBSTATE', payload: 'awaiting_password' }); // Move to password
             // Don't advance index here, stay on 'email' conceptually until password done
             return;
@@ -693,6 +695,7 @@ export function RegistrationForm({ initialAuthStatus }: { initialAuthStatus?: { 
                 dispatch({ type: 'ACTION_FAILURE', payload: "Password must be at least 8 characters." }); return;
             }
             dispatch({ type: 'SET_PASSWORD_ATTEMPT', payload: answer });
+            dispatch({ type: 'ADD_OUTPUT', payload: { text: "Confirm password:", type: 'question' } }); // Add explicit prompt
             dispatch({ type: 'SET_AUTH_SUBSTATE', payload: 'awaiting_confirm_password' });
             // Stay on 'password' conceptually
             return;
@@ -718,39 +721,32 @@ export function RegistrationForm({ initialAuthStatus }: { initialAuthStatus?: { 
                     lastName: state.localData.lastName
                 });
 
-                if (result.success) {
-                    // Check spec: Existing user detection
-                    if (result.message.includes('User already registered')) { // Adjust based on actual Supabase error
-                         dispatch({ type: 'ACTION_FAILURE', payload: "An account with this email already exists. Please use 'sign-in' or 'reset-password'." });
-                         dispatch({ type: 'SET_MODE', payload: 'main' }); // Return to main as per spec
-                         dispatch({ type: 'UPDATE_LOCAL_DATA', payload: { email: undefined, firstName: undefined, lastName: undefined } }); // Clear sensitive info
-                    }
-                    // Check spec: Confirmation required? Assume yes for now based on spec text.
-                    else if (true) { // Replace with actual check if Supabase provides it in result
-                         dispatch({ type: 'ACTION_SUCCESS', payload: { message: "Account created. Awaiting email confirmation." } });
-                         dispatch({ type: 'UPDATE_LOCAL_DATA', payload: { isVerified: false } }); // Mark locally as awaiting server confirmation
-                         dispatch({ type: 'SET_AUTH_SUBSTATE', payload: 'idle' });
-                         dispatch({ type: 'SET_PASSWORD_ATTEMPT', payload: '' });
-                         dispatch({ type: 'SET_MODE', payload: 'awaiting_confirmation' });
-                         // User email is already set from BOOT_COMPLETE or previous steps
-                    }
-                    // Optional: Handle case where confirmation is NOT required
-                    // else {
-                    //     dispatch({ type: 'ACTION_SUCCESS', payload: { message: "Account created successfully." } });
-                    //     dispatch({ type: 'UPDATE_LOCAL_DATA', payload: { isVerified: true } }); // Mark locally as verified
-                    //     dispatch({ type: 'SET_AUTH_SUBSTATE', payload: 'idle' });
-                    //     dispatch({ type: 'SET_PASSWORD_ATTEMPT', payload: '' });
-                    //     // Advance to the first *real* question (Q3)
-                    //     const firstQIndex = allQuestions.findIndex(q => q.order === 3);
-                    //     dispatch({ type: 'SET_QUESTION_INDEX', payload: firstQIndex >= 0 ? firstQIndex : 0 });
-                    // }
-                } else {
+                // Check for specific "User already registered" error first
+                if (result.message.includes('User already registered') || result.message.includes('user already exists')) { // More robust check
+                     dispatch({ type: 'ACTION_FAILURE', payload: "An account with this email already exists. Please use 'sign-in' or 'reset-password'." });
+                     dispatch({ type: 'SET_MODE', payload: 'main' }); // Return to main as per spec
+                     dispatch({ type: 'UPDATE_LOCAL_DATA', payload: { email: undefined, firstName: undefined, lastName: undefined, isVerified: undefined } }); // Clear sensitive info
+                     dispatch({ type: 'SET_AUTH_SUBSTATE', payload: 'idle' });
+                     dispatch({ type: 'SET_PASSWORD_ATTEMPT', payload: '' });
+                }
+                // Handle general success (new user created)
+                else if (result.success) {
+                    // Assume confirmation is required based on spec V3.1
+                    dispatch({ type: 'ACTION_SUCCESS', payload: { message: "Account created. Awaiting email confirmation." } });
+                    dispatch({ type: 'UPDATE_LOCAL_DATA', payload: { isVerified: false } }); // Mark locally as awaiting server confirmation
+                    dispatch({ type: 'SET_AUTH_SUBSTATE', payload: 'idle' });
+                    dispatch({ type: 'SET_PASSWORD_ATTEMPT', payload: '' });
+                    dispatch({ type: 'SET_MODE', payload: 'awaiting_confirmation' });
+                    // User email is already set
+                }
+                // Handle other signup failures
+                else {
                     dispatch({ type: 'ACTION_FAILURE', payload: `Account creation failed: ${result.message}` });
-                    // Reset to email prompt? Or password? Let's go back to password.
+                    // Reset to password prompt on failure
+                    dispatch({ type: 'ADD_OUTPUT', payload: { text: "Enter password:", type: 'question' } }); // Re-prompt
                     dispatch({ type: 'SET_AUTH_SUBSTATE', payload: 'awaiting_password' });
                     dispatch({ type: 'SET_PASSWORD_ATTEMPT', payload: '' });
-                    const passwordIndex = allQuestions.findIndex(q => q.id === 'password');
-                    dispatch({ type: 'SET_QUESTION_INDEX', payload: passwordIndex >= 0 ? passwordIndex : state.currentQuestionIndex });
+                    // Don't change question index, stay conceptually on password step
                 }
             });
             return; // Stop processing after handling confirmPassword
@@ -956,7 +952,7 @@ export function RegistrationForm({ initialAuthStatus }: { initialAuthStatus?: { 
      const handleStartNewRegistration = () => {
          dispatch({ type: 'UPDATE_LOCAL_DATA', payload: {} }); // Clear data
          dispatch({ type: 'ADD_OUTPUT', payload: { text: "Starting new registration...", type: 'info' } });
-         dispatch({ type: 'ADD_OUTPUT', payload: { text: "Welcome to the Philosothon registration form! ... Please submit your responses by Thursday, April 24th at midnight.", type: 'output' } }); // Add full intro text
+         dispatch({ type: 'ADD_OUTPUT', payload: { text: "Welcome to the Philosothon registration form! This questionnaire will help us understand your interests, background, and preferences to create balanced teams and select themes that resonate with participants. The event will take place on **April 26-27, 2025**.\n\nCompleting this form should take approximately 10-15 minutes. Please submit your responses by **Thursday, April 24th at midnight**.", type: 'output' } }); // Full intro text
          dispatch({ type: 'SET_MODE', payload: 'register' });
          // Start with First Name (assuming it's the first relevant question)
          const firstNameIndex = allQuestions.findIndex(q => q.id === 'firstName');
