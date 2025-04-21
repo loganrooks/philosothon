@@ -167,6 +167,19 @@ export function RegistrationForm({ initialAuthStatus }: { initialAuthStatus?: { 
         }
     }, [outputLines, currentMode, scrollToBottom]);
 
+    // Effect to display the current question label when index/mode changes
+    useEffect(() => {
+        if ((currentMode === 'register' || currentMode === 'edit') && !isPasswordInput) {
+            const question = questions[currentQuestionIndex];
+            if (question) {
+                addOutputLine(question.label, 'question');
+            }
+        }
+        // Intentionally excluding addOutputLine from dependencies to avoid loops
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentQuestionIndex, currentMode, isPasswordInput]);
+
+
     // --- Command/Input Handling ---
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -211,7 +224,13 @@ export function RegistrationForm({ initialAuthStatus }: { initialAuthStatus?: { 
                 if (input === passwordAttempt) {
                     addOutputLine("Password confirmed. Creating account...", 'info');
                     startAuthTransition(async () => {
-                        const result = await signUpUser({ email: localData.email!, password: passwordAttempt });
+                        // Pass firstName and lastName from localData
+                        const result = await signUpUser({
+                            email: localData.email!,
+                            password: passwordAttempt,
+                            firstName: localData.firstName, // Pass stored first name
+                            lastName: localData.lastName   // Pass stored last name
+                        });
                         if (result.success || result.message.includes('User already registered')) {
                             addOutputLine(result.success ? "Account created/verified." : "Account already exists, proceeding.", 'success');
                             setLocalData((prev: FormDataStore) => ({ ...prev, isVerified: true }));
@@ -220,8 +239,8 @@ export function RegistrationForm({ initialAuthStatus }: { initialAuthStatus?: { 
                             const firstQuestionIndex = questions.findIndex(q => q.order === 3); // Assuming order 3 is the first real question
                             if (firstQuestionIndex !== -1) {
                                 setCurrentQuestionIndex(firstQuestionIndex);
-                                // Remove redundant label output - rendering handles this
-                                // addOutputLine(questions[firstQuestionIndex].label, 'question');
+                                // Restore question prompt display
+                                addOutputLine(questions[firstQuestionIndex].label, 'question');
                             } else {
                                 addOutputLine("Error: Could not find the starting question.", 'error');
                                 setCurrentMode('main'); // Fallback to main mode
@@ -298,11 +317,11 @@ export function RegistrationForm({ initialAuthStatus }: { initialAuthStatus?: { 
                     break;
                 case 'register':
                 case 'edit':
-                    // Prevent processing answers if still in early auth password flow
-                    if (localData.email && !localData.isVerified) {
-                         addOutputLine("Please complete the password setup.", 'warning');
-                         return;
-                    }
+                    // Check moved to processAnswer to allow initial name/email entry
+                    // if (localData.email && !localData.isVerified) {
+                    //      addOutputLine("Please complete the password setup.", 'warning');
+                    //      return;
+                    // }
                     await handleRegisterModeInput(input, command, args);
                     break;
                 case 'review':
@@ -519,9 +538,10 @@ export function RegistrationForm({ initialAuthStatus }: { initialAuthStatus?: { 
          setIsPasswordInput(false); // Ensure password mode is off initially
          setPasswordAttempt(''); // Clear any previous attempts
          setLocalData((prev: FormDataStore) => ({ ...prev, isVerified: undefined })); // Reset verification status
-         addOutputLine(questions[0].label, 'question'); // Prompt for First Name
+         // Remove prompt add - JSX rendering handles initial prompt
+         // addOutputLine(questions[0].label, 'question');
      };
-
+ 
     const handleAuthModeInput = async (input: string) => {
         const command = input.toLowerCase();
          if (command === 'back') {
@@ -543,6 +563,7 @@ export function RegistrationForm({ initialAuthStatus }: { initialAuthStatus?: { 
                 addOutputLine("Enter password:", 'question');
                 setIsPasswordInput(true);
                 setPasswordAttempt('');
+                return; // Stop execution here to wait for password input
             } else {
                 addOutputLine("Invalid email format. Please try again.", 'error');
                 addOutputLine("Enter email:", 'question');
@@ -620,7 +641,7 @@ export function RegistrationForm({ initialAuthStatus }: { initialAuthStatus?: { 
                 const nextIdx = findNextQuestionIndex(currentQuestionIndex, localData);
                 if (nextIdx < questions.length) {
                     setCurrentQuestionIndex(nextIdx);
-                    addOutputLine(questions[nextIdx].label, 'question');
+                    addOutputLine(questions[nextIdx].label, 'question'); // Restore prompt for next question
                 } else {
                      addOutputLine("Already at the last question.", 'info');
                      checkAndHandleCompletion(localData);
@@ -630,7 +651,7 @@ export function RegistrationForm({ initialAuthStatus }: { initialAuthStatus?: { 
                  const prevIdx = findPrevQuestionIndex(currentQuestionIndex, localData);
                  if (prevIdx >= 0) {
                      setCurrentQuestionIndex(prevIdx);
-                     addOutputLine(questions[prevIdx].label, 'question');
+                     addOutputLine(questions[prevIdx].label, 'question'); // Restore prompt for previous question
                  } else {
                       addOutputLine("Already at the first question.", 'info');
                  }
@@ -702,13 +723,14 @@ export function RegistrationForm({ initialAuthStatus }: { initialAuthStatus?: { 
         const question = questions[currentQuestionIndex];
         if (!question) return;
 
-        // Handle email separately to trigger password flow
-        if (question.id === 'email') {
+        // Handle email separately to trigger password flow ONLY if not already verified
+        if (question.id === 'email' && !localData.isVerified) {
              if (answer && answer.includes('@')) {
                  setLocalData((prev: FormDataStore) => ({ ...prev, email: answer }));
                  // Trigger password flow instead of advancing question index
                  setIsPasswordInput(true);
                  addOutputLine("Enter password:", 'question');
+                 return; // Explicitly return to wait for password input
              } else {
                  addOutputLine("Invalid email format.", 'error');
                  addOutputLine(question.label, 'question'); // Re-prompt for email
@@ -778,6 +800,11 @@ export function RegistrationForm({ initialAuthStatus }: { initialAuthStatus?: { 
                      break;
                 // Default case handles text, email, paragraph, etc.
                 default:
+                    // Check if we are stuck waiting for password setup before processing other answers
+                    if (localData.email && !localData.isVerified && question.id !== 'firstName' && question.id !== 'lastName' && question.id !== 'email') {
+                         addOutputLine("Please complete the password setup.", 'warning');
+                         return; // Prevent processing other answers until verified
+                    }
                     processedAnswer = answer;
                     break;
             }
@@ -859,7 +886,8 @@ export function RegistrationForm({ initialAuthStatus }: { initialAuthStatus?: { 
             }
         } else {
             setCurrentQuestionIndex(nextIndex);
-            addOutputLine(questions[nextIndex].label, 'question');
+            // Remove redundant label output - rendering logic handles this
+            // addOutputLine(questions[nextIndex].label, 'question');
             setIsPasswordInput(questions[nextIndex].type === 'password');
         }
     };
@@ -979,12 +1007,14 @@ export function RegistrationForm({ initialAuthStatus }: { initialAuthStatus?: { 
                         {line.text}
                     </div>
                 ))}
-                 {currentQuestion && currentMode !== 'auth' && (
-                     <div className="text-cyan-400 mt-1">{currentQuestion.label}</div>
-                 )}
-                 {currentQuestion?.id === 'confirmPassword' && (
-                      <div className="text-cyan-400 mt-1">Confirm Password:</div>
-                 )}
+                {/* Restore unconditional rendering */}
+                {currentQuestion && currentMode !== 'auth' && (
+                    <div className="text-cyan-400 mt-1">{currentQuestion.label}</div>
+                )}
+                {/* Restore specific prompt for confirm password */}
+                {currentQuestion?.id === 'confirmPassword' && (
+                     <div className="text-cyan-400 mt-1">Confirm Password:</div>
+                )}
             </div>
 
             {currentMode !== 'boot' && (

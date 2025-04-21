@@ -30,7 +30,7 @@ export async function signInWithPassword(credentials: { email: string; password:
   return { success: true, message: 'Sign in successful.' };
 }
 
-export async function signUpUser(credentials: { email: string; password: string }): Promise<AuthActionResult> {
+export async function signUpUser(credentials: { email: string; password: string; firstName?: string; lastName?: string }): Promise<AuthActionResult> {
   const supabase = await createClient();
   const headersList = headers();
   const origin = headersList.get('origin'); // Get origin for email redirect
@@ -42,8 +42,11 @@ export async function signUpUser(credentials: { email: string; password: string 
       // Email confirmation redirection link
       // It's important to verify this path exists in your app routes
       emailRedirectTo: `${origin}/auth/callback`, // Or a specific confirmation page
-      // You can add additional user metadata here if needed
-      // data: { full_name: 'Initial Name', ... }
+      // Pass first_name and last_name in metadata
+      data: {
+        first_name: credentials.firstName,
+        last_name: credentials.lastName
+      }
     },
   });
 
