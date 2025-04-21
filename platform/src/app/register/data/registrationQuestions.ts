@@ -30,38 +30,51 @@ export interface Question {
 
 
 export type FormDataStore = {
-  fullName?: any; // TODO: Refine types based on q.type
+  firstName?: any; // TODO: Refine types based on q.type
+  lastName?: any; // TODO: Refine types based on q.type
   email?: any; // TODO: Refine types based on q.type
-  pronouns?: any; // TODO: Refine types based on q.type
-  studentId?: any; // TODO: Refine types based on q.type
-  university?: any; // TODO: Refine types based on q.type
   academicYear?: any; // TODO: Refine types based on q.type
+  academicYearOther?: any; // TODO: Refine types based on q.type
   programOfStudy?: any; // TODO: Refine types based on q.type
   philosophyCoursework?: any; // TODO: Refine types based on q.type
+  philosophyConfidenceDiscussion?: any; // TODO: Refine types based on q.type
+  philosophyConfidenceWriting?: any; // TODO: Refine types based on q.type
+  philosophyTraditions?: any; // TODO: Refine types based on q.type
+  philosophyTraditionsOther?: any; // TODO: Refine types based on q.type
   philosophyInterests?: any; // TODO: Refine types based on q.type
-  philosophyExpertise?: any; // TODO: Refine types based on q.type
-  attendedPhilosothonBefore?: any; // TODO: Refine types based on q.type
-  previousPhilosothonDetails?: any; // TODO: Refine types based on q.type
+  philosophyInterestsOther?: any; // TODO: Refine types based on q.type
+  philosophyInfluences?: any; // TODO: Refine types based on q.type
+  workingStyle?: any; // TODO: Refine types based on q.type
+  workingStyleOther?: any; // TODO: Refine types based on q.type
+  communicationStyle?: any; // TODO: Refine types based on q.type
+  collaborationRole?: any; // TODO: Refine types based on q.type
+  collaborationRoleOther?: any; // TODO: Refine types based on q.type
+  presentationComfort?: any; // TODO: Refine types based on q.type
+  previousCollaborationExperience?: any; // TODO: Refine types based on q.type
+  previousCollaborationExperienceOther?: any; // TODO: Refine types based on q.type
+  technicalFamiliarity?: any; // TODO: Refine types based on q.type
+  technicalInterests?: any; // TODO: Refine types based on q.type
   themeRanking?: any; // TODO: Refine types based on q.type
-  workshopPreference?: any; // TODO: Refine types based on q.type
-  teamFormationPreference?: any; // TODO: Refine types based on q.type
-  preformedTeamMembers?: any; // TODO: Refine types based on q.type
-  availability?: any; // TODO: Refine types based on q.type
+  themeRankingOther?: any; // TODO: Refine types based on q.type
+  workshopRanking?: any; // TODO: Refine types based on q.type
+  workshopRankingOther?: any; // TODO: Refine types based on q.type
+  teammateSimilarityPreference?: any; // TODO: Refine types based on q.type
+  mentorshipPreference?: any; // TODO: Refine types based on q.type
+  mentorComfortAreas?: any; // TODO: Refine types based on q.type
+  preferredTeammates?: any; // TODO: Refine types based on q.type
+  discordMember?: any; // TODO: Refine types based on q.type
+  learningGoals?: any; // TODO: Refine types based on q.type
+  learningGoalsOther?: any; // TODO: Refine types based on q.type
+  availabilityConfirmation?: any; // TODO: Refine types based on q.type
   availabilityDetails?: any; // TODO: Refine types based on q.type
-  technicalSkills?: any; // TODO: Refine types based on q.type
-  codingExperience?: any; // TODO: Refine types based on q.type
-  codingLanguages?: any; // TODO: Refine types based on q.type
-  specificTools?: any; // TODO: Refine types based on q.type
+  contingencyAvailability?: any; // TODO: Refine types based on q.type
+  contingencyAvailabilityDetails?: any; // TODO: Refine types based on q.type
   dietaryRestrictions?: any; // TODO: Refine types based on q.type
   accessibilityNeeds?: any; // TODO: Refine types based on q.type
-  emergencyContactName?: any; // TODO: Refine types based on q.type
-  emergencyContactPhone?: any; // TODO: Refine types based on q.type
-  preferredCommunication?: any; // TODO: Refine types based on q.type
-  preferredCommunicationOther?: any; // TODO: Refine types based on q.type
-  codeOfConductAgreement?: any; // TODO: Refine types based on q.type
-  photoConsent?: any; // TODO: Refine types based on q.type
-  dataPrivacyConsent?: any; // TODO: Refine types based on q.type
-  finalConfirmation?: any; // TODO: Refine types based on q.type
+  heardAboutSource?: any; // TODO: Refine types based on q.type
+  heardAboutSourceOther?: any; // TODO: Refine types based on q.type
+  additionalInfo?: any; // TODO: Refine types based on q.type
+  finalConfirmationAgreement?: any; // TODO: Refine types based on q.type
   currentQuestionIndex?: number;
   isVerified?: boolean; // Track if email/password step is done
 };
@@ -69,8 +82,14 @@ export type FormDataStore = {
 
 export const questions: Question[] = [
   {
-    id: 'fullName',
-    label: `Full Name`, // Use template literal for easier escaping
+    id: 'firstName',
+    label: `First Name`, // Use template literal for easier escaping
+    type: 'text',
+    required: true,
+  },
+  {
+    id: 'lastName',
+    label: `Last Name`, // Use template literal for easier escaping
     type: 'text',
     required: true,
   },
@@ -81,204 +100,295 @@ export const questions: Question[] = [
     required: true,
   },
   {
-    id: 'pronouns',
-    label: `Pronouns`, // Use template literal for easier escaping
-    type: 'text',
-    required: false,
-  },
-  {
-    id: 'studentId',
-    label: `Student ID Number`, // Use template literal for easier escaping
-    type: 'text',
-    required: true,
-  },
-  {
-    id: 'university',
-    label: `University/Institution`, // Use template literal for easier escaping
-    type: 'text',
-    required: true,
-  },
-  {
     id: 'academicYear',
-    label: `Current Academic Year`, // Use template literal for easier escaping
+    label: `Year of Study`, // Use template literal for easier escaping
     type: 'single-select',
     required: true,
-    options: ["1st Year","2nd Year","3rd Year","4th Year","Graduate Student","Other"],
+    options: ["First year","Second year","Third year","Fourth year","Fifth year","Graduate student","Other"],
+  },
+  {
+    id: 'academicYearOther',
+    label: `Other Year of Study`, // Use template literal for easier escaping
+    type: 'text',
+    required: false,
+    dependsOn: 'academicYear',
+    dependsValue: "Other",
   },
   {
     id: 'programOfStudy',
-    label: `Program of Study`, // Use template literal for easier escaping
+    label: `Program/Major(s)`, // Use template literal for easier escaping
     type: 'text',
     required: true,
   },
   {
     id: 'philosophyCoursework',
-    label: `Relevant Philosophy Coursework (Optional)`, // Use template literal for easier escaping
+    label: `Philosophy courses completed`, // Use template literal for easier escaping
     type: 'textarea',
-    required: false,
+    required: true,
   },
   {
-    id: 'philosophyInterests',
-    label: `Areas of Philosophical Interest (Optional)`, // Use template literal for easier escaping
-    type: 'textarea',
-    required: false,
-  },
-  {
-    id: 'philosophyExpertise',
-    label: `Self-Assessed Philosophy Expertise Level`, // Use template literal for easier escaping
+    id: 'philosophyConfidenceDiscussion',
+    label: `How would you rate your confidence in philosophical discussion?`, // Use template literal for easier escaping
     type: 'scale',
     required: true,
   },
   {
-    id: 'attendedPhilosothonBefore',
-    label: `Have you attended a Philosothon before?`, // Use template literal for easier escaping
-    type: 'boolean',
+    id: 'philosophyConfidenceWriting',
+    label: `How would you rate your confidence in philosophical writing?`, // Use template literal for easier escaping
+    type: 'scale',
     required: true,
-    options: ["Yes","No"],
   },
   {
-    id: 'previousPhilosothonDetails',
-    label: `If yes, which one(s) and what was your experience like? (Optional)`, // Use template literal for easier escaping
+    id: 'philosophyTraditions',
+    label: `Which philosophical traditions are you most familiar with?`, // Use template literal for easier escaping
+    type: 'multi-select-numbered',
+    required: true,
+    options: ["Analytic philosophy","Continental philosophy","Ancient philosophy","Medieval philosophy","Modern philosophy","Non-Western philosophical traditions","I'm new to philosophy and still exploring","Other"],
+  },
+  {
+    id: 'philosophyTraditionsOther',
+    label: `Other Philosophical Traditions`, // Use template literal for easier escaping
+    type: 'text',
+    required: false,
+    dependsOn: 'philosophyTraditions',
+    dependsValue: "Other",
+  },
+  {
+    id: 'philosophyInterests',
+    label: `Areas of philosophical interest`, // Use template literal for easier escaping
+    type: 'multi-select-numbered',
+    required: true,
+    options: ["Metaphysics","Epistemology","Ethics","Political philosophy","Philosophy of mind","Philosophy of language","Philosophy of technology","Philosophy of science","Aesthetics","Phenomenology","Logic","Existentialism","Pragmatism","Psychoanalysis","Post-structuralism","Critical theory","Feminist philosophy","Environmental philosophy","Other"],
+  },
+  {
+    id: 'philosophyInterestsOther',
+    label: `Other Areas of Philosophical Interest`, // Use template literal for easier escaping
+    type: 'text',
+    required: false,
+    dependsOn: 'philosophyInterests',
+    dependsValue: "Other",
+  },
+  {
+    id: 'philosophyInfluences',
+    label: `Philosophical influences (Optional)`, // Use template literal for easier escaping
     type: 'textarea',
     required: false,
-    dependsOn: 'attendedPhilosothonBefore',
-    dependsValue: true,
+  },
+  {
+    id: 'workingStyle',
+    label: `Working Style Preferences`, // Use template literal for easier escaping
+    type: 'multi-select-numbered',
+    required: true,
+    options: ["I prefer structured discussions with clear roles","I prefer free-flowing, organic conversations","I enjoy debating opposing viewpoints","I like collaborative consensus-building","Other"],
+  },
+  {
+    id: 'workingStyleOther',
+    label: `Other Working Style Preference`, // Use template literal for easier escaping
+    type: 'text',
+    required: false,
+    dependsOn: 'workingStyle',
+    dependsValue: "Other",
+  },
+  {
+    id: 'communicationStyle',
+    label: `Communication Style`, // Use template literal for easier escaping
+    type: 'single-select',
+    required: true,
+    options: ["I tend to process ideas internally before speaking","I think out loud and develop ideas through conversation","I adapt my style depending on the group dynamic"],
+  },
+  {
+    id: 'collaborationRole',
+    label: `In collaborative philosophical work, I typically prefer to:`, // Use template literal for easier escaping
+    type: 'multi-select-numbered',
+    required: true,
+    options: ["Lead discussions and synthesize ideas","Research sources and gather evidence","Develop written arguments","Present concepts to others","Challenge assumptions and play devil's advocate","Listen and provide feedback on others' ideas","Other"],
+  },
+  {
+    id: 'collaborationRoleOther',
+    label: `Other Preferred Collaboration Role`, // Use template literal for easier escaping
+    type: 'text',
+    required: false,
+    dependsOn: 'collaborationRole',
+    dependsValue: "Other",
+  },
+  {
+    id: 'presentationComfort',
+    label: `How comfortable are you with presenting philosophical ideas to a group?`, // Use template literal for easier escaping
+    type: 'scale',
+    required: true,
+  },
+  {
+    id: 'previousCollaborationExperience',
+    label: `Have you previously participated in collaborative philosophical discussions?`, // Use template literal for easier escaping
+    type: 'single-select',
+    required: true,
+    options: ["Yes, frequently (e.g., philosophy clubs, reading groups)","Yes, occasionally (e.g., class discussions, informal debates)","Rarely or never","Other"],
+  },
+  {
+    id: 'previousCollaborationExperienceOther',
+    label: `Other Collaboration Experience`, // Use template literal for easier escaping
+    type: 'text',
+    required: false,
+    dependsOn: 'previousCollaborationExperience',
+    dependsValue: "Other",
+  },
+  {
+    id: 'technicalFamiliarity',
+    label: `How familiar are you with technical concepts generally (e.g., programming, AI, digital culture)?`, // Use template literal for easier escaping
+    type: 'scale',
+    required: true,
+  },
+  {
+    id: 'technicalInterests',
+    label: `Technical Interests (Optional)`, // Use template literal for easier escaping
+    type: 'textarea',
+    required: false,
   },
   {
     id: 'themeRanking',
-    label: `Rank the Event Themes by Preference`, // Use template literal for easier escaping
+    label: `Please rank your top 3 preferred themes`, // Use template literal for easier escaping
     type: 'ranking-numbered',
     required: true,
-    options: ["Algorithmic Aesthetics: Beauty in the Age of Machine Creation","Digital Doppelgangers: Identity and Authenticity Online","The Algorithmic Panopticon: Surveillance, Privacy, and Power","Cyborg Futures: Enhancement, Embodiment, and Posthumanism","AI Ethics: Bias, Fairness, and Accountability in Code","Virtual Worlds, Real Connections: Community and Belonging Online","The Meaning of Tech Work: Labor, Alienation, and Purpose","Ecological Entanglements: Technology, Nature, and Sustainable Futures"],
+    options: ["Minds and Machines: Consciousness Beyond the Human","Digital Commons: Rethinking Property in Information Space","Algorithmic Governance: Authority Without Autonomy?","Technological Singularity: Philosophical Implications of Superintelligence","Extended Perception: Technology and Phenomenological Experience","Digital Ethics: Beyond Utilitarian Frameworks","Attention Economies: The Commodification of Consciousness","Algorithmic Aesthetics: Beauty in the Age of Machine Creation","Other"],
   },
   {
-    id: 'workshopPreference',
-    label: `Workshop Preference (Select up to 2)`, // Use template literal for easier escaping
-    type: 'multi-select-numbered',
-    required: true,
-    options: ["Workshop A: Intro to AI Ethics","Workshop B: Philosophy of Social Media","Workshop C: Technology and Well-being","Workshop D: Exploring Posthumanism"],
-  },
-  {
-    id: 'teamFormationPreference',
-    label: `Team Formation Preference`, // Use template literal for easier escaping
-    type: 'single-select',
-    required: true,
-    options: ["Assign me to a team","I have a pre-formed team","I prefer to work individually (if allowed)"],
-  },
-  {
-    id: 'preformedTeamMembers',
-    label: `If you have a pre-formed team, please list the names/emails of your team members.`, // Use template literal for easier escaping
+    id: 'themeRankingOther',
+    label: `If you ranked "Other" theme, please describe your idea`, // Use template literal for easier escaping
     type: 'textarea',
     required: false,
-    dependsOn: 'teamFormationPreference',
-    dependsValue: "I have a pre-formed team",
-    clientValidation: (value,allValues)=>{if(allValues?.teamFormationPreference==="I have a pre-formed team"&&!value){return"Please list your team members."}return void 0},
+    dependsOn: 'themeRanking',
+    dependsValue: "Other",
   },
   {
-    id: 'availability',
-    label: `Please confirm your availability for the full duration of the event (April 26-27, 2025).`, // Use template literal for easier escaping
-    type: 'boolean',
+    id: 'workshopRanking',
+    label: `Please rank your top 3 preferred workshops`, // Use template literal for easier escaping
+    type: 'ranking-numbered',
+    required: true,
+    options: ["Language Models as Philosophical Objects","Generative AI Art: Creativity, Authorship, and Aesthetics","Reinforcement Learning: The Technical Foundations of AGI","Technology as Tool vs Master: Beyond Instrumentalism","Digital Commons and Information Capitalism","The Attention Economy: Technical Mechanisms and Philosophical Implications","Thinking Through Technical Systems: A Philosophical Approach","Design Philosophy: From Metaphysics to Material Reality","Other"],
+  },
+  {
+    id: 'workshopRankingOther',
+    label: `If you ranked "Other" workshop, please describe your idea`, // Use template literal for easier escaping
+    type: 'textarea',
+    required: false,
+    dependsOn: 'workshopRanking',
+    dependsValue: "Other",
+  },
+  {
+    id: 'teammateSimilarityPreference',
+    label: `Teammate similarity preference`, // Use template literal for easier escaping
+    type: 'scale',
+    required: true,
+  },
+  {
+    id: 'mentorshipPreference',
+    label: `Experience level and mentorship preferences`, // Use template literal for easier escaping
+    type: 'single-select',
+    required: true,
+    options: ["I'd like to serve as a mentor to newer philosophy students","I'd like to be paired with a more experienced student as a mentee","I prefer to work with students of similar experience level to mine","I don't have a strong preference"],
+  },
+  {
+    id: 'mentorComfortAreas',
+    label: `If you selected that you\'d like to be a mentor, what aspects of philosophy are you comfortable mentoring in?`, // Use template literal for easier escaping
+    type: 'textarea',
+    required: false,
+    dependsOn: 'mentorshipPreference',
+    dependsValue: "I'd like to serve as a mentor to newer philosophy students",
+  },
+  {
+    id: 'preferredTeammates',
+    label: `Do you have any specific people you\'d like to have as teammates? (Optional)`, // Use template literal for easier escaping
+    type: 'textarea',
+    required: false,
+  },
+  {
+    id: 'discordMember',
+    label: `Are you a member of the Philosophy of Technology Group Discord?`, // Use template literal for easier escaping
+    type: 'single-select',
+    required: true,
+    options: ["Yes","No, but I'd like to join","No, and I prefer not to join"],
+  },
+  {
+    id: 'learningGoals',
+    label: `What do you hope to gain from the Philosothon experience?`, // Use template literal for easier escaping
+    type: 'multi-select-numbered',
+    required: true,
+    options: ["Deeper understanding of specific philosophical concepts","Experience with collaborative philosophical inquiry","New perspectives from peers with different backgrounds","Practice articulating philosophical arguments","Connections with other philosophy students","Technical knowledge about emerging technologies","Other"],
+  },
+  {
+    id: 'learningGoalsOther',
+    label: `Other Learning Goals`, // Use template literal for easier escaping
+    type: 'text',
+    required: false,
+    dependsOn: 'learningGoals',
+    dependsValue: "Other",
+  },
+  {
+    id: 'availabilityConfirmation',
+    label: `Please confirm your availability for the full duration of the event (April 26-27, 2025)`, // Use template literal for easier escaping
+    type: 'single-select',
     required: true,
     options: ["Yes, I can attend the full event","No, I have partial availability (please specify below)"],
   },
   {
     id: 'availabilityDetails',
-    label: `If you have partial availability, please specify the times you CAN attend.`, // Use template literal for easier escaping
+    label: `If you have partial availability, please specify the times you CAN attend`, // Use template literal for easier escaping
     type: 'textarea',
     required: false,
-    dependsOn: 'availability',
-    dependsValue: false,
-    clientValidation: (value,allValues)=>{if(allValues?.availability===false&&!value){return"Please specify your availability details."}return void 0},
+    dependsOn: 'availabilityConfirmation',
+    dependsValue: "No, I have partial availability (please specify below)",
   },
   {
-    id: 'technicalSkills',
-    label: `Rate your technical skills/comfort level with technology`, // Use template literal for easier escaping
-    type: 'scale',
+    id: 'contingencyAvailability',
+    label: `Contingency Planning: If we need to postpone the event, would you be available the following weekend (May 3-4, 2025)?`, // Use template literal for easier escaping
+    type: 'single-select',
     required: true,
+    options: ["Yes, I would be fully available that weekend","I would have partial availability that weekend (please specify below)","No, I would not be available that weekend"],
   },
   {
-    id: 'codingExperience',
-    label: `Do you have any coding/programming experience?`, // Use template literal for easier escaping
-    type: 'boolean',
-    required: true,
-    options: ["Yes","No"],
-  },
-  {
-    id: 'codingLanguages',
-    label: `If yes, which languages/technologies are you familiar with? (Optional)`, // Use template literal for easier escaping
+    id: 'contingencyAvailabilityDetails',
+    label: `If you have partial availability for the contingency dates, please specify`, // Use template literal for easier escaping
     type: 'textarea',
     required: false,
-    dependsOn: 'codingExperience',
-    dependsValue: true,
-  },
-  {
-    id: 'specificTools',
-    label: `Are there any specific software/tools you are proficient in that might be relevant? (e.g., design tools, data analysis software) (Optional)`, // Use template literal for easier escaping
-    type: 'textarea',
-    required: false,
+    dependsOn: 'contingencyAvailability',
+    dependsValue: "I would have partial availability that weekend (please specify below)",
   },
   {
     id: 'dietaryRestrictions',
-    label: `Dietary Restrictions or Allergies`, // Use template literal for easier escaping
+    label: `Do you have any dietary restrictions or preferences?`, // Use template literal for easier escaping
     type: 'textarea',
     required: false,
   },
   {
     id: 'accessibilityNeeds',
-    label: `Accessibility Needs (Optional)`, // Use template literal for easier escaping
+    label: `Do you require any accessibility accommodations?`, // Use template literal for easier escaping
     type: 'textarea',
     required: false,
   },
   {
-    id: 'emergencyContactName',
-    label: `Emergency Contact Name (Optional)`, // Use template literal for easier escaping
+    id: 'heardAboutSource',
+    label: `How did you hear about the Philosothon?`, // Use template literal for easier escaping
+    type: 'multi-select-numbered',
+    required: true,
+    options: ["Email announcement","From a professor","From a friend/classmate","Philosophy department communication","Social media","Other"],
+  },
+  {
+    id: 'heardAboutSourceOther',
+    label: `Other Source`, // Use template literal for easier escaping
     type: 'text',
+    required: false,
+    dependsOn: 'heardAboutSource',
+    dependsValue: "Other",
+  },
+  {
+    id: 'additionalInfo',
+    label: `Is there anything else you\'d like us to know? (Optional)`, // Use template literal for easier escaping
+    type: 'textarea',
     required: false,
   },
   {
-    id: 'emergencyContactPhone',
-    label: `Emergency Contact Phone Number (Optional)`, // Use template literal for easier escaping
-    type: 'text',
-    required: false,
-  },
-  {
-    id: 'preferredCommunication',
-    label: `Preferred Method of Communication for Event Updates`, // Use template literal for easier escaping
-    type: 'single-select',
-    required: true,
-    options: ["Email","Discord (if applicable)","Other (please specify)"],
-  },
-  {
-    id: 'preferredCommunicationOther',
-    label: `Other Communication Method`, // Use template literal for easier escaping
-    type: 'text',
-    required: false,
-    dependsOn: 'preferredCommunication',
-    dependsValue: "Other (please specify)",
-    clientValidation: (value,allValues)=>{if(allValues?.preferredCommunication==="Other (please specify)"&&!value){return"Please specify your preferred communication method."}return void 0},
-  },
-  {
-    id: 'codeOfConductAgreement',
-    label: `I have read and agree to abide by the event\'s Code of Conduct.`, // Use template literal for easier escaping
-    type: 'boolean',
-    required: true,
-  },
-  {
-    id: 'photoConsent',
-    label: `I consent to potentially being photographed or recorded during the event for promotional purposes.`, // Use template literal for easier escaping
-    type: 'boolean',
-    required: true,
-    options: ["Yes, I consent","No, I do not consent"],
-  },
-  {
-    id: 'dataPrivacyConsent',
-    label: `I consent to the storage and processing of my registration data as described in the Privacy Policy.`, // Use template literal for easier escaping
-    type: 'boolean',
-    required: true,
-  },
-  {
-    id: 'finalConfirmation',
-    label: `I confirm that all the information provided is accurate to the best of my knowledge.`, // Use template literal for easier escaping
+    id: 'finalConfirmationAgreement',
+    label: `By submitting this form, I confirm that I understand the time commitment required for the Philosothon (all day April 26 and morning of April 27) and will make arrangements to fully participate and provide feedback on my experience.`, // Use template literal for easier escaping
     type: 'boolean',
     required: true,
   }
