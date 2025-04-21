@@ -1,3 +1,68 @@
+# Progress
+- **[2025-04-21 19:54:12] Debug:** Verified `InterestFormPlaceholder` 'Submit on Enter' functionality. Server action triggers and UI updates correctly. Original issue ([MB Log 2025-04-21 07:44:55]) not reproducible. No code changes required.
+
+
+- **[2025-04-21 19:26:46] Code:** Fixed duplicate message bug in `InterestFormPlaceholder` by adding a `useRef` flag to prevent double execution of the initial message effect. Committed to `feat/architecture-v2`.
+
+
+- **[2025-04-21 19:20:19] Code:** Refined `InterestFormPlaceholder.tsx` to remove explicit submit button and rely on Enter key submission. Committed (642e8e4) to `feat/architecture-v2`.
+
+- **[2025-04-21 19:07:49] DevOps:** Prepared `feat/architecture-v2` branch for PR to `main` (verified status, committed MB files, deleted untracked file, merged `main`, pushed to origin).
+
+
+
+- **[2025-04-21 19:00:35] Code:** Implemented modular `TerminalShell` and `InterestFormPlaceholder` components for the `/register` page based on `docs/architecture/terminal_component_v1.md`. Updated `logInterest` server action to save emails to `interest_signups` table. Replaced previous content on `/register/page.tsx` with the new terminal shell. [See MB Log 2025-04-21 18:33:41]
+
+
+### [2025-04-21 19:22:44] Fix: Server Action Export Error
+- **File:** `platform/src/app/register/actions.ts`
+- **Change:** Removed non-async function export (`RegistrationSchema`) to comply with `'use server'` directive.
+- **Status:** Committed to `feat/architecture-v2`. Resolves error reported in [MB Log 2025-04-21 07:16:45].
+
+
+- **[2025-04-21 18:55:46] DevOps:** Created Supabase migration for `interest_signups` table (migration `20250421225316`), applied it via `db push`, and committed (commit `6e92ded`) to `feat/architecture-v2` branch.
+
+
+
+- **[2025-04-21 16:46:03] Code:** Rewrote `RegistrationForm.tsx` using `useReducer` to align with V3.1 spec (commit `8062e37`), addressing state management issues and implementing early auth, existing user detection, and confirmation flows. Added `resendConfirmationEmail` action to `auth/actions.ts`.
+
+
+
+- **[2025-04-21 16:36:00] DevOps:** Committed V3.1 registration spec update (commit 8062e37) to `feat/architecture-v2` branch.
+
+
+
+- **[2025-04-21 16:32:00] SpecPseudo:** Updated V3.1 registration spec (`docs/specs/p0_registration_terminal_ui_spec_v2.md`) to explicitly define the `awaiting_confirmation` state after signup and the correct flow for handling existing users during the `register new` process, based on debugging feedback.
+
+
+
+- **[2025-04-21 16:14:00] Debug:** Applied further fixes to `RegistrationForm.tsx` based on user feedback: removed prompt from input history, separated new/existing user signup logic, added explicit prompt after confirmation check.
+
+
+- **[2025-04-21 16:03:00] Debug:** Applied fixes to `RegistrationForm.tsx` and `auth/actions.ts` to handle email confirmation wait state, refactor state updates, remove redundant prompts, and adjust 'register continue' logic.
+
+
+- **[2025-04-21 14:53:25] Code:** Fixed `signUpUser` deadlock logic in `RegistrationForm.tsx` by correcting condition for password confirmation handling.
+
+- **[2025-04-21 13:36:31] Code:** Fixed logic bugs in `RegistrationForm.tsx` (password flow, register command, intro text) per V3.1 spec. Committed (eb43f2c).
+
+- **[2025-04-21 12:32:00] Code:** Fixed `generate-registration.ts` script logic to correctly map all fields from schema to frontend questions file.
+
+---
+*Existing Progress Entries Below*
+---
+
+### [2025-04-21 05:53:00] Code: Updated Registration Schema SSOT
+- **File:** `platform/config/registrationSchema.ts`
+- **Change:** Aligned schema definition with V3.1 spec (`docs/specs/p0_registration_terminal_ui_spec_v2.md`), including 36 questions, `firstName`/`lastName` split, mandatory `hint`/`description`, and `validationRules` structure.
+- **Status:** Complete.
+
+
+### [2025-04-21 05:53:00] Code: Registration Schema Update Strategy
+- **Decision:** Used `insert_content` to apply changes to `platform/config/registrationSchema.ts` after initial `apply_diff` failed due to file truncation/size issues.
+- **Rationale:** `insert_content` avoids issues with matching non-existent content in a broken file state.
+
+
 # Global Context
 
 This file consolidates less frequently updated global project information, including product goals, architectural patterns, key decisions, and overall progress.
@@ -33,6 +98,23 @@ This file consolidates less frequently updated global project information, inclu
 
 # System Patterns
 
+### [2025-04-21 18:49:00] System Pattern: Modular Terminal UI
+
+- **Description:** A pattern for building interactive terminal-style UIs in React. It uses a main `TerminalShell` component responsible for the overall frame, output history, input line, and core state management (mode, auth status, etc.). Specific interaction logic for different modes (e.g., registration, auth, gamification) is encapsulated within separate "Dialog" components (`AuthDialog`, `RegistrationDialog`, etc.). The `TerminalShell` dynamically renders the appropriate Dialog component based on the current state mode.
+- **State Management:** Core state managed within `TerminalShell` (e.g., using `useReducer`). Dialog-specific sub-state can be stored within a dedicated `dialogState` object in the core state, keyed by mode.
+- **Communication:** `TerminalShell` passes input and state down to the active Dialog via props. The Dialog uses callback props (`addOutputLine`, `changeMode`, `setDialogState`) to communicate back to the Shell.
+- **Benefits:** Improved modularity, testability, and extensibility compared to a monolithic component. Easier to add new modes/dialogs.
+- **Reference:** `docs/architecture/terminal_component_v1.md`
+
+---
+*Existing System Patterns Below*
+
+
+
+*   **[2025-04-19 23:23:00] Vitest Mocking Strategy (`vi.spyOn`):** When mocking modules (especially server actions) that are used within React components tested with Vitest, if the mock factory needs to reference variables defined outside the factory, `vi.mock` can cause hoisting-related `ReferenceError`s. A reliable pattern is to import the actual module, define mock function variables (`const myMock = vi.fn()`), and then use `vi.spyOn(actualModule, 'functionName').mockImplementation(myMock)` within `beforeEach` to apply the mock. This avoids the hoisting issue while allowing mock control and assertion. [See Debug Issue VITEST-MOCK-HOIST-001]
+
+
+*   **[2025-04-20 2:05:00] SSOT Generation Script Refinement:** Updated `platform/scripts/generate-registration.ts` to correctly handle the `'use server'` directive placement (must be first line) and import statements within the target `actions.ts` file. Also ensured the script correctly generates the `QuestionType` definition including all V3 types (`scale`, `multi-select-numbered`, `ranking-numbered`) in the output `registrationQuestions.ts` file.
 
 *   **[2025-04-19 00:00:00] Style Guide:** Defined and refined a formal style guide (`docs/style_guide.md`) for the minimalist hacker aesthetic. Covers color palette (emphasizing `light-text` over Matrix/translucent backgrounds, restricting green text), typography, spacing, borders, common component styles (buttons, forms, cards, timeline), and specifies the `MatrixBackground` component as the default background, all using Tailwind CSS where applicable.
 
@@ -95,6 +177,155 @@ This file consolidates less frequently updated global project information, inclu
 *   **[2025-04-18] Admin CRUD Pattern:** Implemented using Server Components for list/edit page shells, Client Components for forms (`useFormState`), and Server Actions (`actions.ts`) for data mutation (create, update, delete). Edit pages use query parameters (`?id=...`) instead of dynamic route segments to avoid previous build issues.
 
 # Decision Log
+
+### [2025-04-21 18:49:00] Decision: Adopt Modular Terminal Architecture with Reducer/Context State Management
+
+- **Context:** Need to replace the complex and buggy monolithic `RegistrationForm.tsx` with a more maintainable and extensible solution for terminal-style interactions (registration, auth, interest capture, future gamification).
+- **Decision:** Implement a modular architecture consisting of a `TerminalShell` component and dynamic "Dialog" components for each mode. Use React's `useReducer` hook combined with Context for initial state management within the `TerminalShell`.
+- **Rationale:** Decouples UI concerns, simplifies state management compared to the previous implementation, promotes reusability, and provides a clear path for adding new features/modes. `useReducer`/Context provides sufficient structure for current needs, with the option to migrate to XState if complexity significantly increases (e.g., gamification).
+- **Alternatives Considered:**
+    - Fixing existing `RegistrationForm.tsx`: Rejected due to high complexity and repeated debugging failures.
+    - Using a dedicated terminal UI library: Rejected to maintain control over styling and integration with project state/auth.
+    - State Machine Library (XState) initially: Deferred as potentially overkill for the immediate requirement, but remains an option for future evolution.
+- **Reference:** `docs/architecture/terminal_component_v1.md`
+
+---
+*Existing Decision Log Entries Below*
+
+
+## Decision
+[2025-04-20 17:33:00] Use `minRanked` Constraint for Ranked-Choice Validation in SSOT.
+
+## Rationale
+Provides a more flexible way to specify ranked-choice validation constraints compared to a hardcoded flag (`isTop3Ranking`). Allows defining the minimum number of required ranks (e.g., 3 for current outline) or potentially requiring all options to be ranked in the future. Keeps the SSOT definition focused on constraints, leaving implementation details (Zod logic) to the code generator.
+
+## Implementation Details
+Use `ranked-choice-numbered` as the SSOT `type`. Within `validationRules`, use `minRanked: { value: number; message?: string }` and `uniqueSelections: boolean | string`. The code generation script will interpret these constraints to produce appropriate validation logic (e.g., Zod `.refine`).
+
+
+
+## Decision
+[2025-04-20] Adopt Space-Separated Numbers for Terminal "Check All That Apply" Input.
+
+## Rationale
+Provides a clear and relatively simple input method for selecting multiple options in a text-based terminal interface. Easier to parse than free-form text.
+
+## Implementation Details
+Display options with numbers. User enters space-separated numbers (e.g., `1 3 5`). Client-side validation checks for valid numbers within the option range. SSOT type: `multi-select-numbered`.
+
+## Decision
+[2025-04-20] Adopt Comma-Separated Numbers (Top Ranks) for Terminal "Ranking" Input.
+
+## Rationale
+Allows users to specify their preferred order for a subset of options within the terminal. Explicitly ranking only the top choices is often sufficient and simpler than full drag-and-drop emulation.
+
+## Implementation Details
+Display options with numbers. User enters comma-separated numbers representing their ranked choices in order (e.g., `3,1,4`). Hint clarifies to rank at least 3. Client-side validation checks for valid numbers, uniqueness, and minimum count (3). SSOT type: `ranking-numbered`.
+
+## Decision
+[2025-04-20] Use Registration Outline Intro Text for Terminal UI.
+
+## Rationale
+Directly uses the user-approved introductory text from the source document (`docs/event_info/registration_outline.md`).
+
+## Implementation Details
+Display the specified multi-line text upon initiating the `register new` command flow.
+
+## Decision
+[2025-04-20] Set Minimum Password Length to 8 Characters (No Other Complexity).
+
+## Rationale
+Provides a basic level of security without imposing overly strict rules for this context. Aligns with common practices.
+
+## Implementation Details
+Implement client-side and server-side (Zod schema generated via SSOT) validation enforcing a minimum length of 8 characters for the password field.
+
+## Decision
+[2025-04-20] Use Green (#39FF14) Text and Orange (#FFA500) Highlights/Errors for Terminal UI.
+
+## Rationale
+Matches the requested "hacker green" aesthetic and provides clear visual distinction for important information like errors or highlights.
+
+## Implementation Details
+Apply Tailwind CSS classes or global styles to set the default text color to `#39FF14` and use `#FFA500` for error messages, command highlights, or other designated elements on a black background.
+
+## Decision
+[2025-04-20] Adopt Space-Separated Numbers for Terminal "Check All That Apply" Input.
+
+## Rationale
+Provides a clear and relatively simple input method for selecting multiple options in a text-based terminal interface. Easier to parse than free-form text.
+
+## Implementation Details
+Display options with numbers. User enters space-separated numbers (e.g., `1 3 5`). Client-side validation checks for valid numbers within the option range. SSOT type: `multi-select-numbered`.
+
+## Decision
+[2025-04-20] Adopt Comma-Separated Numbers (Top Ranks) for Terminal "Ranking" Input.
+
+## Rationale
+Allows users to specify their preferred order for a subset of options within the terminal. Explicitly ranking only the top choices is often sufficient and simpler than full drag-and-drop emulation.
+
+## Implementation Details
+Display options with numbers. User enters comma-separated numbers representing their ranked choices in order (e.g., `3,1,4`). Hint clarifies to rank at least 3. Client-side validation checks for valid numbers, uniqueness, and minimum count (3). SSOT type: `ranking-numbered`.
+
+## Decision
+[2025-04-20] Use Registration Outline Intro Text for Terminal UI.
+
+## Rationale
+Directly uses the user-approved introductory text from the source document (`docs/event_info/registration_outline.md`).
+
+## Implementation Details
+Display the specified multi-line text upon initiating the `register new` command flow.
+
+## Decision
+[2025-04-20] Set Minimum Password Length to 8 Characters (No Other Complexity).
+
+## Rationale
+Provides a basic level of security without imposing overly strict rules for this context. Aligns with common practices.
+
+## Implementation Details
+Implement client-side and server-side (Zod schema generated via SSOT) validation enforcing a minimum length of 8 characters for the password field.
+
+## Decision
+[2025-04-20] Use Green (#39FF14) Text and Orange (#FFA500) Highlights/Errors for Terminal UI.
+
+## Rationale
+Matches the requested "hacker green" aesthetic and provides clear visual distinction for important information like errors or highlights.
+
+## Implementation Details
+Apply Tailwind CSS classes or global styles to set the default text color to `#39FF14` and use `#FFA500` for error messages, command highlights, or other designated elements on a black background.
+
+## Decision
+[2025-04-19 20:09:00] Adopt Site-Wide Password Authentication (Replacing Magic Link/OTP).
+
+## Rationale
+Consolidates authentication mechanism across the platform (including Admin) for consistency. Addresses user requirement for password-based flow during registration.
+
+## Implementation Details
+Configure Supabase Auth for email/password. Implement Server Actions for sign-in, sign-up, sign-out, password reset. Update terminal UI (Auth Mode, Registration Mode) and Admin login UI accordingly. Leverage Supabase SSR helpers for session management via HttpOnly cookies.
+
+
+## Decision
+[2025-04-19 20:09:00] Implement Registration Sign-Up Flow with Early Password Creation.
+
+## Rationale
+Collect email and create password immediately after starting registration (`register new`). This creates the user account early, allowing users to sign in and resume (`register continue`) even if they abandon the registration partway through. Magic Link retained as a recovery/alternative sign-in method.
+
+## Implementation Details
+Modify Registration Mode flow: Prompt for email, then password/confirm password. Call `signUpUser` backend action immediately. Store user verification status locally. Proceed to remaining questions. `submitRegistration` action links data to the pre-existing user.
+
+
+
+## Decision
+[2025-04-19 19:49:00] Adopt SSOT + Code Generation for Registration Question Synchronization.
+
+## Rationale
+Ensures consistency across frontend definitions (`registrationQuestions.ts`), backend validation (`actions.ts` Zod schema), and DB schema (`registrations` table migration drafts) by deriving them from a single central configuration file. Reduces manual errors and simplifies modifications compared to manual synchronization or DB-driven definitions (which don't solve DB schema sync).
+
+## Implementation Details
+Define questions in a central config (e.g., `config/registrationSchema.ts`). Create a script (`scripts/generate-registration.ts`) to read the config and generate/overwrite `registrationQuestions.ts`, the Zod schema in `actions.ts`, and draft SQL migration files for review.
+
+
+
 [2025-04-19 04:37:30] Adopt Supabase Profiles Table + Middleware/RLS for RBAC.
 
 ## Rationale
@@ -322,6 +553,9 @@ The previous attempt to fix permissions using `postCreateCommand` failed because
 ## Implementation Details
 Added `RUN mkdir -p /home/node/.vscode-server && chown -R 1000:1000 /home/node/.vscode-server` to `Dockerfile`. Reverted `postCreateCommand` in `.devcontainer/devcontainer.json` to its original state (`cd platform && npm install`).
 
+[2025-04-19 19:51:00] - [Architect Task - Future] Define & Implement General Supabase Schema Synchronization Strategy - Investigate and propose a strategy for maintaining a Single Source of Truth (SSOT) for *all* Supabase database schemas (tables, types, RLS policies). The SSoT should ideally be local (e.g., TypeScript/JSON files in the repo) and easily editable. This strategy should facilitate generating Supabase migrations and potentially TypeScript types (`supabase gen types local`) to ensure consistency between the local definition and the remote database, minimizing manual synchronization efforts across the project.
+
+
 
 
 ## Decision
@@ -333,6 +567,45 @@ Puppeteer was failing with a missing shared library error (`libnss3.so`) within 
 ## Implementation Details
 Added `libnss3` to the `apt-get install -y` command list within the `RUN` instruction in `Dockerfile`.
 # Progress
+
+[2025-04-21 12:17:17] - [DevOps Task] Re-run SSOT Code Generation Script & Verify Output (Attempt 2) [Blocked] - Ran `npm run generate:reg` successfully. Verification failed: `registrationQuestions.ts` generated 45 questions but the `Question` interface is incomplete (missing `hint`, `description`, `validationRules`). Generation script is faulty. Invoking Early Return Clause.
+
+
+[2025-04-21 12:09:00] - [Debug Task] Debug Failing Tests in `RegistrationForm.test.tsx` (Attempt 4 - Final Corrected) [Blocked] - User confirmed schema (`registrationSchema.ts`) correctly defines 45 questions. Test environment correctly loads 45-question data. Generated file (`registrationQuestions.ts`) is INCORRECT (36 questions). Tests fail due to assertions based on incorrect 36-question generated file. Previous environment cache diagnosis was WRONG. **Next Steps:** Fix generation script, run script, fix tests. Invoking Early Return Clause per user instruction.
+
+
+[2025-04-21 11:56:00] - [Debug Task] Debug Failing Tests in `RegistrationForm.test.tsx` (Attempt 4 - Re-investigate Mocks) [Blocked] - Re-investigated mocking strategy per user feedback. Confirmed source files correct (V3.1, 36 questions). Console log confirmed test runtime loads outdated module (45 questions). `vi.resetModules()` ineffective. Diagnosis confirmed as persistent environment/module resolution issue (`REG-TEST-CACHE-001`). Invoking Early Return Clause. [See Debug Issue REG-TEST-CACHE-001 Update]
+
+
+[2025-04-21 06:39:00] - [Debug Task] Debug Failing Tests in `RegistrationForm.test.tsx` (Attempt 3 - Focus on Mocks) [Blocked] - Investigated mocking strategy per user feedback. Verified SSOT/generated files correct (V3.1, 36 questions). Test environment persistently loads outdated module (`registrationQuestions.ts` with 45 questions), causing 13 test failures. Explicit mocking and cache clearing (`vitest --no-cache`) ineffective. Confirmed as environment/module resolution issue. Invoking Early Return Clause. [See Debug Issue REG-TEST-CACHE-001 Update]
+
+
+[2025-04-21 05:59:00] - [DevOps Task] Run SSOT Code Generation Script (V3.1) [Completed] - Generated frontend questions, backend schema, and DB migration from updated SSOT config. Committed changes (7a28f30).
+
+[2025-04-20 1:49:00] - [SpecPseudo Task] Update Terminal Registration UI Specification (V3) [Completed] - Updated `docs/specs/p0_registration_terminal_ui_spec_v2.md` to integrate `registration_outline.md` structure/questions and new UX requirements (intro, validation, hints, `back` command, conditional commands, formatting, check-all/ranking input, context loading) while retaining V2 technical decisions (SSOT, password auth). Clarified details via `ask_followup_question`.
+
+[2025-04-20 1:49:00] - [SpecPseudo Task] Update Terminal Registration UI Specification (V3) [Completed] - Updated `docs/specs/p0_registration_terminal_ui_spec_v2.md` to integrate `registration_outline.md` structure/questions and new UX requirements (intro, validation, hints, `back` command, conditional commands, formatting, check-all/ranking input, context loading) while retaining V2 technical decisions (SSOT, password auth). Clarified details via `ask_followup_question`.
+[2025-04-20 2:05:00] - [Code Task] Update SSOT Config & Generation Script for V3 Registration [Completed] - Updated `platform/config/registrationSchema.ts` to match V3 spec (31 questions, new types like multi-select-numbered, ranking-numbered). Refined `platform/scripts/generate-registration.ts` to correctly handle imports, 'use server' directive placement in `actions.ts`, and type definitions in generated `registrationQuestions.ts`. Ran script, verified generated files (frontend questions, Zod schema, draft SQL migration). Fixed build errors caused by script execution. Build compilation passed, though static generation failed due to unrelated dynamic route issues. Committed (f115aa5) and pushed changes.
+
+${globalContextUpdate}
+
+[2025-04-20 13:38:00] - [Code Task] Update Dynamic Theme Page to Use Markdown [Completed] - Refactored `platform/src/app/themes/[id]/page.tsx` to fetch detailed content from `docs/event_info/themes/*.md` instead of Supabase `description_expanded`. Includes parsing for 'Suggested Readings' and fallback logic. Tests updated and passing. Build successful. Changes committed (5eb3646) and pushed to `feat/architecture-v2`.
+
+[2025-04-20 13:19:39] - [DevOps Task] Commit Upgraded Theme Descriptions [Completed] - Staged and committed changes to 7 theme description files (`docs/event_info/themes/*.md`) with commit `e3514e4` on branch `feature/architecture-v2`.
+[2025-04-20 13:17:45] - [DocsWriter Task] Upgrade Theme Descriptions & Add Readings [Completed] - Enhanced all 8 theme descriptions in `docs/event_info/themes/` using corresponding research reports and added suggested readings sections.
+[2025-04-20 09:44:08] - [DevOps Task] Archive original consolidated theme descriptions file [Completed] - Renamed and committed file archive (4567b43).
+
+[2025-04-20 06:08:00] - [Code Task] Refactor Theme Descriptions [Completed] - Split consolidated `theme_descriptions_expanded.md` into individual files in `docs/event_info/themes/` directory. Committed changes (7bca2b5).
+
+[2025-04-20 05:30:00] - [DevOps Task] Run Registration SSOT Generation Script (Attempt 2) [Completed] - Ran script, verified file creation, fixed resulting build errors in actions.ts, verified build, committed changes (f5d241e).
+
+[2025-04-20 03:10:00] - [Optimizer Task] Refactor RegistrationForm Boot Sequence for Testability [Blocked] - Implemented conditional synchronous boot logic for test env. Fixed initial render tests (3/17 pass). Remaining 14 tests fail due to state update timing issues post-input. Invoking Early Return Clause. Recommend debug mode or integration tests.
+
+[2025-04-20 02:49:00] - [Debug Task] Investigate Vitest/JSDOM Test Stalling Issue (REG-TEST-STALL-001) [Blocked] - Diagnosed issue as component async initialization failure in test environment, not stalling. Cache clear, config review, mock removal ineffective. Invoking Early Return Clause. Recommend component refactor or alternative testing.
+
+[2025-04-19 19:34:00] - [Debug Task] Debug Terminal UI (RegistrationForm) [Completed] - Applied fixes for double boot messages (StrictMode/useEffect) and initial unresponsiveness (focus/scroll effect dependencies, form onClick). User confirmed fixes resolved original issues. Committed fixes (98e7303). New feature requests (menus, sign-in, edit/delete/continue) identified, requiring redesign.
+
+
 [2025-04-19 15:18:20] - [Optimizer Task] Refactor P0 Content Mgmt & Update Registration Spec [Completed] - Applied Supabase types to relevant files. Updated registration form/action/DAL based on spec v1.1. Fixed form tests. Committed changes. Note: 7 action tests failing due to outdated mocks.
 
 [2025-04-19 15:01:17] - [Optimizer Task] Refactor P0 Content Management - Apply Supabase Types [Completed] - Generated types after DB tables created. Applied types to relevant DAL/Action files. Verified tests pass. Committed changes.

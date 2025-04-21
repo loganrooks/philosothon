@@ -1,5 +1,140 @@
+### [2025-04-21 14:57:38] RegistrationForm.tsx Logic Fix (Attempt 2)
+- **Purpose**: Fix double prompt and failure to advance after password confirmation.
+- **Files**: `platform/src/app/register/components/RegistrationForm.tsx` (Modified)
+- **Status**: Implemented
+
+### [2025-04-21 19:26:46] Fix: Duplicate Message in InterestFormPlaceholder
+- **Purpose**: Prevent the initial message block from appearing twice when entering the 'interest_capture' mode.
+- **Files**: `platform/src/app/register/components/InterestFormPlaceholder.tsx` (Modified)
+- **Change**: Added a `useRef` flag (`initMessagesAdded`) to the component. The `useEffect` hook responsible for adding the initial messages now checks this flag and only proceeds if it's `false`, setting it to `true` afterwards.
+- **Status**: Implemented.
+- **Related Issue**: [MB Log 2025-04-21 07:16:45]
+
+
+## Bug Fixes
+<!-- Track specific bug fixes -->
+### [2025-04-21 19:22:44] Fix: `platform/src/app/register/actions.ts` Export Error
+- **Purpose**: Resolved runtime error `Error: A "use server" file can only export async functions, found object.`
+- **Files**: `platform/src/app/register/actions.ts`
+- **Change**: Removed `export` from `const RegistrationSchema`.
+- **Status**: Implemented, Committed.
+- **Related Issue**: [MB Log 2025-04-21 07:16:45]
+
+- **Details**: Removed redundant `addOutputLine` call for the next question label after password confirmation. Added `setIsPasswordInput(false)` to the successful password confirmation block to exit password input state.
+
+
+## Components Implemented
+### [2025-04-21 19:20:19] InterestFormPlaceholder Modification
+- **Purpose**: Refine UI to remove explicit submit button and rely on Enter key press for submission.
+- **Files**: `platform/src/app/register/components/InterestFormPlaceholder.tsx` (Modified)
+- **Status**: Implemented (Refinement)
+- **Dependencies**: No change.
+- **API Surface**: No change.
+- **Tests**: None yet.
+- **Notes**: Removed `SubmitButton` component and its usage. Form submission now relies on standard HTML behavior within the email input field.
+
+
+### [2025-04-21 19:00:35] TerminalShell
+- **Purpose**: Provides the main interactive terminal UI shell, managing state and rendering dialogs.
+- **Files**: `platform/src/app/register/components/TerminalShell.tsx`
+- **Status**: Implemented
+- **Dependencies**: `react`, `InterestFormPlaceholder`
+- **API Surface**: Exports `TerminalShell` component and `useTerminal` hook.
+- **Tests**: None yet.
+- **Notes**: Uses `useReducer` for state. Handles global commands and delegates mode-specific input. Renders dialogs based on mode. Implements command history.
+
+### [2025-04-21 19:00:35] InterestFormPlaceholder
+- **Purpose**: Dialog component within TerminalShell to capture user email interest.
+- **Files**: `platform/src/app/register/components/InterestFormPlaceholder.tsx`
+- **Status**: Implemented
+- **Dependencies**: `react`, `react-dom` (`useFormState`, `useFormStatus`), `../actions` (`logInterest`)
+- **API Surface**: Exports `InterestFormPlaceholder` component.
+- **Tests**: None yet.
+- **Notes**: Implements `DialogProps` structure. Uses `useFormState` to call `logInterest` action. Displays themed message and handles success/error feedback.
+
+
+
+### [2025-04-21 13:36:31] RegistrationForm.tsx Logic Fix
+- **Purpose**: Fix bugs related to password flow and `register` command handling.
+- **Files**: `platform/src/app/register/components/RegistrationForm.tsx` (Modified)
+- **Status**: Implemented & Committed (eb43f2c)
+- **Details**: Refactored `handleSubmit` to handle password/confirmation steps explicitly after email entry, independent of the main question array. Corrected `handleMainModeCommand` to show sub-menu for `register` command and added intro text display to `handleStartNewRegistration`.
+
+
+### [2025-04-21 12:32:00] generate-registration.ts Script Fix
+- **Purpose**: Generation script for registration questions, actions, and migrations.
+- **Files**: `platform/scripts/generate-registration.ts`
+- **Status**: Modified (Fixed mapping logic)
+- **Details**: Updated script to include `section`, `order`, `hint`, `description`, `validationRules`, `dbType`, `otherField` in generated `Question` interface and array objects in `platform/src/app/register/data/registrationQuestions.ts`.
+
+---
+*Existing Component Entries Below*
+---
+
 # Code Specific Memory
 <!-- Entries below should be added reverse chronologically (newest first) -->
+
+### [2025-04-21 16:46:03] RegistrationForm.tsx V3.1 Refactor
+- **Purpose**: Rewrite RegistrationForm to comply with V3.1 spec (`docs/specs/p0_registration_terminal_ui_spec_v2.md` @ `8062e37`), focusing on robust state management using `useReducer`.
+- **Files**:
+    - `platform/src/app/register/components/RegistrationForm.tsx` (Rewritten)
+    - `platform/src/app/auth/actions.ts` (Added `resendConfirmationEmail`)
+- **Status**: Implemented
+- **Dependencies**: `react`, `use-local-storage-state` (indirectly via hook), `@supabase/ssr`
+- **API Surface**: Exports `RegistrationForm` component.
+- **Tests**: Existing tests in `RegistrationForm.test.tsx` likely need significant updates to match the new implementation and V3.1 logic. Recommend TDD run.
+- **Notes**: Addresses previous state management complexity noted in feedback ([MB Log 2025-04-21 15:46:11]). Implements early auth flow, existing user detection, `awaiting_confirmation` mode with `continue`/`resend` logic. Uses `useReducer` for state transitions. File size exceeds 500 lines; consider future refactor of reducer/UI.
+
+
+
+### [2025-04-21 05:53:00] Registration Schema (SSOT)
+- **Purpose**: Central definition for all registration questions, types, validation, and metadata.
+- **Files**: `platform/config/registrationSchema.ts`
+- **Status**: Updated to V3.1 spec.
+- **Dependencies**: `docs/specs/p0_registration_terminal_ui_spec_v2.md`, `docs/event_info/registration_outline.md`
+- **API Surface**: Exports `registrationSchema` array and `generateRegistrationSchema` function.
+- **Tests**: Relies on `scripts/generate-registration.test.ts` for validation of the generation script using this schema.
+
+
+
+## Components Implemented
+### [2025-04-20 2:05:00] Registration SSOT V3 Update
+- **Purpose**: Update the Single Source of Truth (SSOT) configuration and generation script for V3 registration questions.
+- **Files**:
+    - `platform/config/registrationSchema.ts` (Modified)
+    - `platform/scripts/generate-registration.ts` (Modified)
+    - `platform/src/app/register/data/registrationQuestions.ts` (Generated)
+    - `platform/src/app/register/actions.ts` (Updated by script)
+    - `supabase/migrations/20250420180445_update_registrations_table_generated.sql` (Generated)
+- **Status**: Implemented & Verified (Build compilation pass, Git push success)
+- **Dependencies**: `zod`
+- **API Surface**: None changed directly. Zod schema in `actions.ts` updated.
+- **Tests**: Build verified (compilation/types pass). TDD tests recommended as next step.
+- **Notes**: Updated `registrationSchema.ts` to match V3 spec (31 questions, new types `multi-select-numbered`, `ranking-numbered`). Fixed generation script (`generate-registration.ts`) to correctly handle `'use server'` directive, imports in `actions.ts`, and type definitions in `registrationQuestions.ts`. Ran script, verified generated files. Build fails during static generation due to unrelated dynamic route issues (`cookies()` usage), but compilation/types pass. Committed (f115aa5) and pushed.
+
+
+### [2025-04-20 13:38:00] Dynamic Theme Page Update (Markdown Source)
+- **Purpose**: Modify the dynamic theme detail page to fetch and render content from individual Markdown files instead of Supabase.
+- **Files**: 
+    - `platform/src/app/themes/[id]/page.tsx` (Modified)
+    - `platform/src/app/themes/[id]/page.test.tsx` (Modified)
+- **Status**: Implemented & Verified (Build/Test Pass)
+- **Dependencies**: `fs/promises`, `path`, `react-markdown`
+- **API Surface**: None changed.
+- **Tests**: Updated existing tests to mock `fs.readFile` and verify rendering based on file content or fallback.
+- **Notes**: Component now reads `docs/event_info/themes/[id].md`. Parses content before/after `## Suggested Readings`. Falls back to `theme.description` from DB if file read fails. Basic theme info (title) still fetched from DB via DAL.
+
+
+## Documentation Refactoring
+
+### [2025-04-20 06:08:00] Split Theme Descriptions
+- **Purpose**: Reorganize expanded theme descriptions from a single file into individual files per theme for better management.
+- **Files**: 
+    - `docs/event_info/theme_descriptions_expanded.md` (Source, now obsolete)
+    - `docs/event_info/themes/` (Created directory)
+    - `docs/event_info/themes/*.md` (Created 8 files)
+- **Status**: Implemented & Committed (7bca2b5)
+- **Notes**: Split based on L1 headings. Generated URL-friendly slugs for filenames. Recommended archiving the original source file.
 
 
 ## Documentation / Standards
@@ -78,6 +213,19 @@
 
 
 ## Intervention Log
+### [2025-04-20 2:05:00] Intervention: Build Failure - SSOT Script Errors
+- **Trigger**: `npm run build` failed after running `npm run generate:reg`.
+- **Context**: Multiple build failures occurred after updating the SSOT config and running the generation script.
+- **Action Taken**: 
+    1. Fixed duplicate import and `'use server'` placement in `actions.ts`.
+    2. Fixed `QuestionDefinition` interface in `registrationSchema.ts` (missing `placeholder`).
+    3. Fixed `QuestionType` definition in `generate-registration.ts`.
+    4. Fixed import/directive handling logic in `ensureSchemaUsageInActions` function within `generate-registration.ts`.
+    5. Fixed ESLint warnings in `generate-registration.ts`.
+- **Rationale**: The generation script had several bugs causing build failures: incorrectly adding duplicate imports, misplacing `'use server'`, referencing a missing interface property (`placeholder`), not generating correct type definitions, and having flawed logic for updating `actions.ts`.
+- **Outcome**: Build compilation and type checking now pass after fixing the script and config. Static generation still fails due to unrelated dynamic route issues.
+- **Follow-up**: None needed for this specific issue. The unrelated build failures need separate investigation.
+
 ### [2025-04-19 01:50:05] Intervention: Task 75 Blocked - Build/Restart Failed
 - **Trigger**: `execute_command` (`rm -rf .next && npm run dev`) terminated (`^C`).
 - **Context**: Attempting clean build and restart after creating `admin/page.tsx` and refining middleware matcher to fix admin 404s.

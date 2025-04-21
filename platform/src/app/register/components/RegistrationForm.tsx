@@ -1,547 +1,1125 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useFormState, useFormStatus } from 'react-dom';
-import { createRegistration, RegistrationState } from '../actions'; // Server Action
+import React, { useState, useEffect, useRef, useCallback, useReducer, useTransition } from 'react';
+import { useLocalStorage } from '../hooks/useLocalStorage';
+import { questions as allQuestions, Question } from '../data/registrationQuestions'; // Assuming V3.1 data is here
+import {
+    submitRegistration,
+    updateRegistration,
+    deleteRegistration,
+    RegistrationState // Keep if used by actions
+} from '../actions';
+import {
+    signInWithPassword,
+    signUpUser,
+    signOut,
+    requestPasswordReset,
+    checkUserVerificationStatus,
+    resendConfirmationEmail, // Assuming this will be added
+    AuthActionResult
+} from '../../auth/actions';
 
-// Define structure for form data state based on spec v1.1
-type FormData = {
-  // Basic Info
-  full_name?: string;
-  email?: string; // Added email
-  university?: string;
-  program?: string;
-  year_of_study?: number;
+// --- Constants ---
+const LOCAL_STORAGE_KEY = 'philosothon-registration-v3.1';
+const TOTAL_QUESTIONS = 36; // V3.1 Spec has 36 questions
 
-  // Date Flexibility
-  can_attend_may_3_4?: 'yes' | 'no' | 'maybe';
-  may_3_4_comment?: string;
+// --- Types ---
+type TerminalMode = 'boot' | 'main' | 'auth' | 'register' | 'review' | 'edit' | 'confirm_delete' | 'confirm_new' | 'awaiting_confirmation';
+type AuthSubState = 'idle' | 'awaiting_email' | 'awaiting_password' | 'awaiting_confirm_password';
+type PendingAction = 'signIn' | 'signUp' | 'submitReg' | 'updateReg' | 'deleteReg' | 'checkVerification' | 'resendConfirmation' | 'resetPassword' | null;
 
-  // Philosophical Background
-  prior_courses?: string[];
-  discussion_confidence?: number;
-  writing_confidence?: number;
-  familiarity_analytic?: number;
-  familiarity_continental?: number;
-  familiarity_other?: number;
-  philosophical_traditions?: string[];
-  philosophical_interests?: string[];
-  areas_of_interest?: string;
-
-  // Theme and Workshop Preferences
-  theme_rankings?: Array<{rank: number, theme_id: string}>;
-  theme_suggestion?: string;
-  workshop_rankings?: Array<{rank: number, workshop_id: string}>;
-
-  // Team Formation Preferences
-  preferred_working_style?: 'structured' | 'exploratory' | 'balanced';
-  teammate_similarity?: number;
-  skill_writing?: number;
-  skill_speaking?: number;
-  skill_research?: number;
-  skill_synthesis?: number;
-  skill_critique?: number;
-  mentorship_preference?: 'mentor' | 'mentee' | 'no_preference';
-  mentorship_areas?: string;
-  preferred_teammates?: string;
-  complementary_perspectives?: string;
-
-  // Technical Experience & Accessibility
-  familiarity_tech_concepts?: number;
-  prior_hackathon_experience?: boolean;
-  prior_hackathon_details?: string;
-  dietary_restrictions?: string;
-  accessibility_needs?: string;
-  additional_notes?: string;
-  how_heard?: 'email' | 'professor' | 'friend' | 'department' | 'social_media' | 'other';
-  how_heard_other?: string;
-};
-
-const initialState: RegistrationState = { // For useFormState
-  message: null,
-  errors: {},
-  success: false,
-};
-
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return <button type="submit" disabled={pending}>{pending ? 'Submitting...' : 'Submit Registration'}</button>;
+interface OutputLine {
+    id: number;
+    text: string;
+    type: 'input' | 'output' | 'error' | 'success' | 'warning' | 'info' | 'question' | 'prompt';
+    mode?: TerminalMode;
+    promptText?: string;
 }
 
-// Placeholder data for themes and workshops (replace with actual data fetching if needed)
-const THEMES = [
-    { id: 'minds_machines', title: 'Minds and Machines: Consciousness Beyond the Human' },
-    { id: 'digital_commons', title: 'Digital Commons: Rethinking Property in Information Space' },
-    { id: 'algorithmic_justice', title: 'Algorithmic Justice: Bias, Fairness, and Accountability in AI' },
-    { id: 'virtual_reality', title: 'Virtual Reality and Real Virtues: Ethics in Simulated Worlds' },
-    { id: 'technological_determinism', title: 'Technological Determinism: Do Our Tools Control Us?' },
-    { id: 'posthumanism', title: 'Posthumanism: Technology and the Future of Human Nature' },
-    { id: 'surveillance_privacy', title: 'Surveillance and Privacy in the Digital Age' },
-    { id: 'environmental_tech', title: 'Environmental Ethics and Technological Solutions' },
-];
+// Using Record<string, any> for flexibility, refine if possible
+type FormDataStore = Record<string, any> & {
+    currentQuestionIndex?: number;
+    email?: string;
+    firstName?: string; // Added for early auth
+    lastName?: string; // Added for early auth
+    isVerified?: boolean; // Track if email verification step passed locally (distinct from server confirmation)
+};
 
-const WORKSHOPS = [
-    { id: 'language_models', title: 'Language Models as Philosophical Objects' },
-    { id: 'generative_ai', title: 'Generative AI Art: Creativity, Authorship, and Aesthetics' },
-    { id: 'ethics_autonomous_systems', title: 'Ethics of Autonomous Systems' },
-    { id: 'philosophy_social_media', title: 'Philosophy of Social Media: Identity and Community Online' },
-    { id: 'digital_epistemology', title: 'Digital Epistemology: Knowledge in the Age of Information' },
-    { id: 'ai_existential_risk', title: 'AI Existential Risk: Philosophical Perspectives' },
-    { id: 'tech_critique_methods', title: 'Methods for Critiquing Technology' },
-    { id: 'applied_tech_ethics', title: 'Applied Tech Ethics Case Studies' },
-];
+interface TerminalState {
+    mode: TerminalMode;
+    outputLines: OutputLine[];
+    currentInput: string;
+    localData: FormDataStore;
+    currentQuestionIndex: number;
+    isAuthenticated: boolean;
+    userEmail: string | null;
+    registrationStatus: 'complete' | 'incomplete' | 'not_started'; // Fetched from server post-auth
+    authSubState: AuthSubState;
+    passwordAttempt: string; // Store first password attempt during signup/auth
+    pendingAction: PendingAction;
+    error: string | null;
+    infoMessage: string | null; // For non-error messages like "Saved."
+    isBooting: boolean;
+}
 
-const PHILOSOPHICAL_TRADITIONS = ['analytic', 'continental', 'ancient', 'medieval', 'modern', 'non_western', 'new_to_philosophy', 'other'];
-const PHILOSOPHICAL_INTERESTS = ['metaphysics', 'epistemology', 'ethics', 'political_philosophy', 'philosophy_of_mind', 'philosophy_of_language', 'philosophy_of_technology', 'philosophy_of_science', 'aesthetics', 'phenomenology', 'logic', 'existentialism', 'post_structuralism', 'critical_theory', 'feminist_philosophy', 'environmental_philosophy', 'other'];
-const PRIOR_COURSES_OPTIONS = ['intro_philosophy', 'ethics', 'logic', 'metaphysics', 'epistemology', 'ancient_philosophy', 'modern_philosophy', 'continental_philosophy', 'analytic_philosophy', 'philosophy_of_mind', 'philosophy_of_language', 'philosophy_of_science', 'political_philosophy', 'other'];
-const HOW_HEARD_OPTIONS = ['email', 'professor', 'friend', 'department', 'social_media', 'other'];
+type TerminalAction =
+    | { type: 'BOOT_COMPLETE'; payload: { isAuthenticated: boolean; email: string | null; localData: FormDataStore } }
+    | { type: 'SET_MODE'; payload: TerminalMode }
+    | { type: 'ADD_OUTPUT'; payload: { text: string; type: OutputLine['type']; promptOverride?: string } }
+    | { type: 'SET_INPUT'; payload: string }
+    | { type: 'PROCESS_INPUT' } // Handled in effect/callback
+    | { type: 'SET_AUTH_STATE'; payload: { isAuthenticated: boolean; email: string | null } }
+    | { type: 'UPDATE_LOCAL_DATA'; payload: Partial<FormDataStore> }
+    | { type: 'SET_QUESTION_INDEX'; payload: number }
+    | { type: 'SET_AUTH_SUBSTATE'; payload: AuthSubState }
+    | { type: 'SET_PASSWORD_ATTEMPT'; payload: string }
+    | { type: 'ACTION_START'; payload: PendingAction }
+    | { type: 'ACTION_SUCCESS'; payload?: { message?: string; userId?: string; requiresConfirmation?: boolean } } // requiresConfirmation for signUpUser
+    | { type: 'ACTION_FAILURE'; payload: string }
+    | { type: 'CLEAR_ERROR' }
+    | { type: 'SET_INFO_MESSAGE'; payload: string | null }
+    | { type: 'CLEAR_OUTPUT' };
 
+// --- Initial State ---
+const initialState: TerminalState = {
+    mode: 'boot',
+    outputLines: [],
+    currentInput: '',
+    localData: {},
+    currentQuestionIndex: 0,
+    isAuthenticated: false,
+    userEmail: null,
+    registrationStatus: 'not_started',
+    authSubState: 'idle',
+    passwordAttempt: '',
+    pendingAction: null,
+    error: null,
+    infoMessage: null,
+    isBooting: true,
+};
 
-export function RegistrationForm({ userEmail }: { userEmail?: string | null }) {
-  const [currentStep, setCurrentStep] = useState(1);
-  const [formData, setFormData] = useState<Partial<FormData>>({ email: userEmail || undefined }); // Store data across steps, prefill email
-  const [state, formAction] = useFormState(createRegistration, initialState);
-
-  // Update email in state if userEmail prop changes (e.g., after login)
-  useEffect(() => {
-    if (userEmail && formData.email !== userEmail) {
-      setFormData((prev: Partial<FormData>) => ({ ...prev, email: userEmail }));
+// --- Reducer ---
+function terminalReducer(state: TerminalState, action: TerminalAction): TerminalState {
+    switch (action.type) {
+        case 'BOOT_COMPLETE':
+            const { isAuthenticated, email, localData } = action.payload;
+            const initialMode = isAuthenticated ? 'main' : 'main'; // Always start in main after boot
+            // Determine initial registration status based on auth/local data (simplified)
+            const initialRegStatus = isAuthenticated ? 'incomplete' : (localData.currentQuestionIndex !== undefined ? 'incomplete' : 'not_started');
+            return {
+                ...state,
+                isAuthenticated,
+                userEmail: email,
+                localData,
+                currentQuestionIndex: localData.currentQuestionIndex ?? 0,
+                registrationStatus: initialRegStatus, // TODO: Fetch actual status post-auth
+                mode: initialMode,
+                isBooting: false,
+            };
+        case 'SET_MODE':
+            // Reset auth sub-state when changing main modes
+            return { ...state, mode: action.payload, authSubState: 'idle', passwordAttempt: '', error: null, infoMessage: null };
+        case 'ADD_OUTPUT':
+            const newOutputLine: OutputLine = {
+                id: Date.now() + Math.random(), // Simple unique ID
+                text: action.payload.text,
+                type: action.payload.type,
+                mode: state.mode,
+                promptText: action.payload.promptOverride ?? getPromptText(state.mode, state.isAuthenticated, state.userEmail, state.authSubState, state.currentQuestionIndex)
+            };
+            // Avoid adding duplicate consecutive messages of the same type/text
+            const lastLine = state.outputLines[state.outputLines.length - 1];
+            if (lastLine && lastLine.text === newOutputLine.text && lastLine.type === newOutputLine.type) {
+                return state;
+            }
+            return { ...state, outputLines: [...state.outputLines, newOutputLine] };
+        case 'SET_INPUT':
+            return { ...state, currentInput: action.payload };
+        case 'SET_AUTH_STATE':
+            return { ...state, isAuthenticated: action.payload.isAuthenticated, userEmail: action.payload.email };
+        case 'UPDATE_LOCAL_DATA':
+            return { ...state, localData: { ...state.localData, ...action.payload } };
+        case 'SET_QUESTION_INDEX':
+            return { ...state, currentQuestionIndex: action.payload, error: null, infoMessage: null }; // Clear errors on navigation
+        case 'SET_AUTH_SUBSTATE':
+            return { ...state, authSubState: action.payload };
+        case 'SET_PASSWORD_ATTEMPT':
+            return { ...state, passwordAttempt: action.payload };
+        case 'ACTION_START':
+            return { ...state, pendingAction: action.payload, error: null, infoMessage: null };
+        case 'ACTION_SUCCESS':
+            return { ...state, pendingAction: null, error: null, infoMessage: action.payload?.message ?? null };
+        case 'ACTION_FAILURE':
+            return { ...state, pendingAction: null, error: action.payload, infoMessage: null };
+        case 'CLEAR_ERROR':
+            return { ...state, error: null };
+        case 'SET_INFO_MESSAGE':
+            return { ...state, infoMessage: action.payload };
+        case 'CLEAR_OUTPUT':
+            return { ...state, outputLines: [] };
+        default:
+            return state;
     }
-  }, [userEmail, formData.email]);
+}
 
-
-  const totalSteps = 5; // Updated based on spec
-
-  const handleNext = () => {
-    // Optional: Add client-side validation for the current step's fields here
-    // if (!validateStep(currentStep, formData)) return;
-    if (currentStep < totalSteps) {
-      setCurrentStep(currentStep + 1);
+// --- Helper: Get Prompt Text ---
+const getPromptText = (mode: TerminalMode, auth: boolean, email: string | null, authSubState: AuthSubState, questionIndex: number): string => {
+    if (mode === 'auth') {
+        if (authSubState === 'awaiting_email') return '[auth] Email: ';
+        if (authSubState === 'awaiting_password') return '[auth] Password: ';
     }
-  };
+    if (mode === 'register' || mode === 'edit') {
+        // Use specific prompts during auth sub-states within registration, NO question count
+        if (authSubState === 'awaiting_password') return '[reg] Password: ';
+        if (authSubState === 'awaiting_confirm_password') return '[reg] Confirm Password: ';
+        // Also handle email prompt specifically if needed, though question display effect might cover it
+        // if (authSubState === 'awaiting_email') return '[reg] Email: ';
 
-  const handlePrevious = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
+        // Default registration prompt shows progress for other questions
+        const question = allQuestions[questionIndex];
+        const displayIndex = questionIndex >= 0 && questionIndex < allQuestions.length ? questionIndex + 1 : '?';
+        // Only show count for actual questions, not auth steps
+        const isAuthStep = ['firstName', 'lastName', 'email', 'password', 'confirmPassword'].includes(question?.id);
+        return isAuthStep ? `[reg]> ` : `[reg ${displayIndex}/${TOTAL_QUESTIONS}]> `;
     }
-  };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value, type } = e.target;
-
-    if (type === 'checkbox') {
-        // Handle multi-select checkbox for array fields
-        const checkbox = e.target as HTMLInputElement;
-        const currentValues = formData[name as keyof typeof formData] as string[] || [];
-        if (checkbox.checked) {
-            setFormData((prev: Partial<FormData>) => ({ ...prev, [name]: [...currentValues, value] }));
-        } else {
-            setFormData((prev: Partial<FormData>) => ({ ...prev, [name]: currentValues.filter((val: string) => val !== value) }));
-        }
-    } else if (type === 'radio') {
-         // Handle radio buttons
-         if (name === 'prior_hackathon_experience') {
-             setFormData((prev: Partial<FormData>) => ({ ...prev, [name]: value === 'true' }));
-         } else {
-             setFormData((prev: Partial<FormData>) => ({ ...prev, [name]: value as any })); // Cast value for enum types
-         }
-    } else if (type === 'number' || name.includes('confidence') || name.includes('familiarity') || name.includes('skill') || name === 'year_of_study' || name === 'teammate_similarity') {
-        // Handle numeric inputs including scales and year_of_study
-        const numValue = parseInt(value, 10);
-        setFormData((prev: Partial<FormData>) => ({ ...prev, [name]: isNaN(numValue) ? undefined : numValue }));
-    } else {
-      setFormData((prev: Partial<FormData>) => ({ ...prev, [name]: value }));
+    switch (mode) {
+        case 'boot': return '';
+        case 'review': return '[review]> ';
+        case 'confirm_delete': return 'Confirm DELETE> ';
+        case 'confirm_new': return 'Overwrite? (yes/no)> ';
+        case 'awaiting_confirmation': return '[awaiting_confirmation]> ';
+        case 'main':
+        default: return auth && email ? `[${email}]$ ` : '[guest@philosothon]$ ';
     }
-  };
+};
 
-  // Special handler for theme and workshop rankings (using simplified select for now)
-  const handleRankingChange = (type: 'theme' | 'workshop', id: string, rankStr: string) => {
-    const rank = parseInt(rankStr, 10);
-    if (isNaN(rank)) return; // Ignore if rank is not a number
+// --- Component ---
+export function RegistrationForm({ initialAuthStatus }: { initialAuthStatus?: { isAuthenticated: boolean; email?: string | null } }) {
+    const [state, dispatch] = useReducer(terminalReducer, initialState);
+    const [localData, setLocalData] = useLocalStorage<FormDataStore>(LOCAL_STORAGE_KEY, {});
+    const [isSubmitting, startSubmitTransition] = useTransition(); // For form actions
 
-    const rankingField = `${type}_rankings` as const;
-    const currentRankings = formData[rankingField] || [];
-    const idField = `${type}_id` as const;
+    const inputRef = useRef<HTMLInputElement>(null);
+    const terminalRef = useRef<HTMLDivElement>(null);
+    const hasBooted = useRef(false);
 
-    // Remove existing ranking for this item if it exists
-    const filteredRankings = currentRankings.filter((item: any) => item[idField] !== id);
+    // --- Effects ---
 
-    // Add new ranking
-    const updatedRankings = [...filteredRankings, { rank, [idField]: id }];
+    // Initial Boot Sequence & Local Storage Load
+    useEffect(() => {
+        if (hasBooted.current) return;
+        hasBooted.current = true;
 
-    setFormData((prev: Partial<FormData>) => ({ ...prev, [rankingField]: updatedRankings }));
-  };
+        const runBootLogic = () => {
+            dispatch({ type: 'ADD_OUTPUT', payload: { text: "Initializing Terminal v3.1...", type: 'info' } });
+            dispatch({ type: 'ADD_OUTPUT', payload: { text: "Checking session...", type: 'info' } });
 
+            // Load from local storage first
+            const loadedData = localData ?? {};
 
-  // Render different form sections based on currentStep
-  const renderStepContent = () => {
-    switch (currentStep) {
-      case 1: // Basic Info & Date Flexibility
-        return (
-          <div>
-            <h2>Step 1: Basic Information</h2>
-            {/* Email (Prefilled & Readonly) */}
-            <label htmlFor="email">Email</label>
-            <input type="email" id="email" name="email" value={formData.email || ''} readOnly required />
-            {state.errors?.email && <p className="text-red-500">{state.errors.email[0]}</p>}
-
-            <label htmlFor="full_name">Full Name</label>
-            <input type="text" id="full_name" name="full_name" onChange={handleChange} value={formData.full_name || ''} required />
-            {state.errors?.full_name && <p className="text-red-500">{state.errors.full_name[0]}</p>}
-
-            <label htmlFor="university">University/Institution</label>
-            <input type="text" id="university" name="university" onChange={handleChange} value={formData.university || ''} required />
-            {state.errors?.university && <p className="text-red-500">{state.errors.university[0]}</p>}
-
-            <label htmlFor="program">Program/Major</label>
-            <input type="text" id="program" name="program" onChange={handleChange} value={formData.program || ''} required />
-            {state.errors?.program && <p className="text-red-500">{state.errors.program[0]}</p>}
-
-            <label htmlFor="year_of_study">Year of Study</label>
-            <select id="year_of_study" name="year_of_study" onChange={handleChange} value={formData.year_of_study || ''} required>
-              <option value="">Select Year...</option>
-              {[1, 2, 3, 4, 5].map(year => <option key={year} value={year}>{year === 5 ? 'Graduate Student' : `Year ${year}`}</option>)}
-            </select>
-            {state.errors?.year_of_study && <p className="text-red-500">{state.errors.year_of_study[0]}</p>}
-
-            <h3>Date Flexibility</h3>
-            <label>Would you be able to participate if the event were delayed to May 3-4, 2025?</label>
-            <select name="can_attend_may_3_4" onChange={handleChange} value={formData.can_attend_may_3_4 || ''} required>
-              <option value="">Select...</option>
-              <option value="yes">Yes</option>
-              <option value="no">No</option>
-              <option value="maybe">Maybe</option>
-            </select>
-            {state.errors?.can_attend_may_3_4 && <p className="text-red-500">{state.errors.can_attend_may_3_4[0]}</p>}
-
-            {formData.can_attend_may_3_4 === 'maybe' && (
-              <>
-                <label htmlFor="may_3_4_comment">Please explain:</label>
-                <textarea id="may_3_4_comment" name="may_3_4_comment" onChange={handleChange} value={formData.may_3_4_comment || ''} />
-              </>
-            )}
-          </div>
-        );
-
-      case 2: // Philosophical Background
-        return (
-          <div>
-            <h2>Step 2: Philosophical Background</h2>
-
-            <label>Prior philosophy courses taken (select all that apply):</label>
-            <div className="checkbox-group">
-              {PRIOR_COURSES_OPTIONS.map(course => (
-                <label key={course}><input type="checkbox" name="prior_courses" value={course} onChange={handleChange} checked={formData.prior_courses?.includes(course)} /> {course.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</label>
-              ))}
-            </div>
-
-            <label htmlFor="discussion_confidence">Confidence in philosophical discussion (1-10):</label>
-            <div className="scale-description">
-              <span className="scale-min">1 = I have achieved Socratic wisdom (knowing I know nothing)</span>
-              <span className="scale-max">10 = I am prepared to argue that this scale itself is metaphysically suspect</span>
-            </div>
-            <input type="range" id="discussion_confidence" name="discussion_confidence" min="1" max="10" onChange={handleChange} value={formData.discussion_confidence || 5} required />
-            <output>{formData.discussion_confidence || 5}</output>
-            {state.errors?.discussion_confidence && <p className="text-red-500">{state.errors.discussion_confidence[0]}</p>}
-
-
-            <label htmlFor="writing_confidence">Confidence in philosophical writing (1-10):</label>
-             <div className="scale-description">
-               <span className="scale-min">1 = My prose style is best described as &apos;early Wittgenstein&apos;</span>
-               <span className="scale-max">10 = My footnotes have footnotes</span>
-             </div>
-            <input type="range" id="writing_confidence" name="writing_confidence" min="1" max="10" onChange={handleChange} value={formData.writing_confidence || 5} required />
-            <output>{formData.writing_confidence || 5}</output>
-            {state.errors?.writing_confidence && <p className="text-red-500">{state.errors.writing_confidence[0]}</p>}
-
-
-            <label htmlFor="familiarity_analytic">Familiarity with Analytic Tradition (1-5):</label>
-            <input type="range" id="familiarity_analytic" name="familiarity_analytic" min="1" max="5" onChange={handleChange} value={formData.familiarity_analytic || 3} required />
-            <output>{formData.familiarity_analytic || 3}</output>
-            {state.errors?.familiarity_analytic && <p className="text-red-500">{state.errors.familiarity_analytic[0]}</p>}
-
-
-            <label htmlFor="familiarity_continental">Familiarity with Continental Tradition (1-5):</label>
-            <input type="range" id="familiarity_continental" name="familiarity_continental" min="1" max="5" onChange={handleChange} value={formData.familiarity_continental || 3} required />
-            <output>{formData.familiarity_continental || 3}</output>
-            {state.errors?.familiarity_continental && <p className="text-red-500">{state.errors.familiarity_continental[0]}</p>}
-
-
-            <label htmlFor="familiarity_other">Familiarity with Other Traditions (1-5):</label>
-            <input type="range" id="familiarity_other" name="familiarity_other" min="1" max="5" onChange={handleChange} value={formData.familiarity_other || 3} required />
-            <output>{formData.familiarity_other || 3}</output>
-            {state.errors?.familiarity_other && <p className="text-red-500">{state.errors.familiarity_other[0]}</p>}
-
-
-            <label>Philosophical traditions you&apos;re familiar with (select all that apply):</label>
-            <div className="checkbox-group">
-               {PHILOSOPHICAL_TRADITIONS.map(trad => (
-                 <label key={trad}><input type="checkbox" name="philosophical_traditions" value={trad} onChange={handleChange} checked={formData.philosophical_traditions?.includes(trad)} /> {trad.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</label>
-               ))}
-            </div>
-            {state.errors?.philosophical_traditions && <p className="text-red-500">{state.errors.philosophical_traditions[0]}</p>}
-
-
-            <label>Areas of philosophical interest (select all that apply):</label>
-            <div className="checkbox-group">
-               {PHILOSOPHICAL_INTERESTS.map(interest => (
-                 <label key={interest}><input type="checkbox" name="philosophical_interests" value={interest} onChange={handleChange} checked={formData.philosophical_interests?.includes(interest)} /> {interest.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</label>
-               ))}
-            </div>
-             {state.errors?.philosophical_interests && <p className="text-red-500">{state.errors.philosophical_interests[0]}</p>}
-
-
-            <label htmlFor="areas_of_interest">Other areas of philosophical interest:</label>
-            <textarea id="areas_of_interest" name="areas_of_interest" onChange={handleChange} value={formData.areas_of_interest || ''} />
-          </div>
-        );
-
-      case 3: // Theme & Workshop Preferences
-        return (
-          <div>
-            <h2>Step 3: Theme & Workshop Preferences</h2>
-
-            <h3>Theme Rankings</h3>
-            <p>Please rank your preferred themes (1 = most preferred):</p>
-            <div className="theme-ranking">
-              {THEMES.map(theme => (
-                <div key={theme.id} className="theme-item">
-                  <span>{theme.title}</span>
-                  <select
-                    onChange={(e) => handleRankingChange('theme', theme.id, e.target.value)}
-                    value={formData.theme_rankings?.find((t: any) => t.theme_id === theme.id)?.rank || ''}
-                  >
-                    <option value="">--</option>
-                    {[1, 2, 3, 4, 5, 6, 7, 8].map(num => (
-                      <option key={num} value={num}>{num}</option>
-                    ))}
-                  </select>
-                </div>
-              ))}
-            </div>
-            {state.errors?.theme_rankings && <p className="text-red-500">{state.errors.theme_rankings[0]}</p>}
-
-            <label htmlFor="theme_suggestion">Suggest an alternative theme:</label>
-            <textarea id="theme_suggestion" name="theme_suggestion" onChange={handleChange} value={formData.theme_suggestion || ''} />
-
-            <h3>Workshop Rankings</h3>
-            <p>Please rank at least 3 workshops you&apos;re interested in (1 = most preferred):</p>
-            <div className="workshop-ranking">
-              {WORKSHOPS.map(workshop => (
-                <div key={workshop.id} className="workshop-item">
-                  <span>{workshop.title}</span>
-                  <select
-                    onChange={(e) => handleRankingChange('workshop', workshop.id, e.target.value)}
-                    value={formData.workshop_rankings?.find((w: any) => w.workshop_id === workshop.id)?.rank || ''}
-                  >
-                    <option value="">--</option>
-                    {[1, 2, 3, 4, 5, 6, 7, 8].map(num => (
-                      <option key={num} value={num}>{num}</option>
-                    ))}
-                  </select>
-                </div>
-              ))}
-            </div>
-            {state.errors?.workshop_rankings && <p className="text-red-500">{state.errors.workshop_rankings[0]}</p>}
-          </div>
-        );
-
-      case 4: // Team Formation Preferences
-        return (
-          <div>
-            <h2>Step 4: Team Formation Preferences</h2>
-
-            <label>Preferred working style:</label>
-            <select name="preferred_working_style" onChange={handleChange} value={formData.preferred_working_style || ''} required>
-              <option value="">Select...</option>
-              <option value="structured">Structured (Clear plan, defined roles)</option>
-              <option value="exploratory">Exploratory (Flexible, evolving approach)</option>
-              <option value="balanced">Balanced (Mix of structure and exploration)</option>
-            </select>
-            {state.errors?.preferred_working_style && <p className="text-red-500">{state.errors.preferred_working_style[0]}</p>}
-
-            <label htmlFor="teammate_similarity">Teammate similarity preference (1-10):</label>
-            <div className="scale-description">
-              <span className="scale-min">1 = Prefer teammates with very different interests</span>
-              <span className="scale-max">10 = Prefer teammates with very similar interests</span>
-            </div>
-            <input type="range" id="teammate_similarity" name="teammate_similarity" min="1" max="10" onChange={handleChange} value={formData.teammate_similarity || 5} required />
-            <output>{formData.teammate_similarity || 5}</output>
-            {state.errors?.teammate_similarity && <p className="text-red-500">{state.errors.teammate_similarity[0]}</p>}
-
-            <h3>Self-Assessment of Skills (1-5)</h3>
-            <label htmlFor="skill_writing">Writing:</label>
-            <input type="range" id="skill_writing" name="skill_writing" min="1" max="5" onChange={handleChange} value={formData.skill_writing || 3} required />
-            <output>{formData.skill_writing || 3}</output>
-            {state.errors?.skill_writing && <p className="text-red-500">{state.errors.skill_writing[0]}</p>}
-
-            <label htmlFor="skill_speaking">Speaking:</label>
-            <input type="range" id="skill_speaking" name="skill_speaking" min="1" max="5" onChange={handleChange} value={formData.skill_speaking || 3} required />
-            <output>{formData.skill_speaking || 3}</output>
-            {state.errors?.skill_speaking && <p className="text-red-500">{state.errors.skill_speaking[0]}</p>}
-
-            <label htmlFor="skill_research">Research:</label>
-            <input type="range" id="skill_research" name="skill_research" min="1" max="5" onChange={handleChange} value={formData.skill_research || 3} required />
-            <output>{formData.skill_research || 3}</output>
-            {state.errors?.skill_research && <p className="text-red-500">{state.errors.skill_research[0]}</p>}
-
-            <label htmlFor="skill_synthesis">Synthesis:</label>
-            <input type="range" id="skill_synthesis" name="skill_synthesis" min="1" max="5" onChange={handleChange} value={formData.skill_synthesis || 3} required />
-            <output>{formData.skill_synthesis || 3}</output>
-            {state.errors?.skill_synthesis && <p className="text-red-500">{state.errors.skill_synthesis[0]}</p>}
-
-            <label htmlFor="skill_critique">Critique:</label>
-            <input type="range" id="skill_critique" name="skill_critique" min="1" max="5" onChange={handleChange} value={formData.skill_critique || 3} required />
-            <output>{formData.skill_critique || 3}</output>
-            {state.errors?.skill_critique && <p className="text-red-500">{state.errors.skill_critique[0]}</p>}
-
-            <h3>Mentorship Program (Optional)</h3>
-            <p>Would you be interested in our optional mentorship program?</p>
-            <select name="mentorship_preference" onChange={handleChange} value={formData.mentorship_preference || ''}>
-              <option value="">Not interested</option>
-              <option value="mentor">I&apos;d like to be a mentor</option>
-              <option value="mentee">I&apos;d like to be a mentee</option>
-              <option value="no_preference">Interested, no specific preference</option>
-            </select>
-
-            {formData.mentorship_preference === 'mentor' && (
-              <>
-                <label htmlFor="mentorship_areas">Areas you&apos;re comfortable mentoring in:</label>
-                <textarea id="mentorship_areas" name="mentorship_areas" onChange={handleChange} value={formData.mentorship_areas || ''} />
-              </>
-            )}
-
-            <label htmlFor="preferred_teammates">Is there anyone you&apos;d particularly like to work with?</label>
-            <textarea id="preferred_teammates" name="preferred_teammates" onChange={handleChange} value={formData.preferred_teammates || ''} />
-
-            <label htmlFor="complementary_perspectives">Are there any perspectives you feel would complement yours on a team?</label>
-            <textarea id="complementary_perspectives" name="complementary_perspectives" onChange={handleChange} value={formData.complementary_perspectives || ''} />
-          </div>
-        );
-
-      case 5: // Technical Experience & Accessibility
-        return (
-          <div>
-            <h2>Step 5: Technical Experience & Accessibility</h2>
-
-            <label htmlFor="familiarity_tech_concepts">Familiarity with technology concepts (1-5):</label>
-            <input type="range" id="familiarity_tech_concepts" name="familiarity_tech_concepts" min="1" max="5" onChange={handleChange} value={formData.familiarity_tech_concepts || 3} required />
-            <output>{formData.familiarity_tech_concepts || 3}</output>
-            {state.errors?.familiarity_tech_concepts && <p className="text-red-500">{state.errors.familiarity_tech_concepts[0]}</p>}
-
-            <label>Prior hackathon experience:</label>
-            <div className="radio-group">
-              <label>
-                <input type="radio" name="prior_hackathon_experience" value="true" onChange={handleChange} checked={formData.prior_hackathon_experience === true} required /> Yes
-              </label>
-              <label>
-                <input type="radio" name="prior_hackathon_experience" value="false" onChange={handleChange} checked={formData.prior_hackathon_experience === false} required /> No
-              </label>
-            </div>
-            {state.errors?.prior_hackathon_experience && <p className="text-red-500">{state.errors.prior_hackathon_experience[0]}</p>}
-
-
-            {formData.prior_hackathon_experience === true && (
-              <>
-                <label htmlFor="prior_hackathon_details">Please describe your hackathon experience:</label>
-                <textarea id="prior_hackathon_details" name="prior_hackathon_details" onChange={handleChange} value={formData.prior_hackathon_details || ''} />
-              </>
-            )}
-
-            <label htmlFor="dietary_restrictions">Dietary restrictions or preferences:</label>
-            <textarea id="dietary_restrictions" name="dietary_restrictions" onChange={handleChange} value={formData.dietary_restrictions || ''} />
-
-            <label htmlFor="accessibility_needs">Do you require any accessibility accommodations?</label>
-            <p className="help-text">This information will be kept confidential and used only to ensure your full participation in the event.</p>
-            <textarea id="accessibility_needs" name="accessibility_needs" onChange={handleChange} value={formData.accessibility_needs || ''} />
-
-            <label htmlFor="additional_notes">Anything else you&apos;d like us to know?</label>
-            <textarea id="additional_notes" name="additional_notes" onChange={handleChange} value={formData.additional_notes || ''} />
-
-            <label>How did you hear about the Philosothon?</label>
-            <select name="how_heard" onChange={handleChange} value={formData.how_heard || ''} required>
-              <option value="">Select...</option>
-              {HOW_HEARD_OPTIONS.map(source => (
-                 <option key={source} value={source}>{source.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</option>
-              ))}
-            </select>
-            {state.errors?.how_heard && <p className="text-red-500">{state.errors.how_heard[0]}</p>}
-
-
-            {formData.how_heard === 'other' && (
-              <>
-                <label htmlFor="how_heard_other">Please specify:</label>
-                <input type="text" id="how_heard_other" name="how_heard_other" onChange={handleChange} value={formData.how_heard_other || ''} required />
-                {state.errors?.how_heard_other && <p className="text-red-500">{state.errors.how_heard_other[0]}</p>}
-              </>
-            )}
-          </div>
-        );
-      default:
-        return null;
-    }
-  };
-
-  return (
-    <form action={formAction}>
-      {/* Display overall form messages */}
-      {state.message && !state.success && <p className="text-red-500">{state.message}</p>}
-
-      {/* Progress indicator */}
-      <div className="progress-indicator">
-        {Array.from({ length: totalSteps }, (_, i) => (
-          <div key={i} className={`progress-step ${currentStep > i ? 'completed' : ''} ${currentStep === i + 1 ? 'active' : ''}`}>
-            {i + 1}
-          </div>
-        ))}
-      </div>
-
-      {renderStepContent()}
-
-      {/* Hidden fields to pass all data on final submission */}
-      {currentStep === totalSteps && (
-        Object.entries(formData).map(([key, value]) => {
-          // Skip email if it's already in the form (it should be)
-          if (key === 'email') return null;
-
-          if (Array.isArray(value)) {
-            // Handle array fields like checkboxes
-            return value.map((item, index) => {
-              // Ensure only strings are passed to the value attribute
-              if (typeof item === 'string') {
-                return <input key={`${key}-${index}`} type="hidden" name={key} value={item} />;
-              }
-              // Skip non-string array items (like ranking objects) here, they are handled below
-              return null;
+            dispatch({
+                type: 'BOOT_COMPLETE',
+                payload: {
+                    isAuthenticated: initialAuthStatus?.isAuthenticated ?? false,
+                    email: initialAuthStatus?.email ?? null,
+                    localData: loadedData
+                }
             });
-          } else if (typeof value === 'object' && value !== null) {
-            // Handle JSON fields like rankings
-            return <input key={key} type="hidden" name={key} value={JSON.stringify(value)} />;
-          } else if (value !== null && value !== undefined) {
-            // Handle simple values (string, number, boolean)
-            return <input key={key} type="hidden" name={key} value={String(value)} />;
+
+            if (initialAuthStatus?.isAuthenticated) {
+                dispatch({ type: 'ADD_OUTPUT', payload: { text: `Session found for ${initialAuthStatus.email}.`, type: 'success' } });
+                // TODO: Fetch actual registration status from server
+            } else {
+                dispatch({ type: 'ADD_OUTPUT', payload: { text: "No active session found.", type: 'info' } });
+                if (loadedData.currentQuestionIndex !== undefined) {
+                    dispatch({ type: 'ADD_OUTPUT', payload: { text: "Local registration data found. Use 'register continue' or 'sign-in'.", type: 'warning' } });
+                }
+            }
+            dispatch({ type: 'ADD_OUTPUT', payload: { text: "Type 'help' for available commands.", type: 'info' } });
+        };
+
+        // Always run asynchronously with delays in non-test environments
+        const bootSequenceAsync = async () => {
+            dispatch({ type: 'ADD_OUTPUT', payload: { text: "Initializing Terminal v3.1...", type: 'info' } });
+            await new Promise(r => setTimeout(r, 300));
+            dispatch({ type: 'ADD_OUTPUT', payload: { text: "Checking session...", type: 'info' } });
+            await new Promise(r => setTimeout(r, 500));
+
+            // Load from local storage first
+            const loadedData = localData ?? {};
+
+            if (initialAuthStatus?.isAuthenticated) {
+                dispatch({
+                    type: 'BOOT_COMPLETE',
+                    payload: {
+                        isAuthenticated: true,
+                        email: initialAuthStatus.email ?? null,
+                        localData: loadedData
+                    }
+                });
+                dispatch({ type: 'ADD_OUTPUT', payload: { text: `Session found for ${initialAuthStatus.email}.`, type: 'success' } });
+                // TODO: Fetch actual registration status from server
+            } else {
+                 dispatch({
+                    type: 'BOOT_COMPLETE',
+                    payload: {
+                        isAuthenticated: false,
+                        email: null,
+                        localData: loadedData
+                    }
+                });
+                dispatch({ type: 'ADD_OUTPUT', payload: { text: "No active session found.", type: 'info' } });
+                if (loadedData.currentQuestionIndex !== undefined) {
+                    dispatch({ type: 'ADD_OUTPUT', payload: { text: "Local registration data found. Use 'register continue' or 'sign-in'.", type: 'warning' } });
+                }
+            }
+            await new Promise(r => setTimeout(r, 300));
+            dispatch({ type: 'ADD_OUTPUT', payload: { text: "Type 'help' for available commands.", type: 'info' } });
+        };
+
+        // Only run sync in test, otherwise run async
+        if (process.env.NODE_ENV === 'test') {
+             runBootLogic(); // Keep sync logic for tests if needed
+        } else {
+             bootSequenceAsync();
+        }
+
+    }, [initialAuthStatus, localData]); // Depend on localData read by useLocalStorage
+
+    // Update local storage when state.localData changes
+    useEffect(() => {
+        setLocalData(state.localData);
+    }, [state.localData, setLocalData]);
+
+    // Scroll to bottom and focus input
+    const scrollToBottom = useCallback(() => {
+        setTimeout(() => {
+            terminalRef.current?.scrollTo({ top: terminalRef.current.scrollHeight, behavior: 'smooth' });
+        }, 50); // Short delay ensures content is rendered
+    }, []);
+
+    useEffect(() => {
+        scrollToBottom();
+        if (state.mode !== 'boot' && !state.pendingAction) {
+             setTimeout(() => inputRef.current?.focus(), 100); // Delay focus slightly
+        }
+    }, [state.outputLines, state.mode, state.pendingAction, scrollToBottom]);
+
+    // Display current question/prompt text
+    useEffect(() => {
+        if (state.mode === 'register' || state.mode === 'edit') {
+            const question = allQuestions[state.currentQuestionIndex];
+            if (question) {
+                // Avoid adding duplicate question prompts if already last line
+                const lastLine = state.outputLines[state.outputLines.length - 1];
+                if (!lastLine || lastLine.text !== question.label || lastLine.type !== 'question') {
+                    dispatch({ type: 'ADD_OUTPUT', payload: { text: question.label, type: 'question' } });
+                    if (question.hint) {
+                         dispatch({ type: 'ADD_OUTPUT', payload: { text: `Hint: ${question.hint}`, type: 'info' } });
+                    }
+                }
+            }
+        } else if (state.mode === 'auth') {
+            if (state.authSubState === 'awaiting_email') {
+                dispatch({ type: 'ADD_OUTPUT', payload: { text: "Enter email:", type: 'question' } });
+            } else if (state.authSubState === 'awaiting_password') {
+                dispatch({ type: 'ADD_OUTPUT', payload: { text: "Enter password:", type: 'question' } });
+            }
+        } else if (state.mode === 'awaiting_confirmation') {
+             dispatch({ type: 'ADD_OUTPUT', payload: { text: `Account created. Please check your email (${state.userEmail}) for a confirmation link. Enter 'continue' here once confirmed, or 'resend' to request a new link.`, type: 'info' } });
+        }
+        // Add other mode-specific prompts if needed
+    }, [state.mode, state.currentQuestionIndex, state.authSubState, state.userEmail]); // Dependency array already correct
+
+    // Display info/error messages
+    useEffect(() => {
+        if (state.error) {
+            dispatch({ type: 'ADD_OUTPUT', payload: { text: `Error: ${state.error}`, type: 'error' } });
+            // Optionally re-display hint for current question on error
+            const question = allQuestions[state.currentQuestionIndex];
+            if ((state.mode === 'register' || state.mode === 'edit') && question?.hint) {
+                 dispatch({ type: 'ADD_OUTPUT', payload: { text: `Hint: ${question.hint}`, type: 'info' } });
+            }
+            dispatch({ type: 'CLEAR_ERROR' }); // Clear error after displaying
+        }
+        if (state.infoMessage) {
+            dispatch({ type: 'ADD_OUTPUT', payload: { text: state.infoMessage, type: 'success' } }); // Assuming info is usually success
+            dispatch({ type: 'SET_INFO_MESSAGE', payload: null }); // Clear after displaying
+        }
+    }, [state.error, state.infoMessage, state.mode, state.currentQuestionIndex]);
+
+
+    // --- Input Handling ---
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        dispatch({ type: 'SET_INPUT', payload: e.target.value });
+    };
+
+    const processInput = useCallback(async () => {
+        const input = state.currentInput.trim();
+        // Split input first, then lowercase the command part
+        const parts = input.split(' ');
+        const command = parts[0].toLowerCase();
+        const args = parts.slice(1);
+
+        // Add input to output lines (mask password)
+        const isMasked = state.authSubState === 'awaiting_password' || state.authSubState === 'awaiting_confirm_password';
+        dispatch({
+            type: 'ADD_OUTPUT',
+            payload: {
+                text: isMasked ? '*'.repeat(input.length) : input,
+                type: 'input',
+                promptOverride: getPromptText(state.mode, state.isAuthenticated, state.userEmail, state.authSubState, state.currentQuestionIndex)
+            }
+        });
+
+        dispatch({ type: 'SET_INPUT', payload: '' }); // Clear input field
+
+        if (!input && state.mode !== 'register' && state.mode !== 'edit') return; // Allow empty submit only in reg/edit for optional fields
+
+        // --- Global Commands ---
+        if (command === 'help') {
+            // Basic help: List available commands based on mode
+            dispatch({ type: 'ADD_OUTPUT', payload: { text: "Available commands:", type: 'info' } });
+            let commands: string[] = [];
+            const isRegComplete = checkCompletion(state.localData); // Check if registration questions are done
+
+            switch (state.mode) {
+                case 'main':
+                    commands = state.isAuthenticated
+                        ? ['register', 'view', 'edit', 'delete', 'sign-out', 'help', 'about', 'clear'] // Add 'register' for consistency
+                        : ['register', 'sign-in', 'reset-password', 'help', 'about', 'clear']; // Added reset-password
+                    // Filter view/edit/delete if registration not complete
+                    if (state.isAuthenticated && !isRegComplete) { // Assuming registrationStatus isn't reliable yet
+                         commands = commands.filter(c => !['view', 'edit', 'delete'].includes(c));
+                    }
+                    break;
+                case 'auth':
+                    commands = ['magiclink', 'reset-password', 'back', 'exit', 'help', 'clear'];
+                    break;
+                case 'register':
+                case 'edit':
+                     commands = ['next', 'prev', 'save', 'exit', 'back', 'help', 'clear'];
+                     if (isRegComplete) {
+                         commands.push('submit', 'review');
+                     }
+                     // Add 'edit [number]' hint if in edit mode or after review
+                     if (state.mode === 'edit' || isRegComplete) {
+                         commands.push('edit [number]');
+                     }
+                    break;
+                case 'review':
+                     commands = ['submit', 'edit [number]', 'back', 'help', 'clear'];
+                     break;
+                 case 'confirm_delete':
+                     commands = ["'DELETE'", 'cancel', 'help'];
+                     break;
+                 case 'confirm_new':
+                     commands = ['yes', 'no', 'help'];
+                     break;
+                 case 'awaiting_confirmation':
+                     commands = ['continue', 'resend', 'exit', 'back', 'help', 'clear'];
+                     break;
+                 default:
+                     commands = ['help', 'clear', 'exit', 'back']; // Generic fallback
+            }
+            dispatch({ type: 'ADD_OUTPUT', payload: { text: commands.join(', '), type: 'info' } });
+            // TODO: Implement help [command] and help [question_id] logic if args are provided
+            return;
+        }
+        if (command === 'clear') {
+            dispatch({ type: 'CLEAR_OUTPUT' });
+            return;
+        }
+        if (command === 'about') {
+             dispatch({ type: 'ADD_OUTPUT', payload: { text: "Philosothon Registration Terminal v3.1", type: 'output' } });
+             return;
+        }
+
+        // --- Mode-Specific Logic ---
+        try {
+            switch (state.mode) {
+                case 'main':
+                    await handleMainModeCommand(command, args);
+                    break;
+                case 'auth':
+                    await handleAuthModeInput(input);
+                    break;
+                case 'register':
+                case 'edit':
+                    await handleRegisterModeInput(input, command, args);
+                    break;
+                case 'review':
+                    await handleReviewModeCommand(command, args);
+                    break;
+                case 'confirm_delete':
+                    await handleConfirmDeleteCommand(command);
+                    break;
+                case 'confirm_new':
+                    await handleConfirmNewCommand(command);
+                    break;
+                case 'awaiting_confirmation':
+                    await handleAwaitingConfirmationCommand(command);
+                    break;
+                default:
+                    dispatch({ type: 'ACTION_FAILURE', payload: `Command processing not implemented for mode: ${state.mode}` });
+            }
+        } catch (err) {
+            console.error("Input processing error:", err);
+            dispatch({ type: 'ACTION_FAILURE', payload: (err as Error).message || 'An unexpected error occurred.' });
+        }
+
+    }, [state, dispatch]); // Include all dependencies used within
+
+    const handleSubmit = (e?: React.FormEvent<HTMLFormElement>) => {
+        e?.preventDefault();
+        processInput();
+    };
+
+    // --- Command Handlers ---
+
+    const handleMainModeCommand = async (command: string, args: string[]) => {
+        if (state.isAuthenticated) {
+            // Authenticated commands
+            switch (command) {
+                case 'register': // Treat as view/edit if registered
+                case 'view':
+                    // TODO: Fetch and display server data
+                    dispatch({ type: 'ADD_OUTPUT', payload: { text: "Viewing registration (placeholder)...", type: 'info' } });
+                    dispatch({ type: 'ADD_OUTPUT', payload: { text: JSON.stringify(state.localData, null, 2), type: 'output' } }); // Show local for now
+                    break;
+                case 'edit':
+                    // TODO: Fetch server data first
+                    dispatch({ type: 'ADD_OUTPUT', payload: { text: "Entering edit mode...", type: 'info' } });
+                    dispatch({ type: 'SET_MODE', payload: 'edit' });
+                    dispatch({ type: 'SET_QUESTION_INDEX', payload: 0 }); // Start edit from beginning
+                    break;
+                case 'delete':
+                    dispatch({ type: 'ADD_OUTPUT', payload: { text: "Are you sure? This cannot be undone.", type: 'warning' } });
+                    dispatch({ type: 'ADD_OUTPUT', payload: { text: "Type 'DELETE' to confirm, or 'cancel'.", type: 'warning' } });
+                    dispatch({ type: 'SET_MODE', payload: 'confirm_delete' });
+                    break;
+                case 'sign-out':
+                    dispatch({ type: 'ACTION_START', payload: 'signIn' }); // Reusing signIn for consistency
+                    startSubmitTransition(async () => {
+                        const result = await signOut();
+                        if (result.success) {
+                            dispatch({ type: 'ACTION_SUCCESS', payload: { message: result.message } });
+                            dispatch({ type: 'SET_AUTH_STATE', payload: { isAuthenticated: false, email: null } });
+                            dispatch({ type: 'UPDATE_LOCAL_DATA', payload: {} }); // Clear local data on sign out
+                            dispatch({ type: 'SET_MODE', payload: 'main' });
+                        } else {
+                            dispatch({ type: 'ACTION_FAILURE', payload: result.message });
+                        }
+                    });
+                    break;
+                default:
+                    dispatch({ type: 'ACTION_FAILURE', payload: `Unknown command: ${command}` });
+            }
+        } else {
+            // Anonymous commands
+            switch (command) {
+                case 'register':
+                    if (args[0] === 'new') {
+                        if (state.localData.currentQuestionIndex !== undefined) {
+                            dispatch({ type: 'ADD_OUTPUT', payload: { text: "Existing local data found. Overwrite? (yes/no)", type: 'warning' } });
+                            dispatch({ type: 'SET_MODE', payload: 'confirm_new' });
+                        } else {
+                            handleStartNewRegistration();
+                        }
+                    } else if (args[0] === 'continue') {
+                        if (state.localData.currentQuestionIndex !== undefined) {
+                            dispatch({ type: 'ADD_OUTPUT', payload: { text: "Resuming registration...", type: 'info' } });
+                            dispatch({ type: 'SET_MODE', payload: 'register' });
+                            // Resume index is already set during boot
+                        } else {
+                            dispatch({ type: 'ACTION_FAILURE', payload: "No registration in progress found." });
+                        }
+                    } else {
+                        dispatch({ type: 'ADD_OUTPUT', payload: { text: "Usage: register [new|continue]", type: 'info' } });
+                    }
+                    break;
+                case 'sign-in':
+                    dispatch({ type: 'SET_MODE', payload: 'auth' });
+                    dispatch({ type: 'SET_AUTH_SUBSTATE', payload: 'awaiting_email' });
+                    break;
+                case 'reset-password': // Allow from main mode too
+                     dispatch({ type: 'SET_MODE', payload: 'auth' });
+                     dispatch({ type: 'SET_AUTH_SUBSTATE', payload: 'awaiting_email' }); // Need email first
+                     dispatch({ type: 'ADD_OUTPUT', payload: { text: "Enter email to send reset link:", type: 'question' } });
+                     // Logic to trigger reset will be in handleAuthModeInput
+                     break;
+                default:
+                    dispatch({ type: 'ACTION_FAILURE', payload: `Unknown command: ${command}` });
+            }
+        }
+    };
+
+    const handleAuthModeInput = async (input: string) => {
+        const command = input.toLowerCase(); // Check for commands within auth mode
+
+        if (command === 'back' || command === 'exit') {
+            dispatch({ type: 'SET_MODE', payload: 'main' });
+            dispatch({ type: 'UPDATE_LOCAL_DATA', payload: { email: undefined } }); // Clear email attempt
+            return;
+        }
+         if (command === 'reset-password') {
+             if (state.localData.email) {
+                 dispatch({ type: 'ACTION_START', payload: 'resetPassword' });
+                 startSubmitTransition(async () => {
+                     const result = await requestPasswordReset({ email: state.localData.email! });
+                     if (result.success) {
+                         dispatch({ type: 'ACTION_SUCCESS', payload: { message: result.message } });
+                         dispatch({ type: 'SET_MODE', payload: 'main' }); // Go back to main after request
+                     } else {
+                         dispatch({ type: 'ACTION_FAILURE', payload: result.message });
+                         // Stay in auth mode, maybe clear email?
+                         dispatch({ type: 'SET_AUTH_SUBSTATE', payload: 'awaiting_email' });
+                         dispatch({ type: 'UPDATE_LOCAL_DATA', payload: { email: undefined } });
+                     }
+                 });
+             } else {
+                 dispatch({ type: 'ACTION_FAILURE', payload: "Enter email first to reset password." });
+                 dispatch({ type: 'SET_AUTH_SUBSTATE', payload: 'awaiting_email' });
+             }
+             return;
+         }
+         // TODO: Handle magiclink command if needed
+
+        switch (state.authSubState) {
+            case 'awaiting_email':
+                if (input && input.includes('@')) {
+                    dispatch({ type: 'UPDATE_LOCAL_DATA', payload: { email: input } });
+                    dispatch({ type: 'SET_AUTH_SUBSTATE', payload: 'awaiting_password' });
+                } else {
+                    dispatch({ type: 'ACTION_FAILURE', payload: "Invalid email format." });
+                }
+                break;
+            case 'awaiting_password':
+                dispatch({ type: 'ACTION_START', payload: 'signIn' });
+                startSubmitTransition(async () => {
+                    const result = await signInWithPassword({ email: state.localData.email!, password: input });
+                    if (result.success) {
+                        dispatch({ type: 'ACTION_SUCCESS', payload: { message: result.message } });
+                        dispatch({ type: 'SET_AUTH_STATE', payload: { isAuthenticated: true, email: state.localData.email! } });
+                        // TODO: Fetch registration status
+                        dispatch({ type: 'SET_MODE', payload: 'main' });
+                    } else {
+                        dispatch({ type: 'ACTION_FAILURE', payload: result.message });
+                        // Reset to email prompt on failure
+                        dispatch({ type: 'SET_AUTH_SUBSTATE', payload: 'awaiting_email' });
+                        dispatch({ type: 'UPDATE_LOCAL_DATA', payload: { email: undefined } });
+                    }
+                });
+                break;
+            default:
+                 dispatch({ type: 'ACTION_FAILURE', payload: `Invalid auth state: ${state.authSubState}` });
+        }
+    };
+
+    const handleRegisterModeInput = async (input: string, command: string, args: string[]) => {
+        // Handle commands first
+        switch (command) {
+            case 'next':
+                // Validate current before moving? Or allow skipping optional? Let's allow skipping optional.
+                const nextIndex = findNextQuestionIndex(state.currentQuestionIndex, state.localData);
+                if (nextIndex < allQuestions.length) {
+                    dispatch({ type: 'SET_QUESTION_INDEX', payload: nextIndex });
+                } else {
+                    checkAndHandleCompletion(state.localData); // Check if complete
+                }
+                return;
+            case 'prev':
+                 const prevIndex = findPrevQuestionIndex(state.currentQuestionIndex, state.localData);
+                 if (prevIndex >= 0) {
+                     dispatch({ type: 'SET_QUESTION_INDEX', payload: prevIndex });
+                 } else {
+                      dispatch({ type: 'SET_INFO_MESSAGE', payload: "Already at the first question." });
+                 }
+                return;
+            case 'save':
+                // Local data is saved on every valid answer via UPDATE_LOCAL_DATA
+                dispatch({ type: 'SET_INFO_MESSAGE', payload: "Progress saved locally." });
+                return;
+            case 'exit':
+            case 'back': // Simple back = exit for now
+                dispatch({ type: 'SET_INFO_MESSAGE', payload: "Exiting registration..." });
+                dispatch({ type: 'SET_MODE', payload: 'main' });
+                return;
+            case 'submit':
+                 if (checkCompletion(state.localData)) {
+                     handleFinalSubmit();
+                 } else {
+                     dispatch({ type: 'ACTION_FAILURE', payload: "Please complete all required questions." });
+                 }
+                 return;
+             case 'review':
+                 handleReviewCommand();
+                 dispatch({ type: 'SET_MODE', payload: 'review' });
+                 return;
+            // No 'edit' command here, handled in review mode
+        }
+
+        // If not a command, process as an answer
+        await processAnswer(input);
+    };
+
+    const processAnswer = async (answer: string) => {
+        const question = allQuestions[state.currentQuestionIndex];
+        if (!question) return;
+
+        // --- Early Auth Flow within processAnswer ---
+        if (question.id === 'firstName') {
+             if (!answer && question.required) {
+                 dispatch({ type: 'ACTION_FAILURE', payload: "First name is required." }); return;
+             }
+             dispatch({ type: 'UPDATE_LOCAL_DATA', payload: { firstName: answer } });
+             advanceToNextQuestion(answer); return;
+        }
+        if (question.id === 'lastName') {
+             if (!answer && question.required) {
+                 dispatch({ type: 'ACTION_FAILURE', payload: "Last name is required." }); return;
+             }
+             dispatch({ type: 'UPDATE_LOCAL_DATA', payload: { lastName: answer } });
+             advanceToNextQuestion(answer); return;
+        }
+        if (question.id === 'email') {
+            if (!answer.includes('@')) {
+                dispatch({ type: 'ACTION_FAILURE', payload: "Invalid email format." }); return;
+            }
+            // Check if user exists BEFORE asking for password
+            dispatch({ type: 'ACTION_START', payload: 'signIn' }); // Use 'signIn' pending state for the check
+            startSubmitTransition(async () => {
+                // Attempt sign-in with a dummy password to check existence
+                const checkResult = await signInWithPassword({ email: answer, password: 'check-existence-dummy-password' });
+
+                // Check specific error messages
+                if (checkResult.message.includes('Invalid login credentials')) {
+                    // User exists
+                    dispatch({ type: 'ACTION_FAILURE', payload: "An account with this email already exists. Please use 'sign-in' or 'reset-password'." });
+                    dispatch({ type: 'SET_AUTH_SUBSTATE', payload: 'awaiting_email' }); // Reset to ask for email again
+                    // Clear the attempted email from local data? Optional, maybe keep it for sign-in convenience? Let's clear it for now.
+                    dispatch({ type: 'UPDATE_LOCAL_DATA', payload: { email: undefined } });
+                } else if (checkResult.message.includes('Email not confirmed')) {
+                     // User exists but not confirmed
+                    dispatch({ type: 'ACTION_FAILURE', payload: "An account with this email exists but is not confirmed. Please use 'sign-in' to trigger confirmation email." });
+                    dispatch({ type: 'SET_AUTH_SUBSTATE', payload: 'awaiting_email' });
+                    dispatch({ type: 'UPDATE_LOCAL_DATA', payload: { email: undefined } });
+                }
+                // Assuming other errors (like network error, or potentially 'User not found' - needs verification of exact Supabase message) mean we can proceed
+                else {
+                    // User likely does not exist, proceed to password
+                    dispatch({ type: 'UPDATE_LOCAL_DATA', payload: { email: answer } });
+                    dispatch({ type: 'ADD_OUTPUT', payload: { text: "Enter password:", type: 'question' } });
+                    dispatch({ type: 'SET_AUTH_SUBSTATE', payload: 'awaiting_password' });
+                    // ACTION_SUCCESS will clear pendingAction implicitly if needed, or clear manually:
+                    dispatch({ type: 'ACTION_SUCCESS' }); // Clear pending state
+                }
+                 // Handle unexpected success with dummy password (shouldn't happen)
+                 if (checkResult.success) {
+                     dispatch({ type: 'ACTION_FAILURE', payload: "Unexpected sign-in success during check. Account may exist." });
+                     dispatch({ type: 'SET_AUTH_SUBSTATE', payload: 'awaiting_email' });
+                     dispatch({ type: 'UPDATE_LOCAL_DATA', payload: { email: undefined } });
+                 }
+            });
+            // Don't advance index here, stay on 'email' conceptually until check/password done
+            return;
+        }
+        if (question.id === 'password') {
+            if (answer.length < 8) {
+                dispatch({ type: 'ACTION_FAILURE', payload: "Password must be at least 8 characters." }); return;
+            }
+            dispatch({ type: 'SET_PASSWORD_ATTEMPT', payload: answer });
+            dispatch({ type: 'ADD_OUTPUT', payload: { text: "Confirm password:", type: 'question' } }); // Add explicit prompt
+            dispatch({ type: 'SET_AUTH_SUBSTATE', payload: 'awaiting_confirm_password' });
+            // Stay on 'password' conceptually
+            return;
+        }
+        if (question.id === 'confirmPassword') {
+            if (answer !== state.passwordAttempt) {
+                dispatch({ type: 'ACTION_FAILURE', payload: "Passwords do not match." });
+                // Reset to password entry
+                dispatch({ type: 'SET_AUTH_SUBSTATE', payload: 'awaiting_password' });
+                dispatch({ type: 'SET_PASSWORD_ATTEMPT', payload: '' });
+                // Find password index and set it? Or just let user re-enter? Let's reset.
+                const passwordIndex = allQuestions.findIndex(q => q.id === 'password');
+                dispatch({ type: 'SET_QUESTION_INDEX', payload: passwordIndex >= 0 ? passwordIndex : state.currentQuestionIndex });
+                return;
+            }
+            // Passwords match - Trigger signUpUser
+            dispatch({ type: 'ACTION_START', payload: 'signUp' });
+            startSubmitTransition(async () => {
+                const result = await signUpUser({
+                    email: state.localData.email!,
+                    password: state.passwordAttempt,
+                    firstName: state.localData.firstName,
+                    lastName: state.localData.lastName
+                });
+
+                // Check for specific "User already registered" error first
+                if (result.message.includes('User already registered') || result.message.includes('user already exists')) { // More robust check
+                     dispatch({ type: 'ACTION_FAILURE', payload: "An account with this email already exists. Please use 'sign-in' or 'reset-password'." });
+                     dispatch({ type: 'SET_MODE', payload: 'main' }); // Return to main as per spec
+                     dispatch({ type: 'UPDATE_LOCAL_DATA', payload: { email: undefined, firstName: undefined, lastName: undefined, isVerified: undefined } }); // Clear sensitive info
+                     dispatch({ type: 'SET_AUTH_SUBSTATE', payload: 'idle' });
+                     dispatch({ type: 'SET_PASSWORD_ATTEMPT', payload: '' });
+                }
+                // Handle general success (new user created)
+                else if (result.success) {
+                    // Assume confirmation is required based on spec V3.1
+                    dispatch({ type: 'ACTION_SUCCESS', payload: { message: "Account created. Awaiting email confirmation." } });
+                    dispatch({ type: 'UPDATE_LOCAL_DATA', payload: { isVerified: false } }); // Mark locally as awaiting server confirmation
+                    dispatch({ type: 'SET_AUTH_SUBSTATE', payload: 'idle' });
+                    dispatch({ type: 'SET_PASSWORD_ATTEMPT', payload: '' });
+                    dispatch({ type: 'SET_MODE', payload: 'awaiting_confirmation' });
+                    // User email is already set
+                }
+                // Handle other signup failures
+                else {
+                    dispatch({ type: 'ACTION_FAILURE', payload: `Account creation failed: ${result.message}` });
+                    // Reset to password prompt on failure, ensuring the prompt is shown
+                    dispatch({ type: 'ADD_OUTPUT', payload: { text: "Enter password:", type: 'question' } }); // Re-prompt explicitly
+                    dispatch({ type: 'SET_AUTH_SUBSTATE', payload: 'awaiting_password' });
+                    dispatch({ type: 'SET_PASSWORD_ATTEMPT', payload: '' });
+                    // Ensure we don't accidentally advance index if it was somehow changed
+                    const passwordIndex = allQuestions.findIndex(q => q.id === 'password');
+                    dispatch({ type: 'SET_QUESTION_INDEX', payload: passwordIndex >= 0 ? passwordIndex : state.currentQuestionIndex });
+                }
+            });
+            return; // Stop processing after handling confirmPassword
+        }
+        // --- End Early Auth Flow ---
+
+
+        // --- Standard Answer Processing & Validation ---
+        let processedAnswerValue: any = answer;
+        let validationError: string | undefined = undefined;
+
+        if (question.required && !answer) {
+            validationError = "This field is required.";
+        } else if (answer) { // Only validate non-empty answers further (unless required check failed)
+            // TODO: Implement detailed validation based on question.type and question.validationRules
+            // Example:
+            if (question.type === 'number' || question.type === 'scale') {
+                const num = parseInt(answer, 10);
+                if (isNaN(num)) validationError = "Invalid number.";
+                // Add min/max checks from validationRules
+                processedAnswerValue = num;
+            } else if (question.type === 'boolean') {
+                 const lower = answer.toLowerCase();
+                 if (['yes', 'y', '1'].includes(lower)) processedAnswerValue = true;
+                 else if (['no', 'n', '2'].includes(lower)) processedAnswerValue = false;
+                 else validationError = "Invalid input. Please enter 'yes' or 'no'.";
+            } else if (question.type === 'multi-select-numbered') {
+                 const nums = answer.split(' ').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
+                 // TODO: Add validation (valid options, min/max selections)
+                 processedAnswerValue = nums;
+            } else if (question.type === 'ranking-numbered') {
+                 // TODO: Implement parsing and validation (format, unique, minRanked)
+                 processedAnswerValue = answer; // Placeholder
+            }
+            // Add email pattern check etc.
+        }
+
+        if (validationError) {
+            dispatch({ type: 'ACTION_FAILURE', payload: validationError });
+            return;
+        }
+
+        // Save valid answer and advance
+        dispatch({ type: 'UPDATE_LOCAL_DATA', payload: { [question.id]: processedAnswerValue } });
+        advanceToNextQuestion(processedAnswerValue);
+    };
+
+    const advanceToNextQuestion = (currentAnswer: any) => {
+         const nextIndex = findNextQuestionIndex(state.currentQuestionIndex, { ...state.localData, [allQuestions[state.currentQuestionIndex].id]: currentAnswer });
+         if (nextIndex >= allQuestions.length) {
+             checkAndHandleCompletion({ ...state.localData, [allQuestions[state.currentQuestionIndex].id]: currentAnswer });
+         } else {
+             dispatch({ type: 'SET_QUESTION_INDEX', payload: nextIndex });
+         }
+    };
+
+    const findNextQuestionIndex = (currentIndex: number, currentData: FormDataStore): number => {
+        let nextIndex = currentIndex + 1;
+        while (nextIndex < allQuestions.length) {
+            const nextQuestion = allQuestions[nextIndex];
+            // Skip auth questions ONLY if email is already verified
+            if (currentData.isVerified && ['firstName', 'lastName', 'email', 'password', 'confirmPassword'].includes(nextQuestion.id)) {
+                 nextIndex++; continue;
+            }
+            if (nextQuestion.dependsOn) {
+                const dependencyValue = currentData[nextQuestion.dependsOn as keyof FormDataStore];
+                if (dependencyValue !== nextQuestion.dependsValue) {
+                    nextIndex++; continue; // Skip if dependency not met
+                }
+            }
+            return nextIndex; // Found valid next question
+        }
+        return nextIndex; // Return length if no more questions
+    };
+
+     const findPrevQuestionIndex = (currentIndex: number, currentData: FormDataStore): number => {
+         let prevIndex = currentIndex - 1;
+         while (prevIndex >= 0) {
+             const prevQuestion = allQuestions[prevIndex];
+             // Skip auth questions
+             if (['firstName', 'lastName', 'email', 'password', 'confirmPassword'].includes(prevQuestion.id)) {
+                  prevIndex--; continue;
+             }
+             if (prevQuestion.dependsOn) {
+                 const dependencyValue = currentData[prevQuestion.dependsOn as keyof FormDataStore];
+                 // This logic might be complex - if going back *changes* a dependency, subsequent questions might become invalid.
+                 // For simplicity, just check if it *would* have been shown based on current data.
+                 if (dependencyValue !== prevQuestion.dependsValue) {
+                     prevIndex--; continue; // Skip if dependency not met
+                 }
+             }
+             return prevIndex; // Found valid previous question
+         }
+         // Return -1 or 0 if no valid previous question (adjust based on desired behavior at start)
+         // Let's return index of first *real* question (Q3) if we go before it.
+         const firstQIndex = allQuestions.findIndex(q => q.order === 3);
+         return Math.max(prevIndex, firstQIndex >= 0 ? firstQIndex : 0);
+     };
+
+    const checkCompletion = (data: FormDataStore): boolean => {
+        // Filter out auth questions for completion check
+        const registrationQuestions = allQuestions.filter(q => !['firstName', 'lastName', 'email', 'password', 'confirmPassword'].includes(q.id));
+        return registrationQuestions.every(q => {
+            if (!q.required) return true; // Skip optional
+            // Skip if dependency not met
+            if (q.dependsOn && data[q.dependsOn as keyof FormDataStore] !== q.dependsValue) return true;
+            // Check if required question has an answer
+            const answer = data[q.id as keyof FormDataStore];
+            return answer !== undefined && answer !== null && answer !== '';
+        });
+    };
+
+     const checkAndHandleCompletion = (data: FormDataStore) => {
+         if (checkCompletion(data)) {
+             dispatch({ type: 'SET_INFO_MESSAGE', payload: "All questions answered. Review your answers." });
+             dispatch({ type: 'SET_MODE', payload: 'review' });
+             handleReviewCommand(); // Display review immediately
+         } else {
+             // Should not happen if findNextQuestionIndex is correct, but handle defensively
+             dispatch({ type: 'ACTION_FAILURE', payload: "Reached end but not all required questions answered." });
+         }
+     };
+
+    const handleReviewCommand = () => {
+        dispatch({ type: 'ADD_OUTPUT', payload: { text: "--- Review Answers ---", type: 'info' } });
+        allQuestions.forEach((q, idx) => {
+            // Skip auth questions in review
+            if (['password', 'confirmPassword'].includes(q.id)) return;
+            const answer = state.localData[q.id as keyof FormDataStore];
+            const displayAnswer = answer === undefined || answer === null ? '[Not Answered]' : JSON.stringify(answer); // Stringify arrays/objects
+            dispatch({ type: 'ADD_OUTPUT', payload: { text: `${idx + 1}. ${q.label}: ${displayAnswer}`, type: 'output' } });
+        });
+        dispatch({ type: 'ADD_OUTPUT', payload: { text: "--- End Review ---", type: 'info' } });
+        dispatch({ type: 'ADD_OUTPUT', payload: { text: "Use 'submit', 'edit [number]', or 'back'.", type: 'info' } });
+    };
+
+    const handleReviewModeCommand = async (command: string, args: string[]) => {
+        switch(command) {
+            case 'submit':
+                handleFinalSubmit();
+                break;
+            case 'edit':
+                const indexStr = args[0];
+                const indexToEdit = parseInt(indexStr, 10) - 1; // User enters 1-based index
+                if (!isNaN(indexToEdit) && indexToEdit >= 0 && indexToEdit < allQuestions.length) {
+                     const questionToEdit = allQuestions[indexToEdit];
+                     // Prevent editing auth fields directly here
+                     if (['firstName', 'lastName', 'email', 'password', 'confirmPassword'].includes(questionToEdit.id)) {
+                          dispatch({ type: 'ACTION_FAILURE', payload: "Cannot edit authentication fields directly." });
+                          return;
+                     }
+                     dispatch({ type: 'ADD_OUTPUT', payload: { text: `Editing question ${indexToEdit + 1}: ${questionToEdit.label}`, type: 'info' } });
+                     dispatch({ type: 'SET_MODE', payload: 'edit' });
+                     dispatch({ type: 'SET_QUESTION_INDEX', payload: indexToEdit });
+                     // Pre-fill input? Maybe not, let them re-enter.
+                } else {
+                     dispatch({ type: 'ACTION_FAILURE', payload: "Invalid question number. Use 'edit [number]' based on review list." });
+                }
+                break;
+            case 'back':
+                dispatch({ type: 'SET_MODE', payload: 'main' });
+                break;
+            default:
+                 dispatch({ type: 'ACTION_FAILURE', payload: `Unknown command: ${command}` });
+        }
+    };
+
+    const handleConfirmDeleteCommand = async (command: string) => {
+         if (command === 'delete') {
+             dispatch({ type: 'ACTION_START', payload: 'deleteReg' });
+             startSubmitTransition(async () => {
+                 // const result = await deleteRegistration(); // Assumes action exists
+                 const result = { success: true, message: "Registration deleted (simulated)." }; // Placeholder
+                 if (result.success) {
+                     dispatch({ type: 'ACTION_SUCCESS', payload: { message: result.message } });
+                     dispatch({ type: 'UPDATE_LOCAL_DATA', payload: {} }); // Clear local
+                     dispatch({ type: 'SET_MODE', payload: 'main' });
+                     // TODO: Update registrationStatus state
+                 } else {
+                     dispatch({ type: 'ACTION_FAILURE', payload: result.message });
+                     dispatch({ type: 'SET_MODE', payload: 'main' }); // Go back on failure too
+                 }
+             });
+         } else if (command === 'cancel') {
+             dispatch({ type: 'SET_INFO_MESSAGE', payload: "Deletion cancelled." });
+             dispatch({ type: 'SET_MODE', payload: 'main' });
+         } else {
+             dispatch({ type: 'ACTION_FAILURE', payload: "Invalid confirmation. Type 'DELETE' or 'cancel'." });
+         }
+     };
+
+     const handleConfirmNewCommand = (command: string) => {
+         if (command === 'yes') {
+             handleStartNewRegistration();
+         } else if (command === 'no') {
+             dispatch({ type: 'SET_INFO_MESSAGE', payload: "Operation cancelled." });
+             dispatch({ type: 'SET_MODE', payload: 'main' });
+         } else {
+             dispatch({ type: 'ACTION_FAILURE', payload: "Invalid input. Type 'yes' or 'no'." });
+         }
+     };
+
+     const handleStartNewRegistration = () => {
+         dispatch({ type: 'UPDATE_LOCAL_DATA', payload: {} }); // Clear data
+         dispatch({ type: 'ADD_OUTPUT', payload: { text: "Starting new registration...", type: 'info' } });
+         dispatch({ type: 'ADD_OUTPUT', payload: { text: "Welcome to the Philosothon registration form! This questionnaire will help us understand your interests, background, and preferences to create balanced teams and select themes that resonate with participants. The event will take place on **April 26-27, 2025**.\n\nCompleting this form should take approximately 10-15 minutes. Please submit your responses by **Thursday, April 24th at midnight**.", type: 'output' } }); // Full intro text
+         dispatch({ type: 'SET_MODE', payload: 'register' });
+         // Start with First Name (assuming it's the first relevant question)
+         const firstNameIndex = allQuestions.findIndex(q => q.id === 'firstName');
+         dispatch({ type: 'SET_QUESTION_INDEX', payload: firstNameIndex >= 0 ? firstNameIndex : 0 });
+         dispatch({ type: 'SET_AUTH_SUBSTATE', payload: 'idle' }); // Reset auth substate
+         dispatch({ type: 'SET_PASSWORD_ATTEMPT', payload: '' });
+     };
+
+     const handleAwaitingConfirmationCommand = async (command: string) => {
+          switch(command) {
+              case 'continue':
+                  dispatch({ type: 'ACTION_START', payload: 'checkVerification' });
+                  startSubmitTransition(async () => {
+                      const result = await checkUserVerificationStatus();
+                      if (result.success) {
+                          dispatch({ type: 'ACTION_SUCCESS', payload: { message: "Email confirmed. Proceeding..." } });
+                          dispatch({ type: 'UPDATE_LOCAL_DATA', payload: { isVerified: true } }); // Mark verified locally
+                          // Find first *real* question index (Q3)
+                          const firstQIndex = allQuestions.findIndex(q => q.order === 3);
+                          dispatch({ type: 'SET_QUESTION_INDEX', payload: firstQIndex >= 0 ? firstQIndex : 0 });
+                          dispatch({ type: 'SET_MODE', payload: 'register' });
+                      } else {
+                          dispatch({ type: 'ACTION_FAILURE', payload: result.message });
+                          // Stay in awaiting_confirmation mode
+                      }
+                  });
+                  break;
+              case 'resend':
+                   dispatch({ type: 'ACTION_START', payload: 'resendConfirmation' });
+                   startSubmitTransition(async () => {
+                       // const result = await resendConfirmationEmail({ email: state.userEmail! }); // Assuming action exists and takes email
+                       const result = { success: true, message: "Confirmation email resent (simulated)." }; // Placeholder
+                       if (result.success) {
+                           dispatch({ type: 'ACTION_SUCCESS', payload: { message: result.message } });
+                       } else {
+                           dispatch({ type: 'ACTION_FAILURE', payload: result.message });
+                       }
+                       // Stay in awaiting_confirmation mode
+                   });
+                   break;
+              case 'exit':
+              case 'back':
+                  dispatch({ type: 'SET_MODE', payload: 'main' });
+                  // Decide whether to clear local data or keep it
+                  break;
+              default:
+                   dispatch({ type: 'ACTION_FAILURE', payload: `Unknown command: ${command}` });
           }
-          return null;
-        })
-      )}
-       {/* Ensure email is always submitted */}
-       {currentStep === totalSteps && formData.email && (
-           <input type="hidden" name="email" value={formData.email} />
-       )}
+     };
+
+     const handleFinalSubmit = () => {
+         dispatch({ type: 'ACTION_START', payload: 'submitReg' });
+         const formDataForServer = new FormData();
+         // Populate formDataForServer from state.localData, excluding helper fields
+         Object.entries(state.localData).forEach(([key, value]) => {
+             if (key === 'currentQuestionIndex' || key === 'isVerified') return;
+             // Handle arrays (e.g., multi-select)
+             if (Array.isArray(value)) {
+                 value.forEach(item => formDataForServer.append(key, String(item)));
+             } else if (value !== undefined && value !== null) {
+                 formDataForServer.append(key, String(value));
+             }
+         });
+
+         startSubmitTransition(async () => {
+             // Pass null for formState if not using useFormState directly here
+             const result = await submitRegistration(null as any, formDataForServer);
+             if (result.success) {
+                 dispatch({ type: 'ACTION_SUCCESS', payload: { message: "Registration submitted successfully!" } });
+                 dispatch({ type: 'UPDATE_LOCAL_DATA', payload: {} }); // Clear local data
+                 // TODO: Update registrationStatus state based on server confirmation
+                 dispatch({ type: 'SET_MODE', payload: 'main' });
+             } else {
+                 dispatch({ type: 'ACTION_FAILURE', payload: result.message || 'Submission failed.' });
+                 // Handle specific field errors if available in result.errors
+                 if (result.errors) {
+                      Object.entries(result.errors).forEach(([field, errors]) => {
+                          if (errors) {
+                              dispatch({ type: 'ADD_OUTPUT', payload: { text: ` - ${field}: ${errors.join(', ')}`, type: 'error' } });
+                          }
+                      });
+                 }
+                 dispatch({ type: 'SET_MODE', payload: 'review' }); // Stay in review on failure
+             }
+         });
+     };
 
 
-      {/* Navigation Buttons */}
-      <div className="navigation-buttons">
-        {currentStep > 1 && (
-          <button type="button" onClick={handlePrevious}>Previous</button>
-        )}
-        {currentStep < totalSteps && (
-          <button type="button" onClick={handleNext}>Next</button>
-        )}
-        {currentStep === totalSteps && (
-          <SubmitButton />
-        )}
-      </div>
-    </form>
-  );
+    // --- Rendering ---
+    const currentPromptText = getPromptText(state.mode, state.isAuthenticated, state.userEmail, state.authSubState, state.currentQuestionIndex);
+    const isInputPassword = state.authSubState === 'awaiting_password' || state.authSubState === 'awaiting_confirm_password';
+    const isProcessing = state.pendingAction !== null || isSubmitting;
+
+    return (
+        <div className="bg-black text-hacker-green font-mono p-4 border border-gray-700 rounded h-[70vh] flex flex-col">
+            <div ref={terminalRef} className="flex-grow overflow-y-auto mb-2 scroll-smooth">
+                {state.outputLines.map(line => (
+                    <div key={line.id} className={`whitespace-pre-wrap ${
+                        line.type === 'error' ? 'text-orange-500' : // Use orange for errors
+                        line.type === 'success' ? 'text-green-500' :
+                        line.type === 'warning' ? 'text-yellow-500' :
+                        line.type === 'info' ? 'text-blue-400' :
+                        line.type === 'question' ? 'text-cyan-400' :
+                        line.type === 'input' ? 'text-white' :
+                        'text-hacker-green' // Default
+                    }`}>
+                        {line.type === 'input' && <span className="text-gray-500">{line.promptText}</span>}
+                        {line.text}
+                    </div>
+                ))}
+                 {/* Display current question label if in register/edit mode */}
+                 {/* This is handled by the useEffect hook now */}
+            </div>
+
+            {state.mode !== 'boot' && (
+                <form onSubmit={handleSubmit} className="flex items-center mt-auto pt-2 border-t border-gray-700">
+                    <span className="text-gray-500 mr-1">{currentPromptText}</span>
+                    <input
+                        ref={inputRef}
+                        type={isInputPassword ? 'password' : 'text'}
+                        value={state.currentInput}
+                        onChange={handleInputChange}
+                        className="bg-transparent border-none text-hacker-green outline-none flex-grow p-0 m-0 focus:ring-0"
+                        autoComplete="off"
+                        autoFocus
+                        disabled={isProcessing || state.isBooting}
+                        data-testid="terminal-input"
+                    />
+                </form>
+            )}
+        </div>
+    );
 }

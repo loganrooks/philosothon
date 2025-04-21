@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createStaticSupabaseClient } from '@/lib/supabase/server';
 
 // Define the FaqItem type based on usage in actions/pages
 // Need to confirm exact fields from schema or existing types if available
@@ -17,7 +17,8 @@ export interface FaqItem {
  */
 export async function fetchFaqItems(): Promise<{ faqItems: FaqItem[] | null; error: Error | null }> {
   try {
-    const supabase = await createClient();
+    // Use the static client for SSG/ISR pages like public FAQ
+    const supabase = createStaticSupabaseClient();
     const { data, error } = await supabase
       .from('faq_items')
       .select('*')

@@ -1,6 +1,48 @@
 # TDD Specific Memory
 
 ## Test Execution Results
+### Test Execution: RegistrationForm.test.tsx (V3.1 Fix Attempt 1 - Corrected Analysis) - [2025-04-21 13:21:00]
+- **Trigger**: Manual (Attempt to fix failing tests)
+- **Outcome**: FAIL / **Summary**: 5 tests passed, 12 failed
+- **Failed Tests**: 12 tests failed, primarily due to:
+    - Incorrect command handling ('register' without args).
+    - Missing intro/warning text on 'register new'.
+    - **Component Bug:** Component skips password/confirmPassword steps because its logic incorrectly relies on finding `password`/`confirmPassword` IDs within the `questions` array, but these are intentionally excluded from the array per the schema design.
+    - Outdated assertions for status line, help text, prompts.
+    - Multiple elements found for some assertions.
+- **Notes**: Applied partial fixes for non-password related tests (scoping, basic assertions). Task blocked because fixing password flow tests requires correcting the component logic in `RegistrationForm.tsx` to handle password steps as special cases (e.g., based on index after email) rather than relying on the `questions` array.
+
+
+### Test Execution: RegistrationForm.test.tsx (Post-SSOT Fix Verification) - [2025-04-21 13:09:00]
+- **Trigger**: Manual (Verify SSOT fix)
+- **Outcome**: FAIL / **Summary**: 4 tests passed, 13 failed
+- **Failed Tests**: 13 tests failed due to assertion errors (mismatched text, missing elements, incorrect mock calls) and logic expecting outdated 36-question structure (e.g., incorrect prompt assertions, undefined question lookups). See details in terminal output.
+- **Notes**: Confirmed that the SSOT fix (generating correct 45-question `registrationQuestions.ts`) did not resolve test failures. The tests themselves in `RegistrationForm.test.tsx` require updates to align with the V3.1 spec and 45-question structure.
+
+
+### Test Execution: RegistrationForm.test.tsx (Post-Cleanup) - [2025-04-21 04:45:58]
+- **Trigger**: Manual (Post-Cleanup Task)
+- **Outcome**: FAIL (Expected) / **Summary**: 13 tests failed, 4 passed
+- **Failed Tests**: 13 tests within `describe('RegistrationForm (Terminal UI V3 - Red Phase)')` related to V3.1 features (boot sequence, guest prompt/help/status, register new/continue, early auth flow, validation). Failures include `TypeError: Cannot read properties of undefined (reading 'label')`, `TestingLibraryElementError: Unable to find an element...`, `AssertionError: expected "spy" to be called...`.
+- **Passed Tests**: 4 tests passed (likely basic setup/render tests).
+- **Notes**: Confirmed tests run after cleanup. Failures are consistent with known component/JSDOM interaction issues documented in previous attempts by `code` and `debug` modes. File is structurally sound and ready for debugging.
+
+
+${tddModeUpdateTestResults}
+
+### Test Execution: Registration V3 Red Phase Verification - [2025-04-20 2:21:00]
+- **Trigger**: Manual (Post-Red Phase Test Writing/Updates)
+- **Outcome**: FAIL (Expected for Red Phase) / **Summary**: SSOT tests pass, Auth tests pass, Reg Action tests fail (validation), UI tests fail (implementation).
+- **Failed Tests**:
+    - `src/app/register/actions.test.ts` (6 tests): Failing due to Zod validation errors (Expected - type mismatches like string vs number/boolean).
+    - `src/app/register/components/RegistrationForm.test.tsx` (3 tests): Failing due to missing V3 implementation (Expected).
+- **Skipped Tests**:
+    - `src/app/register/components/RegistrationForm.test.tsx` (32 tests): Old V2 tests skipped.
+    - `src/app/register/actions.test.ts` (1 test): Skipped delete confirmation test.
+- **Notes**: Confirmed tests are in the expected Red state, failing because V3 implementation is missing.
+
+
+
 ### Test Execution: Full Regression Run (Post-Fix Registration Action Tests) - [2025-04-19 15:35:42]
 - **Trigger**: Manual (Post-Code Change - Fixed tests in `actions.test.ts`)
 - **Outcome**: PASS (with known exceptions) / **Summary**: 263 tests passed, 3 skipped
@@ -122,6 +164,20 @@
 
 
 ## Test Plans (Driving Implementation)
+${tddModeUpdateTestPlan}
+
+### Test Plan: Registration Terminal V3 - [2025-04-20 2:21:00]
+- **Objective**: Drive implementation of V3 Terminal UI, Auth, and Registration logic based on `docs/specs/p0_registration_terminal_ui_spec_v2.md`.
+- **Scope**: `RegistrationForm.tsx`, `auth/actions.ts`, `register/actions.ts`, `generate-registration.ts`.
+- **Test Cases (Red Phase Status)**:
+    - SSOT Script (`generate-registration.test.ts`): Verified existing tests cover V3 requirements (file generation, schema update, SQL draft). Tests PASS after fixing path assertion.
+    - Auth Actions (`auth/actions.test.ts`): Verified existing tests cover V3 actions (`signInWithPassword`, `signUpUser`, `signOut`, `requestPasswordReset`). Tests PASS after adding `headers` mock.
+    - Reg Actions (`register/actions.test.ts`): Updated mock data to V3. Tests FAIL due to Zod validation errors (missing type coercion in action). Red state achieved.
+    - Terminal UI (`RegistrationForm.test.tsx`): Skipped V2 tests. Added new failing tests for V3 initial render, `register new` command, and early auth flow. Tests FAIL due to missing V3 implementation. Red state achieved.
+- **Related Requirements**: `docs/specs/p0_registration_terminal_ui_spec_v2.md`
+
+
+
 ### Test Execution: Regression Run Post-Downgrade (Task 18) - [2025-04-18 16:08:45]
 ### Test Plan: P0 Registration System - [2025-04-19 09:32:05]
 - **Objective**: Drive implementation of the built-in registration form and server action based on `docs/specs/p0_registration_spec.md`.
@@ -455,6 +511,16 @@
 
 
 ## TDD Cycles Log
+### TDD Cycle: Registration Terminal V3 - Red Phase - [2025-04-20 1:56:00]
+- **Red**: Attempted to write failing tests for `RegistrationForm.tsx` based on V3 spec (`p0_registration_terminal_ui_spec_v2.md`). Found existing test file and `registrationQuestions.ts` mock data are outdated (V2, 17 questions) and incompatible with V3 requirements (31 questions, new types like `multi-select-numbered`, `ranking-numbered`). Fixed TS syntax errors in `RegistrationForm.test.tsx` by aligning mock data with the *outdated* `registrationQuestions.ts`.
+- **Green**: N/A
+- **Refactor**: N/A
+- **Outcome**: **Blocked**. Cannot proceed with Red Phase for V3 features until the SSOT generation script (`generate-registration.ts`) is updated to match the V3 spec and executed. Test file `RegistrationForm.test.tsx` is syntactically valid but uses outdated mock data.
+
+
+${tddModeUpdateCycleLog}
+
+
 ## TDD Cycles Log
 ### TDD Cycle: Frontend Rendering (Theme Detail Page) - Green Phase - [2025-04-19 11:54:23]
 - **Red**: Failing tests existed from Red Phase (`page.test.tsx`).
@@ -655,3 +721,17 @@
 - **Trigger**: Manual / **Env**: Local / **Suite**: `platform/src/app/admin/faq/actions.test.ts`
 - **Result**: PASS / **Summary**: 49 Total/49 Passed/0 Failed/0 Skipped (Includes other test files run by Vitest)
 - **Report Link**: N/A / **Failures**: None
+### Test Execution: RegistrationForm.test.tsx (Post-Mocking Fix Attempts) - [2025-04-21 14:40:00]
+- **Trigger**: Manual (Verify mocking fixes)
+- **Outcome**: FAIL / **Summary**: 8 tests passed, 9 failed
+- **Failed Tests**:
+    - `should show status line indicating local data exists`: Fails finding text (Test Setup Issue: `useLocalStorage` mock ineffective for initial render).
+    - `should show "continue" in register sub-menu if local data exists`: Fails finding text (Test Setup Issue: `useLocalStorage` mock ineffective for initial render).
+    - `should warn before overwriting local data on "register new"`: Fails finding text (Test Setup Issue: `useLocalStorage` mock ineffective for initial render).
+    - `should resume registration from correct index on "register continue"`: Fails finding text (Test Setup Issue: `useLocalStorage` mock ineffective for initial render).
+    - `should proceed through early auth flow...`: Fails checking `confirmPwInput` type (Component Logic Issue: `isPasswordInput` state not set correctly for confirmation). Also fails `signUpUser` call assertion (Component Logic Issue: State logic prevents reaching call).
+    - `should show validation error for invalid email format`: Fails finding error text (Test Setup Issue: Component state likely incorrect due to local storage mock issue).
+    - `should show validation error for non-matching passwords`: Fails finding error text (Test Setup Issue: Component state likely incorrect due to local storage mock issue).
+    - `should show validation error for short password`: Fails finding error text (Test Setup Issue: Component state likely incorrect due to local storage mock issue).
+    - `should show error and stay at password step if signUpUser fails`: Fails `signUpUser` call assertion (Component Logic Issue: State logic prevents reaching call).
+- **Notes**: `vi.doMock` approach failed to resolve local storage mocking issues and introduced new failures. Reverted to `vi.mock` + setting store before render. Local storage tests remain blocked by setup issue. Other failures correctly indicate component logic bugs.

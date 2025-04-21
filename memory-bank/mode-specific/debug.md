@@ -1,6 +1,172 @@
 # Debug Specific Memory
 
 ## Issue History
+### Issue: INT-FORM-ENTER-001 - Interest form not submitting on Enter - [Status: Resolved (Cannot Reproduce)] - [2025-04-21 19:54:12]
+- **Reported**: 2025-04-21 07:44:55 (MB Log) / **Severity**: Medium / **Symptoms**: User reported Enter key press in `InterestFormPlaceholder` email field did not submit the form.
+- **Investigation**: 
+    1. Verified branch `feat/architecture-v2`. (2025-04-21 19:47:41)
+    2. Read `InterestFormPlaceholder.tsx` and `actions.ts`. Form structure and action binding appeared correct. (2025-04-21 19:48:02)
+    3. Added server-side `console.log` to `logInterest` action. (2025-04-21 19:48:30)
+    4. User tested: Log did *not* appear initially. (2025-04-21 19:51:29)
+    5. User re-tested after confirming Enter press: Log *did* appear. (2025-04-21 19:53:18)
+    6. User confirmed success message appeared in UI after log confirmation. (2025-04-21 19:53:38)
+- **Root Cause**: Original issue could not be reproduced. Testing confirmed the form submission via Enter key triggers the server action and updates the UI as expected.
+- **Fix Applied**: None required. Removed debug log statement. (2025-04-21 19:54:12)
+- **Verification**: Manual testing by user confirmed expected behavior.
+- **Related Issues**: [MB Log 2025-04-21 07:44:55]
+
+
+### Issue: REG-FLOW-STATE-001 - Stuck flows, double prompts, verification issues - [Status: Fix Attempted] - [2025-04-21 16:03:00]
+- **Reported**: 2025-04-21 15:46:57 (Task Context) / **Severity**: High / **Symptoms**: Stuck flows, double/missing prompts, profile creation/verification issues in `RegistrationForm.tsx`.
+- **Investigation**: Analyzed component state logic, spec, auth actions, profile trigger. Hypothesized issues with premature verification setting, state update timing, redundant prompts, handling of authenticated 'continue', existing user signup, and incorrect question display after confirmation.
+- **Fix Applied**:
+    1. Modified `signUpUser` success block to enter 'awaiting_confirmation' mode instead of setting local `isVerified` or returning to 'main'.
+    2. Added `handleAwaitingConfirmationModeCommand` to check verification status via new `checkUserVerificationStatus` server action before proceeding.
+    3. Refactored `advanceQuestion` to combine `setLocalData` and `setCurrentQuestionIndex` updates.
+    4. Removed redundant `addOutputLine` calls for prompts in `next`/`prev` handlers.
+    5. Modified `register continue` handler to direct authenticated users to `view`/`edit`.
+    6. Removed obsolete `!localData.isVerified` check from `processAnswer`.
+    7. Removed prompt text from input history lines in `handleSubmit`.
+    8. Separated logic in `signUpUser` success block to handle new vs. existing users (prompts existing users to sign in).
+    9. Added explicit `addOutputLine` for the next question label within `handleAwaitingConfirmationModeCommand` after verification success.
+- **Verification**: Code changes applied. Manual testing required.
+- **Related Issues**: Previous `code` mode attempts ([MB Log 2025-04-21 15:46:57]), User Feedback [2025-04-21 15:59:40], [2025-04-21 16:12:01].
+
+
+
+### Issue: REG-TEST-SOURCE-MISMATCH-001 - Tests fail due to incorrect source/assertions - [Status: Blocked] - [2025-04-21 12:09:00]
+- **Reported**: 2025-04-21 11:47:23 (Task Context) / **Severity**: High / **Symptoms**: Tests in `RegistrationForm.test.tsx` fail, showing `[reg X/45]>` prompt.
+- **Investigation (Attempt 4 - Final Corrected)**:
+    1. Re-verified schema (`registrationSchema.ts`): Confirmed it correctly defines 45 questions (with conceptual steps 4&5 skipped, order up to 47).
+    2. Re-verified generated file (`registrationQuestions.ts`): Confirmed it is INCORRECT (currently defines 36 questions and is structurally incomplete).
+    3. Confirmed test environment loads 45-question data (via `console.log`), matching the schema, not the incorrect generated file.
+    4. Analyzed tests (`RegistrationForm.test.tsx`): Confirmed assertions are based on the incorrect 36-question structure from the generated file.
+- **Root Cause**: Test assertions are incorrect because they are written against the outdated/incorrectly generated 36-question `registrationQuestions.ts` file. The test environment correctly uses the 45-question data (likely resolved from the schema), causing behavior mismatches.
+- **Fix Applied**: None.
+- **Verification**: Test failures align with assertions expecting 36-question behavior while component runs with 45 questions.
+- **Related Issues**: REG-GEN-SCRIPT-001 (Generation script bug).
+- **Recommendation**: Invoke Early Return Clause per user instruction. Next steps should be: 1) Fix/Run generation script (`npm run generate:reg`). 2) Verify generated file is correct (45 questions, complete structure). 3) Re-run tests (they should now pass if assertions were originally written for 45 questions). 4) If tests still fail, debug assertions or component logic based on the correct 45-question data.
+
+
+### Issue: REG-TEST-CACHE-001 - Test environment fails to load updated module - [Status: Blocked] - [2025-04-21 06:39:00]
+- **Reported**: 2025-04-21 06:02:00 / **Severity**: High / **Symptoms**: Tests in `RegistrationForm.test.tsx` consistently show outdated data (`[reg X/45]>` prompt) despite correct V3.1 SSOT/generated files (36 questions).
+- **Investigation (Attempt 3 - Focus on Mocks)**:
+    1. Verified SSOT/generated files (`registrationSchema.ts`, `registrationQuestions.ts`) are correct (V3.1, 36 questions).
+    2. Reviewed test mocks (`actions`, `localStorage`, `supabase`) - appear standard.
+    3. Explicitly mocked `../data/registrationQuestions` in test file: Caused hoisting errors, did not resolve issue when removed.
+    4. Ran tests: 13 failures persist, `[reg X/45]>` prompt confirms outdated data loading.
+    5. Ran tests with `vitest --no-cache`: Failures and `[reg X/45]>` symptom persist.
+- **Root Cause Hypothesis**: Confirmed as persistent caching or module resolution issue within the test environment (Vitest/tsx/Node/Dev Container) preventing the updated `registrationQuestions.ts` module from being loaded. Mocking strategy within the test file is not the primary cause of this symptom.
+- **Fix Applied**: None (Explicit mock removed, cache clearing ineffective).
+- **Verification**: Test failures consistently show outdated module data (`X/45`).
+- **Related Issues**: REG-TEST-V3.1-FAILURES (superseded), REG-TEST-STALL-001.
+- **Recommendation**: Invoke Early Return Clause. Recommend manual intervention to investigate/reset the test environment (e.g., restarting VS Code, Dev Container, checking Vitest/tsx config for deeper cache settings).
+
+
+### Issue: REG-TEST-CACHE-001 - Test environment fails to load updated module - [Status: Blocked] - [2025-04-21 06:12:00]
+- **Reported**: 2025-04-21 06:02:00 (During Debug Task Attempt 2) / **Severity**: High / **Symptoms**: Tests in `RegistrationForm.test.tsx` consistently fail with symptoms indicating outdated question data (e.g., `[reg x/45]>` prompt, skipped password steps, incorrect command handling) despite successful correction of SSOT config (`registrationSchema.ts`), generation script (`generate-registration.ts`), and repeated successful generation of `registrationQuestions.ts`.
+- **Investigation**:
+    1. Corrected `LOCAL_STORAGE_KEY` mismatch in `RegistrationForm.tsx`. (2025-04-21 06:01:51)
+    2. Fixed TS errors in `RegistrationForm.tsx` related to outdated types. (2025-04-21 06:02:08)
+    3. Ran tests: 13/17 failed, showing outdated data symptoms. (2025-04-21 06:02:25)
+    4. Verified `registrationQuestions.ts` content: Found it was *still* incorrect (45 questions, missing password fields). (2025-04-21 06:03:18)
+    5. Identified and fixed bugs in `generate-registration.ts` (incorrect password filter, outdated interface properties). (2025-04-21 06:03:54 - 06:04:09)
+    6. Re-ran corrected generation script successfully. (2025-04-21 06:04:22)
+    7. Verified `registrationQuestions.ts` content again: Confirmed it was *still* incorrect. (2025-04-21 06:04:47)
+    8. Re-ran corrected generation script again successfully. (2025-04-21 06:07:34)
+    9. Verified `registrationQuestions.ts` content again: Confirmed it was *still* incorrect. (2025-04-21 06:07:46)
+    10. Cleared Vite cache (`.vite`) and reinstalled (`npm install`). Ran tests: Still 13 failures with same symptoms. (2025-04-21 06:08:27)
+    11. Cleared `node_modules`, `.next`, reinstalled. Ran tests: Still 13 failures with same symptoms. (2025-04-21 06:09:09 - 06:11:42)
+- **Root Cause Hypothesis**: Persistent caching or module resolution issue within the test environment (Vitest/JSDOM/Node/tsx) preventing the updated `registrationQuestions.ts` module from being loaded during test execution, despite file system updates and cache clearing attempts.
+- **Fix Applied**: Corrected SSOT config and generation script. Multiple cache clearing attempts.
+- **Verification**: Test failures persist, consistently showing symptoms of using outdated module data.
+- **Related Issues**: REG-TEST-V3.1-FAILURES (superseded), REG-TEST-STALL-001.
+- **Recommendation**: Invoke Early Return Clause. Suggest manual intervention to investigate/reset the test environment (e.g., restarting VS Code, Dev Container, checking Vitest config for cache settings, potentially using `--no-cache` flags if available).
+
+
+### Issue: REG-TEST-V3.1-FAILURES - Failing tests due to outdated SSOT - [Status: Blocked] - [2025-04-21 05:18:00]
+- **Reported**: 2025-04-21 04:48:11 (Task Context) / **Severity**: High / **Symptoms**: 13 tests fail in `RegistrationForm.test.tsx` after V3.1 cleanup. Failures include incorrect question prompts (e.g., 'Full Name' vs 'First Name'), incorrect sequence/counts, local storage errors, and boot/mode transition issues.
+- **Investigation**:
+    1. Verified branch `feat/architecture-v2`. (2025-04-21 05:16:02)
+    2. Read context files (`RegistrationForm.tsx`, `RegistrationForm.test.tsx`, specs, feedback). (2025-04-21 05:16:11 - 05:16:58)
+    3. Ran tests: Confirmed 13 failures. Analyzed output. (2025-04-21 05:17:39)
+    4. Verified `registrationQuestions.ts`: Found outdated V2 structure (32 questions, `fullName`). (2025-04-21 05:18:06)
+    5. Verified `registrationSchema.ts`: Found outdated V3 structure (34 questions, `fullName`, missing 2 questions vs V3.1 spec). (2025-04-21 05:18:19)
+- **Root Cause**: The SSOT configuration (`registrationSchema.ts`) does not match the V3.1 specification (`p0_registration_terminal_ui_spec_v2.md`). Consequently, the generated `registrationQuestions.ts` used by the component and tests is incorrect (wrong questions, count, sequence).
+- **Fix Applied**: None.
+- **Verification**: Analysis of SSOT config and generated file confirms mismatch with V3.1 spec. Test failures align with this mismatch.
+- **Related Issues**: REG-TEST-STALL-001 (likely exacerbated by incorrect data), Previous `code`/`debug` failures.
+- **Recommendation**: Update `registrationSchema.ts` to V3.1 spec (36 questions, `firstName`, `lastName`, etc.). Run generation script (`npm run generate:reg`). Then, re-delegate debugging task for `RegistrationForm.test.tsx`.
+
+
+### Issue: REG-TEST-STALL-001 - Tests fail due to component async init - [Status: Blocked] - [2025-04-20 02:49:00]
+- **Reported**: 2025-04-20 02:00:00 (Task Context) / **Severity**: High / **Symptoms**: Tests in `RegistrationForm.test.tsx` fail quickly (`Unable to find element...`), not stall, because component doesn't transition past async boot sequence.
+- **Investigation**:
+    1. Confirmed branch `feature/architecture-v2`. (2025-04-20 02:43:58)
+    2. Ran test verbose: Confirmed tests fail fast, not stall, due to missing main prompt `[guest@philosothon]$`. (2025-04-20 02:44:27)
+    3. Cleared Vite cache (`rm -rf node_modules/.vite && npm install`). Result: No change. (2025-04-20 02:44:39 - 02:45:12)
+    4. Reviewed `vitest.config.ts`: No obvious issues. (2025-04-20 02:45:20)
+    5. Reviewed `vitest.setup.ts`: Identified global `react-dom` mock. (2025-04-20 02:45:30)
+    6. Reviewed `RegistrationForm.test.tsx`: Mocks/setup seem okay (`vi.spyOn` used correctly). (2025-04-20 02:45:41)
+    7. Commented out global `react-dom` mock in `vitest.setup.ts`. Result: No change in test failures. (2025-04-20 02:46:20 - 02:47:04)
+    8. Reviewed `RegistrationForm.tsx`: Identified async `bootSequence` with `setTimeout` in `useEffect` as likely cause. (2025-04-20 02:47:19)
+    9. Modified first test to wait for last boot message. Result: Test failed earlier (couldn't find last boot message). (2025-04-20 02:47:52 - 02:48:35)
+    10. Reverted changes to test and setup files. (2025-04-20 02:48:54 - 02:49:09)
+- **Root Cause Hypothesis**: Component's async `bootSequence` (`useEffect` + `setTimeout`) is incompatible with Vitest/JSDOM timing, preventing state update (`setCurrentMode('main')`) before assertions run.
+- **Fix Applied**: None (Changes reverted).
+- **Verification**: Tests consistently fail to find main mode prompt.
+- **Related Issues**: REG-TERM-UI-001, VITEST-MOCK-HOIST-001.
+
+
+### Issue: REG-TEST-STALL-001 - Tests stall indefinitely after component/test modifications - [Status: Blocked] - [2025-04-20 02:26:00]
+- **Reported**: 2025-04-20 02:00:00 (Task Context) / **Severity**: High / **Symptoms**: Tests in `RegistrationForm.test.tsx` run indefinitely without completing or timing out predictably after attempts to fix async issues (simplifying boot sequence, using fake timers, modifying test helpers).
+- **Investigation**:
+  1. Confirmed branch `feature/architecture-v2`. (2025-04-19 23:58:26)
+  2. Analyzed component boot sequence (`useEffect`), identified potential async timing issue in tests. (2025-04-19 23:58:35)
+  3. Applied fix: Moved `setCurrentMode('main')` outside async `bootSequence`. Result: Tests failed differently (`Unable to find prompt`). (2025-04-19 23:59:15 - 23:59:45)
+  4. Applied test fix: Added fake timers (`vi.useFakeTimers`, `vi.runAllTimers`). Result: Tests timed out (5s). (2025-04-20 00:00:57 - 00:01:08)
+  5. Applied test fix: Removed `setTimeout` from `enterInput` helper. Result: Tests still timed out (5s). (2025-04-20 00:03:09 - 00:04:58)
+  6. Applied test fix: Increased timeout for first test to 30s. Result: Test still timed out (30s). (2025-04-20 00:07:50 - 00:09:58)
+  7. Applied test fix: Used `waitFor` with `vi.advanceTimersByTime`. Result: First test timed out in `waitFor`. (2025-04-20 00:10:30 - 00:12:12)
+  8. Reverted test timer/waitFor changes. (2025-04-20 00:12:49)
+  9. Applied component fix: Simplified boot sequence (removed async/setTimeout). Result: Tests failed (`Unable to find role="textbox"`). (2025-04-20 00:13:10 - 00:14:18)
+  10. Applied test fix: Changed `findByRole('textbox')` to `waitFor(() => getByDisplayValue(''))`. Result: Tests stalled indefinitely. (2025-04-20 00:16:47 - 00:32:15)
+  11. Reverted all component/test changes from this session. Result: Tests *still* stalled indefinitely. (2025-04-20 02:23:21 - 02:25:34)
+- **Root Cause Hypothesis**: Intractable interaction between component's async logic (`useEffect`, `useTransition`, possibly mocked actions) and the Vitest/JSDOM test environment. The exact cause of the stalling, even after reverting changes, is unclear.
+- **Fix Applied**: All changes reverted.
+- **Verification**: Tests stall indefinitely.
+- **Related Issues**: REG-TERM-UI-001, VITEST-MOCK-HOIST-001.
+
+
+### Issue: VITEST-MOCK-HOIST-001 - `ReferenceError` mocking modules with top-level variables - [Status: Resolved] - [2025-04-19 23:23:00]
+- **Reported**: 2025-04-19 23:15:16 (Task Context) / **Severity**: High / **Symptoms**: Tests fail immediately with `ReferenceError: Cannot access '...' before initialization` when `vi.mock` factory references top-level variables (`const`, `let`, `class`).
+- **Investigation**:
+  1. Confirmed branch `feature/architecture-v2`. (2025-04-19 23:16:32)
+  2. Read test file (`RegistrationForm.test.tsx`). Identified `vi.mock` calls using top-level `const mock... = vi.fn()` variables. (2025-04-19 23:16:44)
+  3. Attempt 1: Moved `mockQuestions` definition just before `vi.mock` call. Result: Failed, same error. (2025-04-19 23:17:04 - 23:17:26)
+  4. Attempt 2: Defined `mockQuestions` data directly inline within `vi.mock` factory. Result: Failed, error shifted to `mockSubmitRegistration`. (2025-04-19 23:17:56 - 23:18:13)
+  5. Attempt 3: Incorrectly tried defining `vi.fn()` inline in factory while keeping top-level consts. Result: Failed, same error. (2025-04-19 23:19:16 - 23:19:52)
+  6. Attempt 4: Replaced `vi.mock` for action modules (`../actions`, `../../auth/actions`) with `vi.spyOn` in `beforeEach`. Kept other mocks (`useLocalStorage`, `supabase/server`, `registrationQuestions`) as they were correctly structured. Result: Success! `ReferenceError` resolved. Tests now run but fail due to component logic. (2025-04-19 23:21:00 - 23:22:26)
+- **Root Cause**: Vitest hoists all `vi.mock` calls and evaluates their factory functions *before* processing module-level `const`/`let`/`class` declarations, causing Temporal Dead Zone errors if the factory references those variables.
+- **Fix Applied**: Replaced `vi.mock` with `vi.spyOn(actualModule, 'funcName').mockImplementation(mockFn)` inside `beforeEach` for the affected server action modules. Imported the actual action modules. Kept top-level `mockFn = vi.fn()` for resetting/assertions.
+- **Verification**: `npm test -- RegistrationForm.test.tsx` runs without the `ReferenceError`. Component-level failures remain.
+- **Related Issues**: Global Context Pattern [2025-04-19 23:23:00] Vitest Mocking Strategy (`vi.spyOn`).
+
+
+### Issue: REG-TERM-UI-001 - Double boot messages & Unresponsiveness - [Status: Resolved (Initial Fixes)] - [2025-04-19 19:34:00]
+- **Reported**: 2025-04-19 19:15:51 (Task Context) / **Severity**: High / **Symptoms**: Boot sequence messages appear doubled. Form unresponsive after boot sequence completes.
+- **Investigation**:
+  1. Confirmed branch `feature/architecture-v2`. (2025-04-19 19:17:24)
+  2. Read relevant files (`RegistrationForm.tsx`, `registrationQuestions.ts`, `useLocalStorage.ts`). (2025-04-19 19:17:52)
+  3. Applied initial fixes based on `code` mode analysis: Added `useRef` flag to boot `useEffect`, removed `bootMessages.length` from focus/scroll `useEffect` deps, removed `<form>` `onClick`. (2025-04-19 19:18:13)
+  4. User tested: Confirmed double boot messages and initial unresponsiveness are resolved. (2025-04-19 19:32:08)
+  5. User provided feedback requesting significant redesign (menus, hints, sign-in, edit/delete/continue commands, auth). (2025-04-19 19:32:08)
+- **Root Cause**: Double boot messages likely due to React StrictMode double-invoking `useEffect`. Unresponsiveness likely due to incorrect dependency (`bootMessages.length`) in focus/scroll effect and potentially unnecessary form `onClick` handler interfering with input focus.
+- **Fix Applied**: Added `useRef` guard to boot `useEffect`. Removed `bootMessages.length` from focus/scroll `useEffect` deps. Removed `<form>` `onClick` handler. Committed as 98e7303. (2025-04-19 19:32:51)
+- **Verification**: User confirmed initial bugs resolved via manual testing.
+- **Related Issues**: Task (Debug Terminal UI).
+
+
 ### Issue: RLS-TEST-TIMEOUT-001 - Vitest timeouts mocking Supabase client for RLS tests - [Status: Blocked] - [2025-04-19 05:43:47]
 - **Reported**: 2025-04-19 05:35:17 (Task Context) / **Severity**: High / **Symptoms**: Tests in `platform/src/lib/supabase/rls.test.ts` consistently time out when awaiting Supabase client query chains ending in an implicit `.then()` (e.g., `await client.from(...).select()`, `await client.from(...).update().eq()`). Tests using `.single()` complete quickly.
 - **Investigation**:
@@ -300,4 +466,10 @@
 <!-- Append performance notes using the format below -->
 
 ## Debugging Tools & Techniques
+
+### Tool/Technique: `vi.spyOn` vs `vi.mock` for Hoisting Issues - [2025-04-19 23:23:00]
+- **Context**: Vitest tests where `vi.mock` factory functions cause `ReferenceError: Cannot access '...' before initialization` due to referencing top-level variables.
+- **Usage**: Instead of `vi.mock('../module', () => ({ func: topLevelVar }))`, import the actual module (`import * as actualModule from '../module'`), keep the top-level mock variable (`const topLevelVar = vi.fn()`), and use `vi.spyOn(actualModule, 'func').mockImplementation(topLevelVar)` within `beforeEach`. Reset mocks as usual.
+- **Effectiveness**: High. Reliably avoids `vi.mock` factory hoisting issues related to accessing top-level variables.
+
 <!-- Append tool notes using the format below -->

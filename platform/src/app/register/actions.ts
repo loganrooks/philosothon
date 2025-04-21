@@ -1,96 +1,29 @@
 'use server';
-
+import { generateRegistrationSchema } from '../../../config/registrationSchema';
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { headers } from 'next/headers';
+// Removed import { headers } from 'next/headers'; as it causes issues when action is used by client components
 import { z } from 'zod'; // For validation
 import { fetchRegistrationByUserId, insertRegistration, RegistrationInput } from '@/lib/data/registrations';
 import { Database, Json } from '@/lib/supabase/database.types'; // Import generated types including Json
 
-// Define Zod schema matching FR-REG-005 and data model (spec v1.1)
-const RegistrationSchema = z.object({
-  // Basic Info
-  full_name: z.string().min(1, 'Full name is required'),
-  email: z.string().email({ message: 'Invalid email address.' }), // Email is now part of the form data
-  university: z.string().min(1, 'University is required'),
-  program: z.string().min(1, 'Program/Major is required'),
-  year_of_study: z.coerce.number().int().min(1, 'Year of study is required'),
+// Generated Zod schema based on central configuration
+// Generated Zod schema based on central configuration
+// Generated Zod schema based on central configuration
+// Generated Zod schema based on central configuration
+// Generated Zod schema based on central configuration
+// Generated Zod schema based on central configuration
+// Generated Zod schema based on central configuration
+// Generated Zod schema based on central configuration
+// Generated Zod schema based on central configuration
+// Generated Zod schema based on central configuration
+const RegistrationSchema = generateRegistrationSchema();
+// Define an inferred type based on the Zod schema
+type ValidatedRegistrationData = z.infer<typeof RegistrationSchema>;
 
-  // Date Flexibility
-  can_attend_may_3_4: z.enum(['yes', 'no', 'maybe']),
-  may_3_4_comment: z.string().optional(),
-
-  // Philosophical Background
-  prior_courses: z.array(z.string()).optional(),
-  discussion_confidence: z.coerce.number().int().min(1).max(10),
-  writing_confidence: z.coerce.number().int().min(1).max(10),
-  familiarity_analytic: z.coerce.number().int().min(1).max(5),
-  familiarity_continental: z.coerce.number().int().min(1).max(5),
-  familiarity_other: z.coerce.number().int().min(1).max(5),
-  philosophical_traditions: z.array(z.string()).min(1, 'Select at least one tradition'),
-  philosophical_interests: z.array(z.string()).min(1, 'Select at least one area of interest'),
-  areas_of_interest: z.string().optional(),
-
-  // Theme and Workshop Preferences (Assuming JSON string from hidden input)
-  theme_rankings: z.string().transform((str: string, ctx: z.RefinementCtx) => {
-    try {
-      const parsed = JSON.parse(str);
-      const schema = z.array(z.object({
-        rank: z.number().int().min(1).max(8),
-        theme_id: z.string()
-      })).min(8, 'Please rank all themes');
-      return schema.parse(parsed);
-    } catch (e) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Invalid theme ranking format' });
-      return z.NEVER;
-    }
-  }),
-  theme_suggestion: z.string().optional(),
-  workshop_rankings: z.string().transform((str: string, ctx: z.RefinementCtx) => {
-     try {
-       const parsed = JSON.parse(str);
-       const schema = z.array(z.object({
-         rank: z.number().int().min(1).max(8),
-         workshop_id: z.string()
-       })).refine(
-         (workshops: Array<{ rank: number; workshop_id: string }>) => workshops.length >= 3, // Add type here
-         { message: 'Please rank at least 3 workshops' }
-       );
-       return schema.parse(parsed);
-     } catch (e) {
-       ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Invalid workshop ranking format' });
-       return z.NEVER;
-     }
-   }),
-
-  // Team Formation Preferences
-  preferred_working_style: z.enum(['structured', 'exploratory', 'balanced']),
-  teammate_similarity: z.coerce.number().int().min(1).max(10),
-  skill_writing: z.coerce.number().int().min(1).max(5),
-  skill_speaking: z.coerce.number().int().min(1).max(5),
-  skill_research: z.coerce.number().int().min(1).max(5),
-  skill_synthesis: z.coerce.number().int().min(1).max(5),
-  skill_critique: z.coerce.number().int().min(1).max(5),
-  mentorship_preference: z.enum(['mentor', 'mentee', 'no_preference']).optional(),
-  mentorship_areas: z.string().optional(),
-  preferred_teammates: z.string().optional(),
-  complementary_perspectives: z.string().optional(),
-
-  // Technical Experience & Accessibility
-  familiarity_tech_concepts: z.coerce.number().int().min(1).max(5),
-  prior_hackathon_experience: z.preprocess((val: unknown) => String(val).toLowerCase() === 'true', z.boolean()), // Add type here
-  prior_hackathon_details: z.string().optional(),
-  dietary_restrictions: z.string().optional(),
-  accessibility_needs: z.string().optional(),
-  additional_notes: z.string().optional(),
-  how_heard: z.enum(['email', 'professor', 'friend', 'department', 'social_media', 'other']),
-  how_heard_other: z.string().optional(),
-}).refine((data: any) => data.how_heard !== 'other' || (data.how_heard === 'other' && data.how_heard_other && data.how_heard_other.length > 0), { // Add type here
-  message: 'Please specify how you heard about the event if selecting "Other"',
-  path: ['how_heard_other'], // Attach error to the 'other' field
-});
-
+// Removed outdated hardcoded RegistrationSchema definition.
+// The schema is now generated by the SSOT script and imported/exported on line 13.
 
 // Type for state used by useFormState
 export type RegistrationState = {
@@ -103,13 +36,13 @@ export type RegistrationState = {
   success: boolean;
 };
 
-export async function createRegistration(
-  previousState: RegistrationState, // Corrected type name
+export async function submitRegistration(
+  previousState: RegistrationState,
   formData: FormData
 ): Promise<RegistrationState> {
+  console.log("Submitting registration..."); // Add log
   const supabase = await createClient();
-  const headersList = headers();
-  const origin = headersList.get('origin');
+  // Removed headersList and origin usage
 
   // --- Data Processing ---
   // Process form data, handling arrays and special types
@@ -153,6 +86,24 @@ export async function createRegistration(
     return { success: false, message: 'Invalid email address provided.' };
   }
 
+  // Convert boolean fields from string before validation
+  const booleanFields = ['code_of_conduct_agreement', 'photo_consent', 'data_privacy_consent'];
+  booleanFields.forEach((field) => {
+      if (processedData[field] === 'true') {
+          processedData[field] = true;
+      } else if (processedData[field] === 'false') {
+          processedData[field] = false;
+      } else {
+           // Handle cases where it might be undefined or missing if not required
+           // Zod will catch if required field is missing/undefined
+           // If optional, undefined might be acceptable
+           if (processedData.hasOwnProperty(field)) {
+                processedData[field] = undefined; // Or handle as error if unexpected value
+           }
+      }
+  });
+
+
   // Validate with Zod
   const validatedFields = RegistrationSchema.safeParse(processedData);
 
@@ -165,76 +116,88 @@ export async function createRegistration(
     };
   }
 
-  const registrationData = validatedFields.data;
+  // Assert the type after successful validation
+  const registrationData = validatedFields.data as ValidatedRegistrationData;
 
-  // --- User Handling ---
-  let userId: string | null = null;
-  let userJustSignedUp = false;
+  // --- User Handling (V2 - Assume user created via signUpUser earlier) ---
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
 
-  // Check if user is already logged in
-  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+  if (userError || !user) {
+      console.error("User fetch error:", userError);
+      return { success: false, message: 'Authentication error: Could not retrieve user.' };
+  }
+  const userId = user.id;
 
-  if (session) {
-    userId = session.user.id;
-    if (session.user.email !== email) {
-      return { success: false, message: 'Email does not match logged-in user.' };
+   // Optional: Verify email matches if needed, though getUser should be sufficient
+   // const email = processedData.email; // Already extracted above
+   // if (user.email !== email) {
+   //   return { success: false, message: 'Email mismatch error.' };
+   // }
+
+
+  // Check for existing registration for this user
+  try {
+    const { registration: existingRegistration, error: checkError } = await fetchRegistrationByUserId(userId);
+    if (checkError) throw checkError;
+    if (existingRegistration) {
+      // Instead of erroring, maybe update? For now, prevent duplicate submission.
+      console.warn(`User ${userId} attempted to submit registration again.`);
+      // Redirect to success as if it worked, or show a specific message?
+      // For now, let's redirect to success, assuming they might have refreshed.
+      redirect('/register/success');
+      // return { success: false, message: 'You have already submitted your registration.' };
     }
-  } else {
-    // No active session, attempt sign-up with OTP (Magic Link)
-    const { data: signUpData, error: signUpError } = await supabase.auth.signInWithOtp({
-      email: email,
-      options: {
-        shouldCreateUser: true, // Create user if they don't exist
-        emailRedirectTo: `${origin}/api/auth/callback?next=/register/pending`, // Redirect after email link click
-        data: { // Optional: data to be stored in user_metadata on signup
-            full_name: registrationData.full_name,
-        }
-      },
-    });
-
-    if (signUpError) {
-      console.error("Sign Up Error:", signUpError);
-      // Check for specific errors, e.g., user already exists but needs login
-      if (signUpError.message.includes('User already registered')) {
-         // Optionally try a login OTP instead, or just inform the user
-         return { success: false, message: `User already exists. Please log in or use password reset.` };
-      }
-      return { success: false, message: `Could not initiate sign-up: ${signUpError.message}` };
-    }
-
-    userJustSignedUp = true;
-    // For new users, user_id will be null initially.
-    // We'll insert the registration without it for now.
-    // A trigger or subsequent login will link them.
-    userId = null;
+  } catch (error: any) {
+    console.error("DB Check Error:", error);
+    return { success: false, message: 'Database error checking registration status.' };
   }
 
-  // If logged in, check for existing registration
-  if (userId) {
-    try {
-      const { registration: existingRegistration, error: checkError } = await fetchRegistrationByUserId(userId);
-      if (checkError) throw checkError;
-      if (existingRegistration) {
-        return { success: false, message: 'You have already registered.' };
-      }
-    } catch (error: any) {
-      console.error("DB Check Error:", error);
-      return { success: false, message: 'Database error checking registration status.' };
-    }
-  }
-
-  // Prepare data for Supabase insertion (use validated data)
-  // Cast needed because Zod output type might differ slightly from DB Insert type (e.g., Date vs string)
+  // Prepare data for Supabase insertion (use validated data from V2 Zod schema)
+  // Map V2 fields to V1.1 RegistrationInput fields expected by the DAL
   const dataToInsert: RegistrationInput = {
-    ...registrationData,
-    user_id: userId, // Will be null for new users until confirmed
-    // Ensure JSONB fields are correctly typed (Zod transform handles parsing)
-    theme_rankings: registrationData.theme_rankings as unknown as Json,
-    workshop_rankings: registrationData.workshop_rankings as unknown as Json,
-    // Ensure array fields are null if empty, or keep as empty array based on DB column definition
-    prior_courses: registrationData.prior_courses?.length ? registrationData.prior_courses : null,
-    philosophical_traditions: registrationData.philosophical_traditions, // Required, so should have values
-    philosophical_interests: registrationData.philosophical_interests, // Required, so should have values
+      user_id: userId,
+      email: registrationData.email,
+      full_name: registrationData.full_name,
+      university: registrationData.university,
+      program: registrationData.program,
+      // Map V2 academic_year (string) to V1.1 year_of_study (number) - requires parsing logic
+      // For now, let's use a placeholder or default. A proper mapping might need adjustment.
+      year_of_study: parseInt(registrationData.academic_year.split(' ')[0]) || 0, // Example: Extract number, default 0
+      // V1.1 fields not in V2 schema - provide defaults or handle nulls
+      can_attend_may_3_4: 'maybe', // Default value
+      may_3_4_comment: null,
+      prior_courses: registrationData.philosophy_coursework ? [registrationData.philosophy_coursework] : null, // Map V2 coursework to V1.1 prior_courses (assuming single string maps to array)
+      discussion_confidence: 5, // Default value
+      writing_confidence: 5, // Default value
+      familiarity_analytic: 3, // Default value
+      familiarity_continental: 3, // Default value
+      familiarity_other: 3, // Default value
+      areas_of_interest: registrationData.philosophy_interests, // Map V2 interests to V1.1 areas_of_interest
+      philosophical_traditions: [], // Default empty array for V1.1 field
+      philosophical_interests: [], // Default empty array for V1.1 field
+      theme_rankings: {} as Json, // Default empty JSON for V1.1 field
+      theme_suggestion: null,
+      workshop_rankings: {} as Json, // Default empty JSON for V1.1 field
+      preferred_working_style: 'balanced', // Default value
+      teammate_similarity: 5, // Default value
+      skill_writing: 3, // Default value
+      skill_speaking: 3, // Default value
+      skill_research: 3, // Default value
+      skill_synthesis: 3, // Default value
+      skill_critique: 3, // Default value
+      preferred_teammates: null,
+      complementary_perspectives: null,
+      mentorship_preference: 'no_preference', // Default value
+      mentorship_areas: null,
+      familiarity_tech_concepts: 3, // Default value
+      prior_hackathon_experience: false, // Default value
+      prior_hackathon_details: null,
+      dietary_restrictions: registrationData.dietary_restrictions, // V2 field matches V1.1
+      accessibility_needs: registrationData.accessibility_needs, // V2 field matches V1.1
+      additional_notes: null,
+      how_heard: 'other', // Default value
+      how_heard_other: null,
+      // Note: V2 fields like pronouns, student_id, consents are ignored as they are not in V1.1 RegistrationInput
   };
 
 
@@ -251,14 +214,10 @@ export async function createRegistration(
   // Revalidate relevant paths
   revalidatePath('/admin/registrations'); // Admin view
 
-  // Redirect based on user status
-  if (userJustSignedUp) {
-    redirect('/register/pending'); // New user needs to check email
-  } else {
-    redirect('/register/success'); // Logged-in user confirmation
-  }
+  // Redirect to success page after successful insertion
+  redirect('/register/success');
 
-  // Note: Redirect throws an error, so code below is unreachable but good practice
+  // Note: Redirect throws an error, so code below is unreachable but good practice for type checking
   // return { success: true, message: 'Registration submitted successfully!' };
 }
 
@@ -267,3 +226,208 @@ export async function createRegistration(
 //   console.log(`Sending confirmation email to ${email} for ${name}...`);
 //   // Add actual email sending logic here using Resend, SendGrid, etc.
 // }
+
+
+// Added updateRegistration action
+export async function updateRegistration(
+  previousState: RegistrationState,
+  formData: FormData
+): Promise<RegistrationState> {
+  console.log("Updating registration...");
+  const supabase = await createClient();
+
+  // --- User Authentication ---
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (userError || !user) {
+    console.error("User fetch error:", userError);
+    return { success: false, message: 'Authentication error: Could not retrieve user.' };
+  }
+  const userId = user.id;
+
+  // --- Data Processing ---
+  const processedData: Record<string, any> = {};
+  formData.forEach((value, key) => {
+    // Basic processing, similar to submitRegistration
+    // TODO: Refactor processing logic into a shared helper function
+    if (key.endsWith('[]')) {
+        const actualKey = key.replace('[]', '');
+        if (!processedData[actualKey]) processedData[actualKey] = [];
+        processedData[actualKey].push(value);
+    } else if (formData.getAll(key).length > 1) {
+        if (!processedData[key]) processedData[key] = formData.getAll(key);
+    } else if (!processedData[key]) {
+        processedData[key] = value;
+    }
+  });
+  const arrayFields = ['prior_courses', 'philosophical_traditions', 'philosophical_interests'];
+   for (const field of arrayFields) {
+       if (processedData[field] && !Array.isArray(processedData[field])) {
+           processedData[field] = [processedData[field]];
+       } else if (!processedData[field]) {
+           processedData[field] = [];
+       }
+   }
+   // Ensure email is included if it's part of the update form (it might not be)
+   if (!processedData.email && user.email) {
+       processedData.email = user.email;
+   }
+ 
+    // Convert boolean fields from string before validation
+    const booleanFieldsUpdate = ['code_of_conduct_agreement', 'photo_consent', 'data_privacy_consent'];
+    booleanFieldsUpdate.forEach((field) => {
+        if (processedData[field] === 'true') {
+            processedData[field] = true;
+        } else if (processedData[field] === 'false') {
+            processedData[field] = false;
+        } else {
+             if (processedData.hasOwnProperty(field)) {
+                  processedData[field] = undefined;
+             }
+        }
+    });
+ 
+ 
+   // --- Validation ---
+   // Use the same generated schema for validation
+   const validatedFields = RegistrationSchema.safeParse(processedData);
+ 
+   if (!validatedFields.success) {
+    console.log("Update Validation Errors:", validatedFields.error.flatten().fieldErrors);
+    return {
+      success: false,
+      errors: validatedFields.error.flatten().fieldErrors,
+      message: 'Validation failed. Please check the fields.',
+    };
+  }
+
+  // Assert the type after successful validation
+  const registrationData = validatedFields.data as ValidatedRegistrationData;
+
+  // --- Database Update ---
+  try {
+    // Use the DAL function
+    // Import updateRegistrationById from DAL
+    const { updateRegistrationById } = await import('@/lib/data/registrations');
+
+    // Explicitly map fields for update, mapping V2 Zod data to V1.1 DAL type
+    const dataToUpdate: Partial<RegistrationInput> = {
+        email: registrationData.email,
+        full_name: registrationData.full_name,
+        university: registrationData.university,
+        program: registrationData.program,
+        // Map V2 academic_year to V1.1 year_of_study
+        year_of_study: parseInt(registrationData.academic_year.split(' ')[0]) || undefined, // Use undefined if parsing fails
+        // Map V2 coursework/interests to V1.1 fields
+        prior_courses: registrationData.philosophy_coursework ? [registrationData.philosophy_coursework] : null,
+        areas_of_interest: registrationData.philosophy_interests,
+        // Include V2 fields that also exist in V1.1 RegistrationInput
+        dietary_restrictions: registrationData.dietary_restrictions,
+        accessibility_needs: registrationData.accessibility_needs,
+        // V1.1 fields not present in V2 schema will not be updated unless explicitly added here
+        // e.g., can_attend_may_3_4, rankings, skills etc. are not mapped from V2 data
+    };
+
+    const { registration: updatedReg, error: updateError } = await updateRegistrationById(userId, dataToUpdate);
+
+    if (updateError) throw updateError;
+
+    console.log(`Registration updated for user ${userId}`);
+
+  } catch (error: any) {
+    console.error('Registration Update Error:', error);
+    return { success: false, message: `Database Error: Failed to update registration. ${error.message}` };
+  }
+
+  // --- Revalidation & Redirect ---
+  revalidatePath('/register'); // Revalidate the main register page (where view/edit might be)
+  // Optionally revalidate admin path if needed: revalidatePath('/admin/registrations');
+  redirect('/register/success?updated=true'); // Redirect to success page with update flag
+
+  // return { success: true, message: 'Registration updated successfully!' }; // Unreachable due to redirect
+}
+
+
+// Added deleteRegistration action
+export async function deleteRegistration(): Promise<RegistrationState> {
+    console.log("Deleting registration...");
+    const supabase = await createClient();
+
+    // --- User Authentication ---
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+        console.error("User fetch error:", userError);
+        return { success: false, message: 'Authentication error: Could not retrieve user.' };
+    }
+    const userId = user.id;
+
+    // --- Database Deletion ---
+    try {
+        // Use the DAL function
+        // Import deleteRegistrationByUserId from DAL
+        const { deleteRegistrationByUserId } = await import('@/lib/data/registrations');
+        const { success, error: deleteError } = await deleteRegistrationByUserId(userId);
+        if (deleteError) throw deleteError;
+
+        console.log(`Registration deleted for user ${userId}`);
+
+    } catch (error: any) {
+        console.error('Registration Delete Error:', error);
+        return { success: false, message: `Database Error: Failed to delete registration. ${error.message}` };
+    }
+
+    // --- Revalidation & Redirect ---
+    revalidatePath('/register'); // Revalidate the main register page
+    // Optionally revalidate admin path: revalidatePath('/admin/registrations');
+    redirect('/register'); // Redirect back to the main register page after deletion
+
+    // return { success: true, message: 'Registration deleted successfully.' }; // Unreachable
+}
+
+
+// Type for state for the simple interest form
+export type LogInterestState = {
+  message: string | null;
+  success: boolean;
+};
+
+// Server action for the simple interest form
+export async function logInterest(
+  previousState: LogInterestState,
+  formData: FormData
+): Promise<LogInterestState> {
+  const email = formData.get('email');
+
+  // Basic validation
+  if (!email || typeof email !== 'string' || !email.includes('@')) {
+    return { success: false, message: 'Please enter a valid email address.' };
+  }
+
+  const supabase = await createClient();
+
+  try {
+    console.log(`Attempting to log interest for: ${email}`);
+
+    const { error } = await supabase
+      .from('interest_signups')
+      .insert({ email: email });
+
+    if (error) {
+        // Check for unique constraint violation (duplicate email)
+        if (error.code === '23505') {
+            console.warn(`Duplicate interest signup attempt for: ${email}`);
+            // Treat duplicate as success, inform user they are already registered
+            return { success: true, message: `You've already registered interest with ${email}. We'll keep you updated!` };
+        }
+        // Handle other errors
+        console.error('Supabase Insert Error:', error);
+        throw new Error(error.message);
+    }
+
+    console.log(`Successfully logged interest for: ${email}`);
+    return { success: true, message: `Thank you! We'll notify ${email} when registration opens.` };
+
+  } catch (error: any) {
+    console.error('Log Interest Error:', error);
+    return { success: false, message: `Failed to record interest: ${error.message}` };
+  }
+}

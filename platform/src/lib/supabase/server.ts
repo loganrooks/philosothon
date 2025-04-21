@@ -1,3 +1,4 @@
+import { createClient as createBaseClient } from '@supabase/supabase-js';
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
@@ -37,6 +38,18 @@ export async function createClient() {
     }
   )
 }
+
+
+// Client specifically for static generation (SSG/ISR) where cookies are not needed/available.
+// Uses the base @supabase/supabase-js client.
+export function createStaticSupabaseClient() {
+  return createBaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    // No cookie options needed here
+  );
+}
+
 
 // TODO: Consider adding a separate function for Route Handlers/Server Actions
 // if different cookie handling logic is needed, though the above should work

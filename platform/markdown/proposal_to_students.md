@@ -19,18 +19,18 @@ Think of it as a philosophy hackathon – but instead of coding, we're creating 
 
 ## **Event Details**
 
-**Monday, April 7:**
+**Monday, April 26:**
 * 8:30AM: Sign-in and welcome
 * 9:00AM: Opening remarks and theme announcement
-* 12:00-1:00PM: Philosophy of Technology workshop and lunch
-* 6:00-8:00PM: Pascal Quest workshop (limited to one representative per team)
+* 12:00-1:00PM: Workshop #1
+* 6:00-8:00PM: Workshop #2
 * 11:59PM: Submission deadline
 
-**Tuesday, April 8:**
+**Tuesday, April 27:**
 * 10:30AM-12:30PM: Team presentations
 * 12:30-2:00PM: Discussion, feedback, and closing
 
-**Location:** Bahen Atrium
+**Location:** BA1230
 
 ## **How Teams Work**
 
