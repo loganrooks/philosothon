@@ -14,10 +14,16 @@ const zodSchemaUsage = "export const RegistrationSchema = generateRegistrationSc
 
 // --- Helper Functions ---
 
+// Helper to escape backticks and dollar signs for template literals
+function escapeString(str: string | undefined): string {
+  if (str === undefined) return '';
+  return str.replace(/`/g, '\\`').replace(/\$/g, '\\$');
+}
+
 function generateFrontendQuestionsContent(): string {
   console.log("Generating content for registrationQuestions.ts...");
 
-  // Define the Question interface expected by the frontend
+  // Define the Question interface expected by the frontend - MUST match QuestionDefinition + spec
   const questionInterface = `
 // Define abstract types matching the central schema
 export type QuestionType =
@@ -33,38 +39,56 @@ export type QuestionType =
   | 'multi-select-numbered' // Added V3 type
   | 'ranking-numbered'; // Added V3 type
 
+// Re-import QuestionDefinition to reuse nested types if needed
+import { QuestionDefinition } from '../config/registrationSchema';
+
 export interface Question {
   id: string;
+  section: string; // Added
+  order: number; // Added
   label: string;
   type: QuestionType;
   required: boolean;
-  placeholder?: string;
   options?: string[];
+  hint: string; // Added
+  description: string; // Added
+  validationRules?: QuestionDefinition['validationRules']; // Added, reusing type
   dependsOn?: string;
   dependsValue?: any;
-  clientValidation?: (value: any, allValues?: Record<string, any>) => string | undefined;
+  dbType: QuestionDefinition['dbType']; // Added, reusing type
+  otherField?: boolean; // Added
+  // placeholder removed
+  // clientValidation removed
 }
 `;
 
-  // Generate the questions array content, excluding password fields for frontend use
+  // Generate the questions array content
   const questionsArrayContent = registrationSchema
-    .filter(q => q.type !== 'password' && q.id !== 'confirmPassword') // Exclude password fields
     .sort((a, b) => a.order - b.order) // Ensure order is maintained
     .map(q => {
-      // Escape single quotes and backticks in labels and placeholders for safe string embedding
-      const escapedLabel = q.label.replace(/['`]/g, "\\'");
-      const escapedPlaceholder = q.placeholder?.replace(/['`]/g, "\\'");
+      // Use helper for labels, hints, descriptions
+      const escapedLabel = escapeString(q.label);
+      const escapedHint = escapeString(q.hint);
+      const escapedDescription = escapeString(q.description);
 
       let questionObject = `  {
     id: '${q.id}',
-    label: \`${escapedLabel}\`, // Use template literal for easier escaping
+    section: '${q.section}', // Added
+    order: ${q.order}, // Added
+    label: \`${escapedLabel}\`,
     type: '${q.type}',
     required: ${q.required},`;
-      if (q.placeholder) {
-        questionObject += `\n    placeholder: \`${escapedPlaceholder}\`,`;
-      }
+
       if (q.options) {
         questionObject += `\n    options: ${JSON.stringify(q.options)},`;
+      }
+      // Add mandatory and optional fields
+      questionObject += `\n    hint: \`${escapedHint}\`,`; // Added
+      questionObject += `\n    description: \`${escapedDescription}\`,`; // Added
+      if (q.validationRules) { // Check if validationRules exists
+         // Stringify carefully, ensuring keys are quoted if needed by JS syntax
+         // JSON.stringify should handle this correctly for valid JSON structure
+        questionObject += `\n    validationRules: ${JSON.stringify(q.validationRules, null, 6)},`; // Added with indentation
       }
       if (q.dependsOn) {
         questionObject += `\n    dependsOn: '${q.dependsOn}',`;
@@ -72,17 +96,11 @@ export interface Question {
       if (q.dependsValue !== undefined) {
         questionObject += `\n    dependsValue: ${JSON.stringify(q.dependsValue)},`;
       }
-       if (q.clientValidation) {
-         // Stringify the client validation function if present
-         // Note: This has limitations and might not work for complex closures.
-         const funcString = q.clientValidation.toString();
-         // Basic check to ensure it looks like a function string
-         if (funcString.startsWith('function') || funcString.includes('=>')) {
-            questionObject += `\n    clientValidation: ${funcString},`;
-         } else {
-            console.warn(`Could not stringify clientValidation for question '${q.id}'. Skipping.`);
-         }
-       }
+      questionObject += `\n    dbType: '${q.dbType}',`; // Added
+      if (q.otherField !== undefined) { // Check if otherField exists
+         questionObject += `\n    otherField: ${q.otherField},`; // Added
+      }
+
       questionObject += `\n  }`;
       return questionObject;
     })

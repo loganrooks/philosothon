@@ -15,16 +15,26 @@ export type QuestionType =
   | 'multi-select-numbered' // Added V3 type
   | 'ranking-numbered'; // Added V3 type
 
+// Re-import QuestionDefinition to reuse nested types if needed
+import { QuestionDefinition } from '../config/registrationSchema';
+
 export interface Question {
   id: string;
+  section: string; // Added
+  order: number; // Added
   label: string;
   type: QuestionType;
   required: boolean;
-  placeholder?: string;
   options?: string[];
+  hint: string; // Added
+  description: string; // Added
+  validationRules?: QuestionDefinition['validationRules']; // Added, reusing type
   dependsOn?: string;
   dependsValue?: any;
-  clientValidation?: (value: any, allValues?: Record<string, any>) => string | undefined;
+  dbType: QuestionDefinition['dbType']; // Added, reusing type
+  otherField?: boolean; // Added
+  // placeholder removed
+  // clientValidation removed
 }
 
 
@@ -83,313 +93,761 @@ export type FormDataStore = {
 export const questions: Question[] = [
   {
     id: 'firstName',
-    label: `First Name`, // Use template literal for easier escaping
+    section: 'Personal Information', // Added
+    order: 1, // Added
+    label: `First Name`,
     type: 'text',
     required: true,
+    hint: `Please enter your first name.`,
+    description: `Your first name is required for registration and team assignments.`,
+    validationRules: {
+      "required": "First name is required.",
+      "minLength": {
+            "value": 1,
+            "message": "First name cannot be empty."
+      }
+},
+    dbType: 'TEXT',
   },
   {
     id: 'lastName',
-    label: `Last Name`, // Use template literal for easier escaping
+    section: 'Personal Information', // Added
+    order: 2, // Added
+    label: `Last Name`,
     type: 'text',
     required: true,
+    hint: `Please enter your last name.`,
+    description: `Your last name is required for registration and team assignments.`,
+    validationRules: {
+      "required": "Last name is required.",
+      "minLength": {
+            "value": 1,
+            "message": "Last name cannot be empty."
+      }
+},
+    dbType: 'TEXT',
   },
   {
     id: 'email',
-    label: `University Email Address`, // Use template literal for easier escaping
+    section: 'Personal Information', // Added
+    order: 3, // Added
+    label: `University Email Address`,
     type: 'email',
     required: true,
+    hint: `We'll use this to communicate important information about the event.`,
+    description: `Please provide your university email address. This will be used for login and important event communications.`,
+    validationRules: {
+      "required": "University email is required.",
+      "isEmail": "Please enter a valid email address."
+},
+    dbType: 'VARCHAR(255)',
   },
   {
     id: 'academicYear',
-    label: `Year of Study`, // Use template literal for easier escaping
+    section: 'Personal Information', // Added
+    order: 6, // Added
+    label: `Year of Study`,
     type: 'single-select',
     required: true,
     options: ["First year","Second year","Third year","Fourth year","Fifth year","Graduate student","Other"],
+    hint: `Select your current academic year.`,
+    description: `Knowing your year of study helps us balance teams and understand participant demographics.`,
+    validationRules: {
+      "required": "Please select your year of study."
+},
+    dbType: 'TEXT',
+    otherField: true,
   },
   {
     id: 'academicYearOther',
-    label: `Other Year of Study`, // Use template literal for easier escaping
+    section: 'Personal Information', // Added
+    order: 7, // Added
+    label: `Other Year of Study`,
     type: 'text',
     required: false,
+    hint: `Specify your year if not listed.`,
+    description: `If you selected "Other" for year of study, please specify here.`,
+    validationRules: {
+      "required": "Please specify your year of study."
+},
     dependsOn: 'academicYear',
     dependsValue: "Other",
+    dbType: 'TEXT',
   },
   {
     id: 'programOfStudy',
-    label: `Program/Major(s)`, // Use template literal for easier escaping
+    section: 'Personal Information', // Added
+    order: 8, // Added
+    label: `Program/Major(s)`,
     type: 'text',
     required: true,
+    hint: `Please list all applicable programs (e.g., Philosophy Specialist, CS Major).`,
+    description: `List your current program(s) or major(s) of study.`,
+    validationRules: {
+      "required": "Program/Major is required.",
+      "minLength": {
+            "value": 2,
+            "message": "Please enter a valid program/major."
+      }
+},
+    dbType: 'TEXT',
   },
   {
     id: 'philosophyCoursework',
-    label: `Philosophy courses completed`, // Use template literal for easier escaping
+    section: 'Philosophy Background', // Added
+    order: 9, // Added
+    label: `Philosophy courses completed`,
     type: 'textarea',
     required: true,
+    hint: `List course codes (e.g PHL100, PHL200). If none, write "None yet".`,
+    description: `Please list the course codes of any philosophy courses you've completed or are currently taking. This helps us gauge the philosophical background of participants.`,
+    validationRules: {
+      "required": "Please list completed courses or write \"None yet\"."
+},
+    dbType: 'TEXT',
   },
   {
     id: 'philosophyConfidenceDiscussion',
-    label: `How would you rate your confidence in philosophical discussion?`, // Use template literal for easier escaping
+    section: 'Philosophy Background', // Added
+    order: 10, // Added
+    label: `How would you rate your confidence in philosophical discussion?`,
     type: 'scale',
     required: true,
+    hint: `1 = I prefer to listen, 10 = I enjoy active debate.`,
+    description: `Rate your confidence level in participating in philosophical discussions (1=Low, 10=High).`,
+    validationRules: {
+      "required": "Please rate your discussion confidence.",
+      "isNumber": "Rating must be a number.",
+      "min": {
+            "value": 1,
+            "message": "Rating must be between 1 and 10."
+      },
+      "max": {
+            "value": 10,
+            "message": "Rating must be between 1 and 10."
+      }
+},
+    dbType: 'INTEGER',
   },
   {
     id: 'philosophyConfidenceWriting',
-    label: `How would you rate your confidence in philosophical writing?`, // Use template literal for easier escaping
+    section: 'Philosophy Background', // Added
+    order: 11, // Added
+    label: `How would you rate your confidence in philosophical writing?`,
     type: 'scale',
     required: true,
+    hint: `1 = Still developing, 10 = Confident.`,
+    description: `Rate your confidence level in your philosophical writing abilities (1=Low, 10=High).`,
+    validationRules: {
+      "required": "Please rate your writing confidence.",
+      "isNumber": "Rating must be a number.",
+      "min": {
+            "value": 1,
+            "message": "Rating must be between 1 and 10."
+      },
+      "max": {
+            "value": 10,
+            "message": "Rating must be between 1 and 10."
+      }
+},
+    dbType: 'INTEGER',
   },
   {
     id: 'philosophyTraditions',
-    label: `Which philosophical traditions are you most familiar with?`, // Use template literal for easier escaping
+    section: 'Philosophy Background', // Added
+    order: 12, // Added
+    label: `Which philosophical traditions are you most familiar with?`,
     type: 'multi-select-numbered',
     required: true,
     options: ["Analytic philosophy","Continental philosophy","Ancient philosophy","Medieval philosophy","Modern philosophy","Non-Western philosophical traditions","I'm new to philosophy and still exploring","Other"],
+    hint: `Select all that apply by entering numbers separated by spaces (e.g., \`1 3 7\`).`,
+    description: `Select the philosophical traditions you have some familiarity with. Choose all that apply.`,
+    validationRules: {
+      "required": "Please select at least one option.",
+      "minSelections": {
+            "value": 1,
+            "message": "Please select at least one option."
+      }
+},
+    dbType: 'TEXT[]',
+    otherField: true,
   },
   {
     id: 'philosophyTraditionsOther',
-    label: `Other Philosophical Traditions`, // Use template literal for easier escaping
+    section: 'Philosophy Background', // Added
+    order: 13, // Added
+    label: `Other Philosophical Traditions`,
     type: 'text',
     required: false,
+    hint: `Specify other traditions if selected.`,
+    description: `If you selected "Other" for philosophical traditions, please specify here.`,
+    validationRules: {
+      "required": "Please specify the other tradition."
+},
     dependsOn: 'philosophyTraditions',
     dependsValue: "Other",
+    dbType: 'TEXT',
   },
   {
     id: 'philosophyInterests',
-    label: `Areas of philosophical interest`, // Use template literal for easier escaping
+    section: 'Philosophy Background', // Added
+    order: 14, // Added
+    label: `Areas of philosophical interest`,
     type: 'multi-select-numbered',
     required: true,
     options: ["Metaphysics","Epistemology","Ethics","Political philosophy","Philosophy of mind","Philosophy of language","Philosophy of technology","Philosophy of science","Aesthetics","Phenomenology","Logic","Existentialism","Pragmatism","Psychoanalysis","Post-structuralism","Critical theory","Feminist philosophy","Environmental philosophy","Other"],
+    hint: `Select all that apply by entering numbers separated by spaces.`,
+    description: `Select your main areas of interest within philosophy. Choose all that apply.`,
+    validationRules: {
+      "required": "Please select at least one area of interest.",
+      "minSelections": {
+            "value": 1,
+            "message": "Please select at least one area of interest."
+      }
+},
+    dbType: 'TEXT[]',
+    otherField: true,
   },
   {
     id: 'philosophyInterestsOther',
-    label: `Other Areas of Philosophical Interest`, // Use template literal for easier escaping
+    section: 'Philosophy Background', // Added
+    order: 15, // Added
+    label: `Other Areas of Philosophical Interest`,
     type: 'text',
     required: false,
+    hint: `Specify other interests if selected.`,
+    description: `If you selected "Other" for philosophical interests, please specify here.`,
+    validationRules: {
+      "required": "Please specify the other interest."
+},
     dependsOn: 'philosophyInterests',
     dependsValue: "Other",
+    dbType: 'TEXT',
   },
   {
     id: 'philosophyInfluences',
-    label: `Philosophical influences (Optional)`, // Use template literal for easier escaping
+    section: 'Philosophy Background', // Added
+    order: 16, // Added
+    label: `Philosophical influences (Optional)`,
     type: 'textarea',
     required: false,
+    hint: `Share 1-3 philosophers/thinkers who influence you, or skip if new.`,
+    description: `If applicable, share 1-3 philosophers, theorists, or thinkers whose work has influenced your thinking. If you're new to philosophy, feel free to skip this question or mention any thinkers who interest you.`,
+    validationRules: {},
+    dbType: 'TEXT',
   },
   {
     id: 'workingStyle',
-    label: `Working Style Preferences`, // Use template literal for easier escaping
+    section: 'Working Style & Preferences', // Added
+    order: 17, // Added
+    label: `Working Style Preferences`,
     type: 'multi-select-numbered',
     required: true,
     options: ["I prefer structured discussions with clear roles","I prefer free-flowing, organic conversations","I enjoy debating opposing viewpoints","I like collaborative consensus-building","Other"],
+    hint: `Select all that apply by entering numbers separated by spaces.`,
+    description: `Select the working styles you prefer in a collaborative setting.`,
+    validationRules: {
+      "required": "Please select at least one working style preference.",
+      "minSelections": {
+            "value": 1,
+            "message": "Please select at least one working style preference."
+      }
+},
+    dbType: 'TEXT[]',
+    otherField: true,
   },
   {
     id: 'workingStyleOther',
-    label: `Other Working Style Preference`, // Use template literal for easier escaping
+    section: 'Working Style & Preferences', // Added
+    order: 18, // Added
+    label: `Other Working Style Preference`,
     type: 'text',
     required: false,
+    hint: `Specify other style if selected.`,
+    description: `If you selected "Other" for working style, please specify here.`,
+    validationRules: {
+      "required": "Please specify the other working style."
+},
     dependsOn: 'workingStyle',
     dependsValue: "Other",
+    dbType: 'TEXT',
   },
   {
     id: 'communicationStyle',
-    label: `Communication Style`, // Use template literal for easier escaping
+    section: 'Working Style & Preferences', // Added
+    order: 19, // Added
+    label: `Communication Style`,
     type: 'single-select',
     required: true,
     options: ["I tend to process ideas internally before speaking","I think out loud and develop ideas through conversation","I adapt my style depending on the group dynamic"],
+    hint: `Select the option that best describes you.`,
+    description: `Understanding communication styles helps in forming balanced teams.`,
+    validationRules: {
+      "required": "Please select your communication style."
+},
+    dbType: 'TEXT',
   },
   {
     id: 'collaborationRole',
-    label: `In collaborative philosophical work, I typically prefer to:`, // Use template literal for easier escaping
+    section: 'Working Style & Preferences', // Added
+    order: 20, // Added
+    label: `In collaborative philosophical work, I typically prefer to:`,
     type: 'multi-select-numbered',
     required: true,
     options: ["Lead discussions and synthesize ideas","Research sources and gather evidence","Develop written arguments","Present concepts to others","Challenge assumptions and play devil's advocate","Listen and provide feedback on others' ideas","Other"],
+    hint: `Select all roles you prefer by entering numbers separated by spaces.`,
+    description: `Select the roles you typically prefer to take on during collaborative philosophical work.`,
+    validationRules: {
+      "required": "Please select at least one preferred role.",
+      "minSelections": {
+            "value": 1,
+            "message": "Please select at least one preferred role."
+      }
+},
+    dbType: 'TEXT[]',
+    otherField: true,
   },
   {
     id: 'collaborationRoleOther',
-    label: `Other Preferred Collaboration Role`, // Use template literal for easier escaping
+    section: 'Working Style & Preferences', // Added
+    order: 21, // Added
+    label: `Other Preferred Collaboration Role`,
     type: 'text',
     required: false,
+    hint: `Specify other role if selected.`,
+    description: `If you selected "Other" for preferred collaboration role, please specify here.`,
+    validationRules: {
+      "required": "Please specify the other role."
+},
     dependsOn: 'collaborationRole',
     dependsValue: "Other",
+    dbType: 'TEXT',
   },
   {
     id: 'presentationComfort',
-    label: `How comfortable are you with presenting philosophical ideas to a group?`, // Use template literal for easier escaping
+    section: 'Working Style & Preferences', // Added
+    order: 22, // Added
+    label: `How comfortable are you with presenting philosophical ideas to a group?`,
     type: 'scale',
     required: true,
+    hint: `1 = I prefer not to present, 10 = I enjoy presenting.`,
+    description: `Rate your comfort level with presenting philosophical ideas to a group (1=Low, 10=High).`,
+    validationRules: {
+      "required": "Please rate your presentation comfort.",
+      "isNumber": "Rating must be a number.",
+      "min": {
+            "value": 1,
+            "message": "Rating must be between 1 and 10."
+      },
+      "max": {
+            "value": 10,
+            "message": "Rating must be between 1 and 10."
+      }
+},
+    dbType: 'INTEGER',
   },
   {
     id: 'previousCollaborationExperience',
-    label: `Have you previously participated in collaborative philosophical discussions?`, // Use template literal for easier escaping
+    section: 'Working Style & Preferences', // Added
+    order: 23, // Added
+    label: `Have you previously participated in collaborative philosophical discussions?`,
     type: 'single-select',
     required: true,
     options: ["Yes, frequently (e.g., philosophy clubs, reading groups)","Yes, occasionally (e.g., class discussions, informal debates)","Rarely or never","Other"],
+    hint: `Select your level of experience.`,
+    description: `Indicate your previous experience with collaborative philosophical discussions.`,
+    validationRules: {
+      "required": "Please select your experience level."
+},
+    dbType: 'TEXT',
+    otherField: true,
   },
   {
     id: 'previousCollaborationExperienceOther',
-    label: `Other Collaboration Experience`, // Use template literal for easier escaping
+    section: 'Working Style & Preferences', // Added
+    order: 24, // Added
+    label: `Other Collaboration Experience`,
     type: 'text',
     required: false,
+    hint: `Specify other experience if selected.`,
+    description: `If you selected "Other" for collaboration experience, please specify here.`,
+    validationRules: {
+      "required": "Please specify your other experience."
+},
     dependsOn: 'previousCollaborationExperience',
     dependsValue: "Other",
+    dbType: 'TEXT',
   },
   {
     id: 'technicalFamiliarity',
-    label: `How familiar are you with technical concepts generally (e.g., programming, AI, digital culture)?`, // Use template literal for easier escaping
+    section: 'Technical Background', // Added
+    order: 25, // Added
+    label: `How familiar are you with technical concepts generally (e.g., programming, AI, digital culture)?`,
     type: 'scale',
     required: true,
+    hint: `1 = Unfamiliar, 5 = Very Familiar.`,
+    description: `Rate your general familiarity with technical concepts relevant to the event themes (1=Low, 5=High).`,
+    validationRules: {
+      "required": "Please rate your technical familiarity.",
+      "isNumber": "Rating must be a number.",
+      "min": {
+            "value": 1,
+            "message": "Rating must be between 1 and 5."
+      },
+      "max": {
+            "value": 5,
+            "message": "Rating must be between 1 and 5."
+      }
+},
+    dbType: 'INTEGER',
   },
   {
     id: 'technicalInterests',
-    label: `Technical Interests (Optional)`, // Use template literal for easier escaping
+    section: 'Technical Background', // Added
+    order: 26, // Added
+    label: `Technical Interests (Optional)`,
     type: 'textarea',
     required: false,
+    hint: `Any specific technologies you're curious about philosophically?`,
+    description: `Are there specific technologies (e.g., AI models, VR, specific platforms) you're particularly interested in discussing from a philosophical perspective?`,
+    validationRules: {},
+    dbType: 'TEXT',
   },
   {
     id: 'themeRanking',
-    label: `Please rank your top 3 preferred themes`, // Use template literal for easier escaping
+    section: 'Theme Preferences', // Added
+    order: 27, // Added
+    label: `Please rank your top 3 preferred themes`,
     type: 'ranking-numbered',
     required: true,
     options: ["Minds and Machines: Consciousness Beyond the Human","Digital Commons: Rethinking Property in Information Space","Algorithmic Governance: Authority Without Autonomy?","Technological Singularity: Philosophical Implications of Superintelligence","Extended Perception: Technology and Phenomenological Experience","Digital Ethics: Beyond Utilitarian Frameworks","Attention Economies: The Commodification of Consciousness","Algorithmic Aesthetics: Beauty in the Age of Machine Creation","Other"],
+    hint: `Enter rank (1, 2, 3) for your top 3 choices (e.g., \`5:1 2:2 8:3\`).`,
+    description: `Rank your top 3 preferred themes for discussion groups. Enter the option number followed by a colon and the rank (1, 2, or 3), separated by spaces or commas. Example: \`5:1 2:2 8:3\` means Option 5 is 1st choice, Option 2 is 2nd, Option 8 is 3rd.`,
+    validationRules: {
+      "required": "Theme ranking is required.",
+      "minRanked": {
+            "value": 3,
+            "message": "Please rank exactly 3 themes."
+      }
+},
+    dbType: 'JSONB',
+    otherField: true,
   },
   {
     id: 'themeRankingOther',
-    label: `If you ranked "Other" theme, please describe your idea`, // Use template literal for easier escaping
+    section: 'Theme Preferences', // Added
+    order: 28, // Added
+    label: `If you ranked "Other" theme, please describe your idea`,
     type: 'textarea',
     required: false,
+    hint: `Describe your theme idea if you ranked "Other".`,
+    description: `If you ranked the "Other" option for themes, please briefly describe your suggested theme topic here.`,
+    validationRules: {
+      "required": "Please describe your \"Other\" theme idea."
+},
     dependsOn: 'themeRanking',
     dependsValue: "Other",
+    dbType: 'TEXT',
   },
   {
     id: 'workshopRanking',
-    label: `Please rank your top 3 preferred workshops`, // Use template literal for easier escaping
+    section: 'Workshop Preferences', // Added
+    order: 29, // Added
+    label: `Please rank your top 3 preferred workshops`,
     type: 'ranking-numbered',
     required: true,
     options: ["Language Models as Philosophical Objects","Generative AI Art: Creativity, Authorship, and Aesthetics","Reinforcement Learning: The Technical Foundations of AGI","Technology as Tool vs Master: Beyond Instrumentalism","Digital Commons and Information Capitalism","The Attention Economy: Technical Mechanisms and Philosophical Implications","Thinking Through Technical Systems: A Philosophical Approach","Design Philosophy: From Metaphysics to Material Reality","Other"],
+    hint: `Enter rank (1, 2, 3) for your top 3 choices (e.g., \`1:1 5:2 3:3\`).`,
+    description: `Rank your top 3 preferred workshops. Enter the option number followed by a colon and the rank (1, 2, or 3), separated by spaces or commas. Example: \`1:1 5:2 3:3\` means Option 1 is 1st choice, Option 5 is 2nd, Option 3 is 3rd.`,
+    validationRules: {
+      "required": "Workshop ranking is required.",
+      "minRanked": {
+            "value": 3,
+            "message": "Please rank exactly 3 workshops."
+      }
+},
+    dbType: 'JSONB',
+    otherField: true,
   },
   {
     id: 'workshopRankingOther',
-    label: `If you ranked "Other" workshop, please describe your idea`, // Use template literal for easier escaping
+    section: 'Workshop Preferences', // Added
+    order: 30, // Added
+    label: `If you ranked "Other" workshop, please describe your idea`,
     type: 'textarea',
     required: false,
+    hint: `Describe your workshop idea if you ranked "Other".`,
+    description: `If you ranked the "Other" option for workshops, please briefly describe your suggested workshop topic here.`,
+    validationRules: {
+      "required": "Please describe your \"Other\" workshop idea."
+},
     dependsOn: 'workshopRanking',
     dependsValue: "Other",
+    dbType: 'TEXT',
   },
   {
     id: 'teammateSimilarityPreference',
-    label: `Teammate similarity preference`, // Use template literal for easier escaping
+    section: 'Team Formation Preferences', // Added
+    order: 31, // Added
+    label: `Teammate similarity preference`,
     type: 'scale',
     required: true,
+    hint: `1 = Prefer very different interests, 10 = Prefer very similar interests.`,
+    description: `Rate your preference for teammates having similar or different philosophical interests to your own (1=Different, 10=Similar).`,
+    validationRules: {
+      "required": "Please rate your teammate similarity preference.",
+      "isNumber": "Rating must be a number.",
+      "min": {
+            "value": 1,
+            "message": "Rating must be between 1 and 10."
+      },
+      "max": {
+            "value": 10,
+            "message": "Rating must be between 1 and 10."
+      }
+},
+    dbType: 'INTEGER',
   },
   {
     id: 'mentorshipPreference',
-    label: `Experience level and mentorship preferences`, // Use template literal for easier escaping
+    section: 'Team Formation Preferences', // Added
+    order: 32, // Added
+    label: `Experience level and mentorship preferences`,
     type: 'single-select',
     required: true,
     options: ["I'd like to serve as a mentor to newer philosophy students","I'd like to be paired with a more experienced student as a mentee","I prefer to work with students of similar experience level to mine","I don't have a strong preference"],
+    hint: `Select your preference regarding mentorship.`,
+    description: `Let us know your preference regarding mentorship roles within your team.`,
+    validationRules: {
+      "required": "Please select your mentorship preference."
+},
+    dbType: 'TEXT',
   },
   {
     id: 'mentorComfortAreas',
-    label: `If you selected that you\'d like to be a mentor, what aspects of philosophy are you comfortable mentoring in?`, // Use template literal for easier escaping
+    section: 'Team Formation Preferences', // Added
+    order: 33, // Added
+    label: `If you selected that you'd like to be a mentor, what aspects of philosophy are you comfortable mentoring in?`,
     type: 'textarea',
     required: false,
+    hint: `Specify areas you feel comfortable mentoring in (skip if not applicable).`,
+    description: `If you indicated you'd like to be a mentor, please list the philosophical areas or topics you feel comfortable providing guidance on.`,
+    validationRules: {
+      "required": "Please specify mentoring areas."
+},
     dependsOn: 'mentorshipPreference',
     dependsValue: "I'd like to serve as a mentor to newer philosophy students",
+    dbType: 'TEXT',
   },
   {
     id: 'preferredTeammates',
-    label: `Do you have any specific people you\'d like to have as teammates? (Optional)`, // Use template literal for easier escaping
+    section: 'Team Formation Preferences', // Added
+    order: 34, // Added
+    label: `Do you have any specific people you'd like to have as teammates? (Optional)`,
     type: 'textarea',
     required: false,
+    hint: `List names. Requests accommodated if possible, but not guaranteed.`,
+    description: `If you have specific individuals you'd prefer to be teamed up with, please list their names here. We will try our best to accommodate requests but cannot guarantee team placements.`,
+    validationRules: {},
+    dbType: 'TEXT',
   },
   {
     id: 'discordMember',
-    label: `Are you a member of the Philosophy of Technology Group Discord?`, // Use template literal for easier escaping
+    section: 'Communication & Community', // Added
+    order: 35, // Added
+    label: `Are you a member of the Philosophy of Technology Group Discord?`,
     type: 'single-select',
     required: true,
     options: ["Yes","No, but I'd like to join","No, and I prefer not to join"],
+    hint: `Select your Discord status. Invite: https://discord.gg/wuxnJG9XwW`,
+    description: `Let us know if you're part of the Discord community. It's a primary channel for event communication. Invite link: https://discord.gg/wuxnJG9XwW`,
+    validationRules: {
+      "required": "Please select your Discord membership status."
+},
+    dbType: 'TEXT',
   },
   {
     id: 'learningGoals',
-    label: `What do you hope to gain from the Philosothon experience?`, // Use template literal for easier escaping
+    section: 'Learning Goals', // Added
+    order: 36, // Added
+    label: `What do you hope to gain from the Philosothon experience?`,
     type: 'multi-select-numbered',
     required: true,
     options: ["Deeper understanding of specific philosophical concepts","Experience with collaborative philosophical inquiry","New perspectives from peers with different backgrounds","Practice articulating philosophical arguments","Connections with other philosophy students","Technical knowledge about emerging technologies","Other"],
+    hint: `Select all that apply by entering numbers separated by spaces.`,
+    description: `Let us know what you hope to gain from participating in the Philosothon.`,
+    validationRules: {
+      "required": "Please select at least one learning goal.",
+      "minSelections": {
+            "value": 1,
+            "message": "Please select at least one learning goal."
+      }
+},
+    dbType: 'TEXT[]',
+    otherField: true,
   },
   {
     id: 'learningGoalsOther',
-    label: `Other Learning Goals`, // Use template literal for easier escaping
+    section: 'Learning Goals', // Added
+    order: 37, // Added
+    label: `Other Learning Goals`,
     type: 'text',
     required: false,
+    hint: `Specify other goals if selected.`,
+    description: `If you selected "Other" for learning goals, please specify here.`,
+    validationRules: {
+      "required": "Please specify your other learning goals."
+},
     dependsOn: 'learningGoals',
     dependsValue: "Other",
+    dbType: 'TEXT',
   },
   {
     id: 'availabilityConfirmation',
-    label: `Please confirm your availability for the full duration of the event (April 26-27, 2025)`, // Use template literal for easier escaping
+    section: 'Availability and Scheduling', // Added
+    order: 38, // Added
+    label: `Please confirm your availability for the full duration of the event (April 26-27, 2025)`,
     type: 'single-select',
     required: true,
     options: ["Yes, I can attend the full event","No, I have partial availability (please specify below)"],
+    hint: `Confirm your availability for the event dates.`,
+    description: `Please confirm if you can attend the entire event duration (April 26-27, 2025).`,
+    validationRules: {
+      "required": "Please confirm your availability."
+},
+    dbType: 'TEXT',
   },
   {
     id: 'availabilityDetails',
-    label: `If you have partial availability, please specify the times you CAN attend`, // Use template literal for easier escaping
+    section: 'Availability and Scheduling', // Added
+    order: 39, // Added
+    label: `If you have partial availability, please specify the times you CAN attend`,
     type: 'textarea',
     required: false,
+    hint: `Specify times you CAN attend if not fully available.`,
+    description: `If you indicated partial availability, please specify the dates and times you are able to attend.`,
+    validationRules: {
+      "required": "Please specify your availability details."
+},
     dependsOn: 'availabilityConfirmation',
     dependsValue: "No, I have partial availability (please specify below)",
+    dbType: 'TEXT',
   },
   {
     id: 'contingencyAvailability',
-    label: `Contingency Planning: If we need to postpone the event, would you be available the following weekend (May 3-4, 2025)?`, // Use template literal for easier escaping
+    section: 'Availability and Scheduling', // Added
+    order: 40, // Added
+    label: `Contingency Planning: If we need to postpone the event, would you be available the following weekend (May 3-4, 2025)?`,
     type: 'single-select',
     required: true,
     options: ["Yes, I would be fully available that weekend","I would have partial availability that weekend (please specify below)","No, I would not be available that weekend"],
+    hint: `Select your availability for the backup dates (May 3-4).`,
+    description: `Please indicate your availability for the contingency dates (May 3-4, 2025) in case the event needs to be postponed.`,
+    validationRules: {
+      "required": "Please indicate your contingency availability."
+},
+    dbType: 'TEXT',
   },
   {
     id: 'contingencyAvailabilityDetails',
-    label: `If you have partial availability for the contingency dates, please specify`, // Use template literal for easier escaping
+    section: 'Availability and Scheduling', // Added
+    order: 41, // Added
+    label: `If you have partial availability for the contingency dates, please specify`,
     type: 'textarea',
     required: false,
+    hint: `Specify times you CAN attend on the backup dates.`,
+    description: `If you indicated partial availability for the contingency dates (May 3-4), please specify the times you can attend.`,
+    validationRules: {
+      "required": "Please specify your contingency availability details."
+},
     dependsOn: 'contingencyAvailability',
     dependsValue: "I would have partial availability that weekend (please specify below)",
+    dbType: 'TEXT',
   },
   {
     id: 'dietaryRestrictions',
-    label: `Do you have any dietary restrictions or preferences?`, // Use template literal for easier escaping
+    section: 'Logistics', // Added
+    order: 42, // Added
+    label: `Do you have any dietary restrictions or preferences?`,
     type: 'textarea',
     required: false,
+    hint: `e.g., Vegetarian, Gluten-Free, Peanut Allergy (Optional). Helps plan lunch.`,
+    description: `Please list any dietary restrictions or preferences (e.g., vegetarian, vegan, gluten-free, allergies). This information helps us plan catering for the event.`,
+    validationRules: {},
+    dbType: 'TEXT',
   },
   {
     id: 'accessibilityNeeds',
-    label: `Do you require any accessibility accommodations?`, // Use template literal for easier escaping
+    section: 'Logistics', // Added
+    order: 43, // Added
+    label: `Do you require any accessibility accommodations?`,
     type: 'textarea',
     required: false,
+    hint: `Let us know how we can make the event accessible for you (Optional).`,
+    description: `Please describe any accessibility accommodations you may require to fully participate in the event.`,
+    validationRules: {},
+    dbType: 'TEXT',
   },
   {
     id: 'heardAboutSource',
-    label: `How did you hear about the Philosothon?`, // Use template literal for easier escaping
+    section: 'Logistics', // Added
+    order: 44, // Added
+    label: `How did you hear about the Philosothon?`,
     type: 'multi-select-numbered',
     required: true,
     options: ["Email announcement","From a professor","From a friend/classmate","Philosophy department communication","Social media","Other"],
+    hint: `Select all that apply by entering numbers separated by spaces.`,
+    description: `Let us know how you found out about the Philosothon.`,
+    validationRules: {
+      "required": "Please select how you heard about the event.",
+      "minSelections": {
+            "value": 1,
+            "message": "Please select at least one source."
+      }
+},
+    dbType: 'TEXT[]',
+    otherField: true,
   },
   {
     id: 'heardAboutSourceOther',
-    label: `Other Source`, // Use template literal for easier escaping
+    section: 'Logistics', // Added
+    order: 45, // Added
+    label: `Other Source`,
     type: 'text',
     required: false,
+    hint: `Specify other source if selected.`,
+    description: `If you selected "Other" for how you heard about the event, please specify here.`,
+    validationRules: {
+      "required": "Please specify the other source."
+},
     dependsOn: 'heardAboutSource',
     dependsValue: "Other",
+    dbType: 'TEXT',
   },
   {
     id: 'additionalInfo',
-    label: `Is there anything else you\'d like us to know? (Optional)`, // Use template literal for easier escaping
+    section: 'Additional Information', // Added
+    order: 46, // Added
+    label: `Is there anything else you'd like us to know? (Optional)`,
     type: 'textarea',
     required: false,
+    hint: `Any additional relevant information (Optional).`,
+    description: `Use this space to provide any other information you think might be relevant for the organizers.`,
+    validationRules: {},
+    dbType: 'TEXT',
   },
   {
     id: 'finalConfirmationAgreement',
-    label: `By submitting this form, I confirm that I understand the time commitment required for the Philosothon (all day April 26 and morning of April 27) and will make arrangements to fully participate and provide feedback on my experience.`, // Use template literal for easier escaping
+    section: 'Consent & Agreement', // Added
+    order: 47, // Added
+    label: `By submitting this form, I confirm that I understand the time commitment required for the Philosothon (all day April 26 and morning of April 27) and will make arrangements to fully participate and provide feedback on my experience.`,
     type: 'boolean',
     required: true,
+    hint: `Please check this box to confirm your understanding and commitment.`,
+    description: `Final confirmation: Please check this box to acknowledge the event's time commitment and your intent to fully participate.`,
+    validationRules: {
+      "required": "You must confirm your understanding and commitment to participate."
+},
+    dbType: 'BOOLEAN',
   }
 ];
