@@ -811,8 +811,8 @@ export function RegistrationForm({ initialAuthStatus }: { initialAuthStatus?: { 
         let nextIndex = currentIndex + 1;
         while (nextIndex < allQuestions.length) {
             const nextQuestion = allQuestions[nextIndex];
-            // Skip auth questions if already handled
-            if (['firstName', 'lastName', 'email', 'password', 'confirmPassword'].includes(nextQuestion.id)) {
+            // Skip auth questions ONLY if email is already verified
+            if (currentData.isVerified && ['firstName', 'lastName', 'email', 'password', 'confirmPassword'].includes(nextQuestion.id)) {
                  nextIndex++; continue;
             }
             if (nextQuestion.dependsOn) {
