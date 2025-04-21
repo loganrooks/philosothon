@@ -1,3 +1,10 @@
+[2025-04-21 19:00:35] - Code - Completed Task (Implement Terminal Shell & Interest Form Placeholder) - Created TerminalShell.tsx, InterestFormPlaceholder.tsx based on modular architecture doc. Updated logInterest action in actions.ts to save to Supabase interest_signups table. Integrated TerminalShell into register/page.tsx. [See MB Log 2025-04-21 18:33:41]
+
+
+[2025-04-21 18:55:46] - DevOps - Completed Task (Create Supabase Table for Interest Signups) - Created migration 20250421225316, applied via db push, committed (6e92ded) to feat/architecture-v2.
+
+
+
 [2025-04-21 16:46:03] - Code - Completed Refactor (RegistrationForm V3.1) - Rewrote RegistrationForm.tsx using useReducer for state management. Added resendConfirmationEmail action to auth/actions.ts. Fixed TS errors. Code aligns with V3.1 spec requirements for early auth, existing user detection, and confirmation state handling. Preparing commit.
 
 

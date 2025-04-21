@@ -1,21 +1,13 @@
-import InstructionBlock from "@/components/InstructionBlock";
-import { InterestForm } from "@/app/register/components/InterestForm"; // Import the new form
+import TerminalShell from './components/TerminalShell';
 
 export default function RegisterPage() {
   return (
-    <div>
-      <h1 className="text-3xl font-bold mb-6 text-gray-300 border-b pb-2">Register for Philosothon</h1>
-
-      <p className="mb-6 text-gray-300">
-        Sign up below to participate in the upcoming Philosothon event. We look forward to seeing you there!
-      </p>
-
-      {/* Render InterestForm */}
-      <InterestForm />
-
-      {/* Instructions */}
-      <InstructionBlock />
-
+    // Container to give the terminal a defined area.
+    // Adjust height as needed (e.g., 'h-screen', 'h-[calc(100vh-theme_header_height)]').
+    // Using vh might require parent containers to also have height defined.
+    // Let's start with a relative height or a large fixed height for now.
+    <div className="h-[85vh] w-full p-4 bg-black"> {/* Added padding and bg for context */}
+      <TerminalShell />
     </div>
   );
 }

@@ -402,16 +402,28 @@ export async function logInterest(
     return { success: false, message: 'Please enter a valid email address.' };
   }
 
+  const supabase = await createClient();
+
   try {
-    // Placeholder: Log the email server-side
-    // In a real scenario, you might save this to a 'leads' table or mailing list
-    console.log(`Registration Interest Received: ${email}`);
+    console.log(`Attempting to log interest for: ${email}`);
 
-    // Simulate potential database error
-    // if (email.includes('error')) {
-    //   throw new Error('Simulated database error.');
-    // }
+    const { error } = await supabase
+      .from('interest_signups')
+      .insert({ email: email });
 
+    if (error) {
+        // Check for unique constraint violation (duplicate email)
+        if (error.code === '23505') {
+            console.warn(`Duplicate interest signup attempt for: ${email}`);
+            // Treat duplicate as success, inform user they are already registered
+            return { success: true, message: `You've already registered interest with ${email}. We'll keep you updated!` };
+        }
+        // Handle other errors
+        console.error('Supabase Insert Error:', error);
+        throw new Error(error.message);
+    }
+
+    console.log(`Successfully logged interest for: ${email}`);
     return { success: true, message: `Thank you! We'll notify ${email} when registration opens.` };
 
   } catch (error: any) {

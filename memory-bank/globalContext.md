@@ -1,5 +1,12 @@
 # Progress
 
+- **[2025-04-21 19:00:35] Code:** Implemented modular `TerminalShell` and `InterestFormPlaceholder` components for the `/register` page based on `docs/architecture/terminal_component_v1.md`. Updated `logInterest` server action to save emails to `interest_signups` table. Replaced previous content on `/register/page.tsx` with the new terminal shell. [See MB Log 2025-04-21 18:33:41]
+
+
+- **[2025-04-21 18:55:46] DevOps:** Created Supabase migration for `interest_signups` table (migration `20250421225316`), applied it via `db push`, and committed (commit `6e92ded`) to `feat/architecture-v2` branch.
+
+
+
 - **[2025-04-21 16:46:03] Code:** Rewrote `RegistrationForm.tsx` using `useReducer` to align with V3.1 spec (commit `8062e37`), addressing state management issues and implementing early auth, existing user detection, and confirmation flows. Added `resendConfirmationEmail` action to `auth/actions.ts`.
 
 

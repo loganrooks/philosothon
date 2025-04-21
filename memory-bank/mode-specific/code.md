@@ -6,6 +6,25 @@
 
 
 ## Components Implemented
+### [2025-04-21 19:00:35] TerminalShell
+- **Purpose**: Provides the main interactive terminal UI shell, managing state and rendering dialogs.
+- **Files**: `platform/src/app/register/components/TerminalShell.tsx`
+- **Status**: Implemented
+- **Dependencies**: `react`, `InterestFormPlaceholder`
+- **API Surface**: Exports `TerminalShell` component and `useTerminal` hook.
+- **Tests**: None yet.
+- **Notes**: Uses `useReducer` for state. Handles global commands and delegates mode-specific input. Renders dialogs based on mode. Implements command history.
+
+### [2025-04-21 19:00:35] InterestFormPlaceholder
+- **Purpose**: Dialog component within TerminalShell to capture user email interest.
+- **Files**: `platform/src/app/register/components/InterestFormPlaceholder.tsx`
+- **Status**: Implemented
+- **Dependencies**: `react`, `react-dom` (`useFormState`, `useFormStatus`), `../actions` (`logInterest`)
+- **API Surface**: Exports `InterestFormPlaceholder` component.
+- **Tests**: None yet.
+- **Notes**: Implements `DialogProps` structure. Uses `useFormState` to call `logInterest` action. Displays themed message and handles success/error feedback.
+
+
 
 ### [2025-04-21 13:36:31] RegistrationForm.tsx Logic Fix
 - **Purpose**: Fix bugs related to password flow and `register` command handling.
