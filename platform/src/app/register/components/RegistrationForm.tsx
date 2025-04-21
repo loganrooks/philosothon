@@ -21,7 +21,7 @@ import {
 
 // --- Constants ---
 const LOCAL_STORAGE_KEY = 'philosothon-registration-v3.1';
-const TOTAL_QUESTIONS = allQuestions.length; // Should be 36 based on spec
+const TOTAL_QUESTIONS = 36; // V3.1 Spec has 36 questions
 
 // --- Types ---
 type TerminalMode = 'boot' | 'main' | 'auth' | 'register' | 'review' | 'edit' | 'confirm_delete' | 'confirm_new' | 'awaiting_confirmation';
@@ -326,7 +326,7 @@ export function RegistrationForm({ initialAuthStatus }: { initialAuthStatus?: { 
              dispatch({ type: 'ADD_OUTPUT', payload: { text: `Account created. Please check your email (${state.userEmail}) for a confirmation link. Enter 'continue' here once confirmed, or 'resend' to request a new link.`, type: 'info' } });
         }
         // Add other mode-specific prompts if needed
-    }, [state.mode, state.currentQuestionIndex, state.authSubState, state.userEmail, state.outputLines]); // Added outputLines dependency carefully
+    }, [state.mode, state.currentQuestionIndex, state.authSubState, state.userEmail]); // Dependency array already correct
 
     // Display info/error messages
     useEffect(() => {
