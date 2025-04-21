@@ -1,3 +1,22 @@
+# Progress
+
+- **[2025-04-21 12:32:00] Code:** Fixed `generate-registration.ts` script logic to correctly map all fields from schema to frontend questions file.
+
+---
+*Existing Progress Entries Below*
+---
+
+### [2025-04-21 05:53:00] Code: Updated Registration Schema SSOT
+- **File:** `platform/config/registrationSchema.ts`
+- **Change:** Aligned schema definition with V3.1 spec (`docs/specs/p0_registration_terminal_ui_spec_v2.md`), including 36 questions, `firstName`/`lastName` split, mandatory `hint`/`description`, and `validationRules` structure.
+- **Status:** Complete.
+
+
+### [2025-04-21 05:53:00] Code: Registration Schema Update Strategy
+- **Decision:** Used `insert_content` to apply changes to `platform/config/registrationSchema.ts` after initial `apply_diff` failed due to file truncation/size issues.
+- **Rationale:** `insert_content` avoids issues with matching non-existent content in a broken file state.
+
+
 # Global Context
 
 This file consolidates less frequently updated global project information, including product goals, architectural patterns, key decisions, and overall progress.
@@ -475,6 +494,20 @@ Puppeteer was failing with a missing shared library error (`libnss3.so`) within 
 ## Implementation Details
 Added `libnss3` to the `apt-get install -y` command list within the `RUN` instruction in `Dockerfile`.
 # Progress
+
+[2025-04-21 12:17:17] - [DevOps Task] Re-run SSOT Code Generation Script & Verify Output (Attempt 2) [Blocked] - Ran `npm run generate:reg` successfully. Verification failed: `registrationQuestions.ts` generated 45 questions but the `Question` interface is incomplete (missing `hint`, `description`, `validationRules`). Generation script is faulty. Invoking Early Return Clause.
+
+
+[2025-04-21 12:09:00] - [Debug Task] Debug Failing Tests in `RegistrationForm.test.tsx` (Attempt 4 - Final Corrected) [Blocked] - User confirmed schema (`registrationSchema.ts`) correctly defines 45 questions. Test environment correctly loads 45-question data. Generated file (`registrationQuestions.ts`) is INCORRECT (36 questions). Tests fail due to assertions based on incorrect 36-question generated file. Previous environment cache diagnosis was WRONG. **Next Steps:** Fix generation script, run script, fix tests. Invoking Early Return Clause per user instruction.
+
+
+[2025-04-21 11:56:00] - [Debug Task] Debug Failing Tests in `RegistrationForm.test.tsx` (Attempt 4 - Re-investigate Mocks) [Blocked] - Re-investigated mocking strategy per user feedback. Confirmed source files correct (V3.1, 36 questions). Console log confirmed test runtime loads outdated module (45 questions). `vi.resetModules()` ineffective. Diagnosis confirmed as persistent environment/module resolution issue (`REG-TEST-CACHE-001`). Invoking Early Return Clause. [See Debug Issue REG-TEST-CACHE-001 Update]
+
+
+[2025-04-21 06:39:00] - [Debug Task] Debug Failing Tests in `RegistrationForm.test.tsx` (Attempt 3 - Focus on Mocks) [Blocked] - Investigated mocking strategy per user feedback. Verified SSOT/generated files correct (V3.1, 36 questions). Test environment persistently loads outdated module (`registrationQuestions.ts` with 45 questions), causing 13 test failures. Explicit mocking and cache clearing (`vitest --no-cache`) ineffective. Confirmed as environment/module resolution issue. Invoking Early Return Clause. [See Debug Issue REG-TEST-CACHE-001 Update]
+
+
+[2025-04-21 05:59:00] - [DevOps Task] Run SSOT Code Generation Script (V3.1) [Completed] - Generated frontend questions, backend schema, and DB migration from updated SSOT config. Committed changes (7a28f30).
 
 [2025-04-20 1:49:00] - [SpecPseudo Task] Update Terminal Registration UI Specification (V3) [Completed] - Updated `docs/specs/p0_registration_terminal_ui_spec_v2.md` to integrate `registration_outline.md` structure/questions and new UX requirements (intro, validation, hints, `back` command, conditional commands, formatting, check-all/ranking input, context loading) while retaining V2 technical decisions (SSOT, password auth). Clarified details via `ask_followup_question`.
 

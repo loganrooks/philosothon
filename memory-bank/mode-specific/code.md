@@ -1,5 +1,26 @@
+## Components Implemented
+
+### [2025-04-21 12:32:00] generate-registration.ts Script Fix
+- **Purpose**: Generation script for registration questions, actions, and migrations.
+- **Files**: `platform/scripts/generate-registration.ts`
+- **Status**: Modified (Fixed mapping logic)
+- **Details**: Updated script to include `section`, `order`, `hint`, `description`, `validationRules`, `dbType`, `otherField` in generated `Question` interface and array objects in `platform/src/app/register/data/registrationQuestions.ts`.
+
+---
+*Existing Component Entries Below*
+---
+
 # Code Specific Memory
 <!-- Entries below should be added reverse chronologically (newest first) -->
+
+### [2025-04-21 05:53:00] Registration Schema (SSOT)
+- **Purpose**: Central definition for all registration questions, types, validation, and metadata.
+- **Files**: `platform/config/registrationSchema.ts`
+- **Status**: Updated to V3.1 spec.
+- **Dependencies**: `docs/specs/p0_registration_terminal_ui_spec_v2.md`, `docs/event_info/registration_outline.md`
+- **API Surface**: Exports `registrationSchema` array and `generateRegistrationSchema` function.
+- **Tests**: Relies on `scripts/generate-registration.test.ts` for validation of the generation script using this schema.
+
 
 
 ## Components Implemented

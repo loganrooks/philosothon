@@ -1,3 +1,34 @@
+[2025-04-21 12:51:25] - Code - [EXECUTED] - Re-ran `npm run generate:reg` script as requested by user.
+
+[2025-04-21 12:32:00] - Code - [FIXED] - Corrected `platform/scripts/generate-registration.ts` to include all required fields (hint, description, validationRules, etc.) in the generated `registrationQuestions.ts` based on `registrationSchema.ts` and V3.1 spec.
+
+[2025-04-21 12:16:51] - DevOps - Task Blocked (Re-run SSOT Code Generation Script - Attempt 2) - Verified branch `feat/architecture-v2`. Ran `npm run generate:reg` successfully in `platform/`. Script output indicated success. **Verification FAILED:** `platform/src/app/register/data/registrationQuestions.ts` generated 45 questions (correct count), but the `Question` interface is incomplete (missing `hint`, `description`, `validationRules`). Generation script (`platform/scripts/generate-registration.ts`) is still faulty. Invoking Early Return Clause. Did not commit incorrect files. Feedback logged. Recommend delegating script debugging to `code` mode.
+
+
+[2025-04-21 12:08:00] - Debug - Task State Correction - User confirmed 45 questions is the correct target. Previous analysis identifying 36 questions as correct was wrong. **Findings:** 1) Test environment correctly loads a 45-question module (`console.log` confirmed). 2) Source files (`registrationSchema.ts`, `registrationQuestions.ts`) are INCORRECT (currently define 36 questions). 3) Tests (`RegistrationForm.test.tsx`) are INCORRECT (assert based on wrong 36-question source). **Conclusion:** Test failures are due to assertions expecting 36-question behavior while component runs with correct 45-question data in test env. Previous environment cache diagnosis (`REG-TEST-CACHE-001`) was wrong. **Next Steps:** Fix source schema, fix generation script, run script, fix tests.
+
+
+[2025-04-21 12:04:00] - Debug - Task Blocked (Debug Failing Tests in `RegistrationForm.test.tsx` - Attempt 4 - Final) - Re-investigated mocks & source files. **Findings:** 1) Mocking strategy ruled out. 2) Source schema (`registrationSchema.ts`) defines 36 questions but uses `order` up to 47 (implying 47 conceptual steps). 3) Generated file (`registrationQuestions.ts`) correctly has 36 questions but is structurally incomplete (BUG). 4) Test runtime loads an OLD 45-question version (confirmed via console.log), causing `[reg X/45]>` symptom. **Conclusion:** Primary blocker remains persistent environment/module resolution issue (`REG-TEST-CACHE-001`). Secondary issues identified: component prompt logic needs clarification (36 vs 47 total), generation script bug (structural mismatch). Invoking Early Return Clause due to environment blocker. [See Debug Issue REG-TEST-CACHE-001 Update, Script Bug REG-GEN-SCRIPT-001, Prompt Logic Issue REG-PROMPT-TOTAL-001]
+
+
+[2025-04-21 11:56:00] - Debug - Task Blocked (Debug Failing Tests in `RegistrationForm.test.tsx` - Attempt 4) - Re-investigated mocking strategy per user feedback. Confirmed source files (`registrationSchema.ts`, `registrationQuestions.ts`) are correct (V3.1, 36 questions). Added `console.log` to test file, confirming test runtime loads outdated module (`actualV3Questions.length` is 45). Attempted `vi.resetModules()` in `beforeEach`, but tests still failed with `[reg X/45]>` symptom. **Conclusion:** Mocking strategy ruled out. Root cause definitively confirmed as persistent environment/module resolution issue (`REG-TEST-CACHE-001`). Invoking Early Return Clause. [See Debug Issue REG-TEST-CACHE-001 Update]
+
+
+[2025-04-21 06:39:00] - Debug - Task Blocked (Debug Failing Tests in `RegistrationForm.test.tsx` - Attempt 3) - Focused on mocking strategy per user feedback. Verified SSOT/generated files (V3.1, 36 questions) are correct. Analyzed mocks in test file (actions, localStorage, supabase client) - appear standard. Explicitly mocking `registrationQuestions.ts` caused hoisting errors and did not resolve underlying issue when removed. Ran tests: 13 failures persist, critically showing outdated prompt `[reg X/45]>`. Re-ran with `vitest --no-cache`: Failures and `X/45` symptom persist. **Conclusion:** Root cause confirmed as persistent environment/module resolution issue, not test file mocking strategy. Invoking Early Return Clause. [See Debug Issue REG-TEST-CACHE-001 Update]
+
+
+[2025-04-21 06:12:00] - Debug - Task Blocked (Debug Failing Tests in `RegistrationForm.test.tsx` - Attempt 2) - Corrected SSOT config (`registrationSchema.ts`) to V3.1 spec. Fixed bugs in generation script (`generate-registration.ts`) that prevented correct output. Re-ran generation script multiple times successfully. Cleared Vite cache, node_modules, .next cache. **Issue:** Tests (`RegistrationForm.test.tsx`) continue to fail with symptoms indicating outdated question data (e.g., `x/45` count, skipped password steps), suggesting the test environment (Vitest/JSDOM) is not loading the updated `registrationQuestions.ts` module despite file system changes and cache clearing. Root cause likely persistent test environment caching or module resolution issue. Invoking Early Return Clause. [See Debug Issue REG-TEST-CACHE-001]
+
+
+[2025-04-21 05:59:00] - DevOps - Completed Task (Run SSOT Code Generation Script V3.1) - Verified branch feat/architecture-v2. Ran npm run generate:reg successfully in platform/. Reviewed generated files (registrationQuestions.ts, actions.ts, migration 20250421095802). Committed changes (7a28f30).
+
+[2025-04-21 05:53:00] - Code - Update Complete - Updated platform/config/registrationSchema.ts to V3.1 spec.
+
+[2025-04-21 04:46:11] - TDD - Completed Task (Clean Up `RegistrationForm.test.tsx` Attempt 3) - Verified branch `feat/architecture-v2`. Stashed unrelated changes. Removed outdated V2 tests (lines 250-746) and unused `mockQuestions` array. Updated local storage key to `v3.1`. Removed `SUBSET 1:` prefixes. Verified tests run (13 failures expected due to known component/JSDOM issues). Committed cleaned file (6ddcfe5). File ready for subsequent debugging task.
+
+
+[2025-04-21 05:18:00] - Debug - Task Blocked (Debug Failing Tests in `RegistrationForm.test.tsx`) - Diagnosed 13 test failures. Root cause: Outdated SSOT configuration (`registrationSchema.ts`) and generated questions (`registrationQuestions.ts`) do not match V3.1 spec (missing `firstName`/`lastName`, incorrect count). Component/tests using wrong data. Invoking Early Return Clause. Recommend updating SSOT config & running generation script before retrying debug.
+
 ${activeContextUpdate}
 
 

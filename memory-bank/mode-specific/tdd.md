@@ -1,6 +1,14 @@
 # TDD Specific Memory
 
 ## Test Execution Results
+### Test Execution: RegistrationForm.test.tsx (Post-Cleanup) - [2025-04-21 04:45:58]
+- **Trigger**: Manual (Post-Cleanup Task)
+- **Outcome**: FAIL (Expected) / **Summary**: 13 tests failed, 4 passed
+- **Failed Tests**: 13 tests within `describe('RegistrationForm (Terminal UI V3 - Red Phase)')` related to V3.1 features (boot sequence, guest prompt/help/status, register new/continue, early auth flow, validation). Failures include `TypeError: Cannot read properties of undefined (reading 'label')`, `TestingLibraryElementError: Unable to find an element...`, `AssertionError: expected "spy" to be called...`.
+- **Passed Tests**: 4 tests passed (likely basic setup/render tests).
+- **Notes**: Confirmed tests run after cleanup. Failures are consistent with known component/JSDOM interaction issues documented in previous attempts by `code` and `debug` modes. File is structurally sound and ready for debugging.
+
+
 ${tddModeUpdateTestResults}
 
 ### Test Execution: Registration V3 Red Phase Verification - [2025-04-20 2:21:00]

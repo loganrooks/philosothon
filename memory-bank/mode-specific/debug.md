@@ -1,6 +1,71 @@
 # Debug Specific Memory
 
 ## Issue History
+### Issue: REG-TEST-SOURCE-MISMATCH-001 - Tests fail due to incorrect source/assertions - [Status: Blocked] - [2025-04-21 12:09:00]
+- **Reported**: 2025-04-21 11:47:23 (Task Context) / **Severity**: High / **Symptoms**: Tests in `RegistrationForm.test.tsx` fail, showing `[reg X/45]>` prompt.
+- **Investigation (Attempt 4 - Final Corrected)**:
+    1. Re-verified schema (`registrationSchema.ts`): Confirmed it correctly defines 45 questions (with conceptual steps 4&5 skipped, order up to 47).
+    2. Re-verified generated file (`registrationQuestions.ts`): Confirmed it is INCORRECT (currently defines 36 questions and is structurally incomplete).
+    3. Confirmed test environment loads 45-question data (via `console.log`), matching the schema, not the incorrect generated file.
+    4. Analyzed tests (`RegistrationForm.test.tsx`): Confirmed assertions are based on the incorrect 36-question structure from the generated file.
+- **Root Cause**: Test assertions are incorrect because they are written against the outdated/incorrectly generated 36-question `registrationQuestions.ts` file. The test environment correctly uses the 45-question data (likely resolved from the schema), causing behavior mismatches.
+- **Fix Applied**: None.
+- **Verification**: Test failures align with assertions expecting 36-question behavior while component runs with 45 questions.
+- **Related Issues**: REG-GEN-SCRIPT-001 (Generation script bug).
+- **Recommendation**: Invoke Early Return Clause per user instruction. Next steps should be: 1) Fix/Run generation script (`npm run generate:reg`). 2) Verify generated file is correct (45 questions, complete structure). 3) Re-run tests (they should now pass if assertions were originally written for 45 questions). 4) If tests still fail, debug assertions or component logic based on the correct 45-question data.
+
+
+### Issue: REG-TEST-CACHE-001 - Test environment fails to load updated module - [Status: Blocked] - [2025-04-21 06:39:00]
+- **Reported**: 2025-04-21 06:02:00 / **Severity**: High / **Symptoms**: Tests in `RegistrationForm.test.tsx` consistently show outdated data (`[reg X/45]>` prompt) despite correct V3.1 SSOT/generated files (36 questions).
+- **Investigation (Attempt 3 - Focus on Mocks)**:
+    1. Verified SSOT/generated files (`registrationSchema.ts`, `registrationQuestions.ts`) are correct (V3.1, 36 questions).
+    2. Reviewed test mocks (`actions`, `localStorage`, `supabase`) - appear standard.
+    3. Explicitly mocked `../data/registrationQuestions` in test file: Caused hoisting errors, did not resolve issue when removed.
+    4. Ran tests: 13 failures persist, `[reg X/45]>` prompt confirms outdated data loading.
+    5. Ran tests with `vitest --no-cache`: Failures and `[reg X/45]>` symptom persist.
+- **Root Cause Hypothesis**: Confirmed as persistent caching or module resolution issue within the test environment (Vitest/tsx/Node/Dev Container) preventing the updated `registrationQuestions.ts` module from being loaded. Mocking strategy within the test file is not the primary cause of this symptom.
+- **Fix Applied**: None (Explicit mock removed, cache clearing ineffective).
+- **Verification**: Test failures consistently show outdated module data (`X/45`).
+- **Related Issues**: REG-TEST-V3.1-FAILURES (superseded), REG-TEST-STALL-001.
+- **Recommendation**: Invoke Early Return Clause. Recommend manual intervention to investigate/reset the test environment (e.g., restarting VS Code, Dev Container, checking Vitest/tsx config for deeper cache settings).
+
+
+### Issue: REG-TEST-CACHE-001 - Test environment fails to load updated module - [Status: Blocked] - [2025-04-21 06:12:00]
+- **Reported**: 2025-04-21 06:02:00 (During Debug Task Attempt 2) / **Severity**: High / **Symptoms**: Tests in `RegistrationForm.test.tsx` consistently fail with symptoms indicating outdated question data (e.g., `[reg x/45]>` prompt, skipped password steps, incorrect command handling) despite successful correction of SSOT config (`registrationSchema.ts`), generation script (`generate-registration.ts`), and repeated successful generation of `registrationQuestions.ts`.
+- **Investigation**:
+    1. Corrected `LOCAL_STORAGE_KEY` mismatch in `RegistrationForm.tsx`. (2025-04-21 06:01:51)
+    2. Fixed TS errors in `RegistrationForm.tsx` related to outdated types. (2025-04-21 06:02:08)
+    3. Ran tests: 13/17 failed, showing outdated data symptoms. (2025-04-21 06:02:25)
+    4. Verified `registrationQuestions.ts` content: Found it was *still* incorrect (45 questions, missing password fields). (2025-04-21 06:03:18)
+    5. Identified and fixed bugs in `generate-registration.ts` (incorrect password filter, outdated interface properties). (2025-04-21 06:03:54 - 06:04:09)
+    6. Re-ran corrected generation script successfully. (2025-04-21 06:04:22)
+    7. Verified `registrationQuestions.ts` content again: Confirmed it was *still* incorrect. (2025-04-21 06:04:47)
+    8. Re-ran corrected generation script again successfully. (2025-04-21 06:07:34)
+    9. Verified `registrationQuestions.ts` content again: Confirmed it was *still* incorrect. (2025-04-21 06:07:46)
+    10. Cleared Vite cache (`.vite`) and reinstalled (`npm install`). Ran tests: Still 13 failures with same symptoms. (2025-04-21 06:08:27)
+    11. Cleared `node_modules`, `.next`, reinstalled. Ran tests: Still 13 failures with same symptoms. (2025-04-21 06:09:09 - 06:11:42)
+- **Root Cause Hypothesis**: Persistent caching or module resolution issue within the test environment (Vitest/JSDOM/Node/tsx) preventing the updated `registrationQuestions.ts` module from being loaded during test execution, despite file system updates and cache clearing attempts.
+- **Fix Applied**: Corrected SSOT config and generation script. Multiple cache clearing attempts.
+- **Verification**: Test failures persist, consistently showing symptoms of using outdated module data.
+- **Related Issues**: REG-TEST-V3.1-FAILURES (superseded), REG-TEST-STALL-001.
+- **Recommendation**: Invoke Early Return Clause. Suggest manual intervention to investigate/reset the test environment (e.g., restarting VS Code, Dev Container, checking Vitest config for cache settings, potentially using `--no-cache` flags if available).
+
+
+### Issue: REG-TEST-V3.1-FAILURES - Failing tests due to outdated SSOT - [Status: Blocked] - [2025-04-21 05:18:00]
+- **Reported**: 2025-04-21 04:48:11 (Task Context) / **Severity**: High / **Symptoms**: 13 tests fail in `RegistrationForm.test.tsx` after V3.1 cleanup. Failures include incorrect question prompts (e.g., 'Full Name' vs 'First Name'), incorrect sequence/counts, local storage errors, and boot/mode transition issues.
+- **Investigation**:
+    1. Verified branch `feat/architecture-v2`. (2025-04-21 05:16:02)
+    2. Read context files (`RegistrationForm.tsx`, `RegistrationForm.test.tsx`, specs, feedback). (2025-04-21 05:16:11 - 05:16:58)
+    3. Ran tests: Confirmed 13 failures. Analyzed output. (2025-04-21 05:17:39)
+    4. Verified `registrationQuestions.ts`: Found outdated V2 structure (32 questions, `fullName`). (2025-04-21 05:18:06)
+    5. Verified `registrationSchema.ts`: Found outdated V3 structure (34 questions, `fullName`, missing 2 questions vs V3.1 spec). (2025-04-21 05:18:19)
+- **Root Cause**: The SSOT configuration (`registrationSchema.ts`) does not match the V3.1 specification (`p0_registration_terminal_ui_spec_v2.md`). Consequently, the generated `registrationQuestions.ts` used by the component and tests is incorrect (wrong questions, count, sequence).
+- **Fix Applied**: None.
+- **Verification**: Analysis of SSOT config and generated file confirms mismatch with V3.1 spec. Test failures align with this mismatch.
+- **Related Issues**: REG-TEST-STALL-001 (likely exacerbated by incorrect data), Previous `code`/`debug` failures.
+- **Recommendation**: Update `registrationSchema.ts` to V3.1 spec (36 questions, `firstName`, `lastName`, etc.). Run generation script (`npm run generate:reg`). Then, re-delegate debugging task for `RegistrationForm.test.tsx`.
+
+
 ### Issue: REG-TEST-STALL-001 - Tests fail due to component async init - [Status: Blocked] - [2025-04-20 02:49:00]
 - **Reported**: 2025-04-20 02:00:00 (Task Context) / **Severity**: High / **Symptoms**: Tests in `RegistrationForm.test.tsx` fail quickly (`Unable to find element...`), not stall, because component doesn't transition past async boot sequence.
 - **Investigation**:

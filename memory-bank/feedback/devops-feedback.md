@@ -12,6 +12,14 @@ This file logs feedback received specifically for the DevOps mode, including iss
 - **Learning**: [Key takeaway or improvement for future tasks]
 -->
 
+## Feedback Entry - 2025-04-21 12:16:30
+- **Source**: DevOps Verification Step
+- **Issue/Suggestion**: The SSOT generation script (`platform/scripts/generate-registration.ts`), while running successfully and generating the correct *number* of questions (45), produced an incomplete `Question` interface in the output file `platform/src/app/register/data/registrationQuestions.ts`. It is missing the `hint`, `description`, and `validationRules` fields expected from the SSOT.
+- **Context**: Task 'Re-run SSOT Code Generation Script & Verify Output (Attempt 2)', Step 5a verification.
+- **Action Taken**: Invoked Early Return Clause. Did not commit the faulty generated files. Reported the issue via `attempt_completion`.
+- **Learning**: The generation script needs further debugging to ensure all fields from the SSOT schema are correctly included in the generated interface definitions.
+
+
 
 ## Feedback Entry - 2025-04-20 05:30:43
 - **Source**: User

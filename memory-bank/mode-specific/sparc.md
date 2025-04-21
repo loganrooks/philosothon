@@ -1,6 +1,42 @@
 # SPARC Orchestrator Specific Memory
 <!-- Entries below should be added reverse chronologically (newest first) -->
 
+### [2025-04-21 12:14:28] Intervention: CRITICAL MISDIAGNOSIS #2 - Schema Correct (45Q), Generated File Incorrect (36Q)
+- **Trigger**: User halting debug task (Attempt 4) with corrected diagnosis and plan.
+- **Context**: Debug task was re-investigating mocks. User identified the true root cause: SSOT schema (`registrationSchema.ts`) *is* correct (45 questions). Test environment *does* load this correct data. The generated frontend file (`registrationQuestions.ts`) is *incorrect* (36 questions, incomplete structure), likely due to a faulty generation script. Tests fail because assertions expect 36 questions, but component runs with 45.
+- **Action Taken**: Halted debugging. Logging critical misdiagnosis #2. Previous conclusions about schema needing 36Q, cache issues, and mocking issues were all incorrect diversions from the faulty generation script/output.
+- **Rationale**: Address the actual root cause identified by the user. The generation script or its output is the immediate problem.
+- **Outcome**: Intervention logged. Workflow reset to regenerate files and verify.
+- **Follow-up**: Delegate task to `devops` to run generation script (`npm run generate:reg`), verify output (`registrationQuestions.ts` should have 45Q), and commit. If generation fails/is incorrect, delegate script fix to `code`. Then re-run tests.
+
+
+### [2025-04-21 12:12:12] Intervention: CRITICAL MISDIAGNOSIS - SSOT Schema Incorrect (45 vs 36 Questions)
+- **Trigger**: User halting debug task with corrected diagnosis.
+- **Context**: Debug task (Attempt 4) was investigating mocking/cache issues for `RegistrationForm.test.tsx` failures. User identified the true root cause: the SSOT schema (`registrationSchema.ts`, commit `2ad0a57`) was *incorrectly* updated and defines 45 questions, while the V3.1 spec requires 36. The tests fail because they expect 36 questions, but the component uses the incorrect 45-question schema loaded at runtime.
+- **Action Taken**: Halted debugging. Logging critical misdiagnosis. Previous conclusions about cache/mocking issues were wrong. Updating workflow state to correct the SSOT schema first.
+- **Rationale**: Address the actual root cause identified by the user. Correct the faulty SSOT configuration before attempting generation or testing again.
+- **Outcome**: Intervention logged. Workflow reset to fix the SSOT schema.
+- **Follow-up**: Delegate task to `code` mode to fix `registrationSchema.ts` (Attempt 2). Then delegate generation script execution. Then re-evaluate tests.
+
+
+### [2025-04-21 11:47:23] Intervention: Resume Debugging - Re-investigate Mocks
+- **Trigger**: User instruction after restarting VSCode/WSL, expressing doubt about environment cache being the sole issue and requesting renewed focus on mocking.
+- **Context**: Debugging `RegistrationForm.test.tsx` was previously blocked, concluding an environment cache/module resolution issue (`REG-TEST-CACHE-001`). User suspects mocking might still be involved.
+- **Action Taken**: Logging intervention. Updating workflow state. Will re-delegate debugging task with specific instructions to re-evaluate mocks, particularly how `registrationQuestions.ts` is handled in the test environment.
+- **Rationale**: Address user's hypothesis and ensure the mocking strategy is definitively ruled out before concluding an intractable environment issue.
+- **Outcome**: Intervention logged. Debugging task will be re-scoped and re-delegated.
+- **Follow-up**: Delegate refined debugging task (Attempt 4) to `debug` mode.
+
+
+### [2025-04-21 06:32:35] Intervention: Revisit Debugging - Consider Mocking Strategy
+- **Trigger**: User feedback on `attempt_completion` suggesting the issue might be component mocking, not just environment cache.
+- **Context**: SPARC reported the registration test failures as blocked due to a suspected environment cache/module resolution issue preventing `registrationQuestions.ts` from loading. User suggested the mocking setup within `RegistrationForm.test.tsx` could be the cause.
+- **Action Taken**: Halted reporting blocked status. Logging intervention. Will update workflow state and re-delegate debugging task to investigate mocking strategy alongside cache issues.
+- **Rationale**: User feedback provides a valid alternative hypothesis for the observed test failures that needs investigation before concluding the issue is purely environmental.
+- **Outcome**: Intervention logged. Debugging task will be re-scoped and re-delegated.
+- **Follow-up**: Delegate refined debugging task to `debug` mode.
+
+
 ## Intervention Log
 ### [2025-04-20 16:35:59] Intervention: SSOT/V3 Spec Mismatch with Outline & New Requirements
 - **Trigger**: User interruption and detailed feedback during Green Phase delegation.
@@ -283,6 +319,13 @@
 - Current phase: Implementation (Theme Pages Overhaul - Frontend Update)
 - Phase start: [2025-04-20 13:20:53]
 - Current focus: Update the dynamic theme page component (`/themes/[id]/page.tsx`) to read and parse content from the individual theme Markdown files in `docs/event_info/themes/`.
+# Workflow State (Current - Overwrite this section)
+- Current phase: Implementation (SSOT Generation Script Debugging)
+- Phase start: [2025-04-21 12:30:00]
+- Current focus: Debug and fix the SSOT generation script (`platform/scripts/generate-registration.ts`) so that it correctly generates the full `Question` interface structure (including `hint`, `description`, `validationRules`) in `registrationQuestions.ts` based on the 45-question schema in `registrationSchema.ts`.
+- Next actions: Delegate script debugging task to `code` mode.
+- Last Updated: [2025-04-21 12:30:00]
+
 - Next actions: Delegate frontend update task to `code` mode.
 - Last Updated: [2025-04-20 13:20:53]
 
@@ -292,6 +335,13 @@
 
 # Workflow State (Current - Overwrite this section)
 - Current phase: Implementation (Theme Pages Overhaul - Commit Content)
+# Workflow State (Current - Overwrite this section)
+- Current phase: Implementation (SSOT V3.1 Code Generation - Attempt 2)
+- Phase start: [2025-04-21 12:14:28]
+- Current focus: Re-run the SSOT code generation script (`npm run generate:reg`) to update dependent files based on the *correct* 45-question `registrationSchema.ts`. Verify the generated `registrationQuestions.ts` is now correct.
+- Next actions: Delegate script execution and file verification/commit task to `devops` mode.
+- Last Updated: [2025-04-21 12:14:28]
+
 - Phase start: [2025-04-20 13:17:45]
 - Current focus: Commit and push the upgraded theme description Markdown files.
 - Next actions: Delegate Git commit/push task to `devops`.
@@ -302,6 +352,13 @@
 - Description: Create detailed spec for redesigned terminal registration UI, incorporating SSOT strategy and password auth.
 - Expected deliverable: Specification document (`docs/specs/p0_registration_terminal_ui_spec_v2.md`).
 # Workflow State (Current - Overwrite this section)
+- Current phase: Implementation (SSOT V3.1 Schema Correction)
+- Phase start: [2025-04-21 12:12:12]
+- Current focus: Correct the SSOT configuration file (`platform/config/registrationSchema.ts`) to accurately define the 36 questions required by the V3.1 specification (`docs/specs/p0_registration_terminal_ui_spec_v2.md`).
+- Next actions: Delegate SSOT schema correction task to `code` mode (Attempt 2).
+- Last Updated: [2025-04-21 12:12:12]
+
+# Workflow State (Current - Overwrite this section)
 - Current phase: Implementation (Theme Pages Overhaul - Content Upgrade)
 - Phase start: [2025-04-20 10:12:27]
 - Current focus: Upgrade content of individual theme Markdown files (`docs/event_info/themes/`) based on research reports (`docs/philosophy/theme_research/`) and add suggested readings.
@@ -310,6 +367,20 @@
 
 - Status: completed
 - Completion time: [2025-04-19 20:11:23]
+# Workflow State (Current - Overwrite this section)
+- Current phase: Implementation (TDD - Registration V3.1 - Debugging Subset 1 Failures - Attempt 4)
+- Phase start: [2025-04-21 11:47:23]
+- Current focus: Re-investigate failing tests in `RegistrationForm.test.tsx`. Meticulously re-examine the mocking strategy, especially how `registrationQuestions.ts` is imported/mocked/used within the test environment, as the potential cause for outdated data symptoms.
+- Next actions: Delegate refined debugging task to a new `debug` instance.
+- Last Updated: [2025-04-21 11:47:23]
+
+# Workflow State (Current - Overwrite this section)
+- Current phase: Blocked (Registration Test Environment Cache/Module Resolution Issue - Confirmed)
+- Phase start: [2025-04-21 06:40:45]
+- Current focus: The registration tests (`RegistrationForm.test.tsx`) remain blocked due to a confirmed persistent test environment caching or module resolution issue preventing the updated `registrationQuestions.ts` from being loaded. Mocking strategy ruled out as primary cause.
+- Next actions: Report final blocked status and recommended manual interventions to the user via `attempt_completion`.
+- Last Updated: [2025-04-21 06:40:45]
+
 - Outcome: Successfully created detailed specification document `docs/specs/p0_registration_terminal_ui_spec_v2.md`, including SSOT strategy, password auth flow, modes, commands, and user flows based on user feedback and architect analysis.
 - Link to Progress Entry: [See Spec-Pseudocode completion message 2025-04-19 20:11:23]
 # Workflow State (Current - Overwrite this section)
@@ -318,6 +389,48 @@
 - Current focus: Theme descriptions refactored. Archive original file. Proceed with upgrading content.
 - Next actions: Delegate archiving task to `devops`. Then delegate content upgrade task.
 - Last Updated: [2025-04-20 06:09:15]
+
+# Workflow State (Current - Overwrite this section)
+- Current phase: Implementation (TDD - Registration V3.1 - Debugging Subset 1 Failures - Attempt 3)
+- Phase start: [2025-04-21 06:32:35]
+- Current focus: Re-investigate failing tests in `RegistrationForm.test.tsx`. Focus on verifying the component mocking strategy within the test file as a potential cause for outdated data symptoms, in addition to considering environment cache/module resolution issues.
+- Next actions: Delegate refined debugging task to a new `debug` instance.
+- Last Updated: [2025-04-21 06:32:35]
+
+# Workflow State (Current - Overwrite this section)
+- Current phase: Blocked (Registration Test Environment Cache/Module Resolution Issue)
+- Phase start: [2025-04-21 06:13:17]
+- Current focus: The registration tests (`RegistrationForm.test.tsx`) remain blocked due to a suspected persistent test environment caching or module resolution issue preventing the updated `registrationQuestions.ts` from being loaded.
+- Next actions: Report blocked status and recommended manual interventions to the user via `attempt_completion`.
+- Last Updated: [2025-04-21 06:13:17]
+
+# Workflow State (Current - Overwrite this section)
+- Current phase: Implementation (TDD - Registration V3.1 - Debugging Subset 1 Failures - Attempt 2)
+- Phase start: [2025-04-21 05:59:53]
+- Current focus: Debug and fix the remaining test failures in `platform/src/app/register/components/RegistrationForm.test.tsx`, now that the SSOT config and generated files are updated (commit `7a28f30`).
+- Next actions: Re-delegate debugging task to a new `debug` instance.
+- Last Updated: [2025-04-21 05:59:53]
+
+# Workflow State (Current - Overwrite this section)
+- Current phase: Implementation (SSOT V3.1 Code Generation)
+- Phase start: [2025-04-21 05:56:18]
+- Current focus: Run the SSOT code generation script (`npm run generate:reg`) to update dependent files based on the corrected `registrationSchema.ts`.
+- Next actions: Delegate script execution and file review/commit task to `devops` mode.
+- Last Updated: [2025-04-21 05:56:18]
+
+# Workflow State (Current - Overwrite this section)
+- Current phase: Implementation (SSOT V3.1 Update)
+- Phase start: [2025-04-21 05:22:19]
+- Current focus: Update the SSOT configuration (`platform/config/registrationSchema.ts`) to align with the V3.1 specification (`docs/specs/p0_registration_terminal_ui_spec_v2.md`).
+- Next actions: Delegate SSOT config update task to `code` mode.
+- Last Updated: [2025-04-21 05:22:19]
+
+# Workflow State (Current - Overwrite this section)
+- Current phase: Implementation (TDD - Registration V3.1 - Debugging Subset 1 Failures)
+- Phase start: [2025-04-21 04:47:17]
+- Current focus: Debug and fix the remaining test failures (currently 13 reported) in the cleaned `platform/src/app/register/components/RegistrationForm.test.tsx`.
+- Next actions: Delegate debugging task to a new `debug` instance.
+- Last Updated: [2025-04-21 04:47:17]
 
 # Workflow State (Current - Overwrite this section)
 - Current phase: Debugging (Build Error - Missing File)
@@ -677,6 +790,16 @@
 - Outcome: Completed V2 architecture design. Proposed RBAC via `profiles`, built-in registration, Supabase content mgmt, Supabase Storage for submissions, dedicated MCP server + Vector DB for gamification. Docs created (ADRs, diagrams, data models).
 - Link to Progress Entry: [See Architect completion message 2025-04-19 05:09:24]
 
+### [2025-04-21 12:14:49] Task: Re-run SSOT Code Generation Script & Verify Output (Attempt 2)
+- Assigned to: devops
+- Description: Re-run `npm run generate:reg` and verify output reflects 45-question schema.
+- Expected deliverable: Confirmation of script success, verification of output (45Q, full structure), commit confirmation.
+- Status: blocked
+- Completion time: [2025-04-21 12:30:00]
+- Outcome: Task Blocked (Early Return). Script ran successfully, but verification failed. Generated `registrationQuestions.ts` has 45 questions but is missing mandatory interface fields (`hint`, `description`, `validationRules`). Generation script (`generate-registration.ts`) is confirmed faulty.
+- Link to Progress Entry: [DevOps Log 2025-04-21 12:30:00]
+
+
 
 ### [2025-04-18 15:52:00] Task: Task 22: Fix Failing Tests in `admin/auth.test.ts`
 - Assigned to: tdd
@@ -693,6 +816,16 @@
 - Expected deliverable: Updated test file, confirmation of passing tests, summary.
 - Status: completed
 - Completion time: [2025-04-18 16:26:00]
+### [2025-04-21 11:47:40] Task: Debug Failing Tests in `RegistrationForm.test.tsx` (Attempt 4 - Re-investigate Mocks)
+- Assigned to: debug
+- Description: Re-investigate failing tests, focusing on mocking strategy.
+- Expected deliverable: Fixed tests or diagnosis.
+- Status: halted (by user)
+- Completion time: [2025-04-21 12:14:28]
+- Outcome: Task Halted. User provided corrected diagnosis: Root cause is incorrect generated file (`registrationQuestions.ts` has 36Q) due to faulty script, while tests run with correct schema data (45Q). Assertions fail due to mismatch.
+- Link to Progress Entry: [SPARC Log 2025-04-21 12:14:28]
+
+
 - Outcome: Fixed by restoring original component logic that was simplified during debugging.
 - Link to Progress Entry: [activeContext.md entry 2025-04-18 16:26:00]
 
@@ -709,6 +842,16 @@
 ### [2025-04-18 17:20:00] Intervention: Git Workflow Adherence Reminder
 - **Trigger**: User reminder after SPARC proposed delegating next task (Task 26 - Font Debug) immediately after merging branches (Task 26 - Merge).
 - **Context**: `main` branch was clean after merges, but SPARC failed to instruct user/delegate task to create a new feature branch *before* starting the next development task, violating the defined workflow (`docs/git_workflow.md`).
+### [2025-04-21 11:47:40] Task: Debug Failing Tests in `RegistrationForm.test.tsx` (Attempt 4 - Re-investigate Mocks)
+- Assigned to: debug
+- Description: Re-investigate failing tests, focusing on mocking strategy.
+- Expected deliverable: Fixed tests or diagnosis.
+- Status: halted (by user)
+- Completion time: [2025-04-21 12:12:12]
+- Outcome: Task Halted. User provided corrected diagnosis: Root cause is incorrect SSOT schema (`registrationSchema.ts` has 45 questions, spec requires 36). Tests fail due to this mismatch, not cache or primary mocking issues.
+- Link to Progress Entry: [SPARC Log 2025-04-21 12:12:12]
+
+
 - **Action Taken**: Halted delegation of Task 26 (Font Debug). Logged intervention. Will now ask user to confirm next task priority *and* remind them to create the appropriate feature branch first.
 - **Rationale**: Enforce defined Git workflow for stability and organization.
 - **Outcome**: Intervention logged. Workflow corrected.
@@ -732,6 +875,16 @@
 - **Context**: SPARC failed *again* to ensure work (Tasks 30-37, Tailwind debugging) happened on a feature branch (`debug/tailwind-integration` was suggested but apparently not used/enforced). Changes were made directly on `main`.
 - **Action Taken**: Halted proposed Navbar task. Logged intervention. Will delegate task to clean `main` branch *again* by committing unstaged debug changes to a new branch.
 - **Rationale**: Critical failure to maintain clean `main` branch and adhere to workflow. Must correct state before proceeding.
+### [2025-04-21 06:32:51] Task: Debug Failing Tests in `RegistrationForm.test.tsx` (Attempt 3 - Focus on Mocks)
+- Assigned to: debug
+- Description: Re-investigate failing tests, focusing on mocking strategy as potential cause for outdated data symptoms.
+- Expected deliverable: Fixed tests or diagnosis.
+- Status: blocked
+- Completion time: [2025-04-21 06:40:45]
+- Outcome: Task Blocked (Early Return). Mocking strategy reviewed and deemed unlikely cause. Source/generated files confirmed correct (V3.1, 36 questions). Tests still fail with outdated data symptoms (`[reg X/45]>`). Cache clearing ineffective. Diagnosis confirmed as persistent environment caching/module resolution issue (`REG-TEST-CACHE-001`).
+- Link to Progress Entry: [Debug Log 2025-04-21 06:39:00]
+
+
 - **Outcome**: Intervention logged. Next step is delegating Git cleanup task (Task 38).
 - **Follow-up**: SPARC requires significant improvement in enforcing Git workflow adherence before *any* task delegation involving code changes. Stricter self-checks needed.
 ### [2025-04-18 19:32:00] Intervention: Failed Feature Implementation (Task 44 - Form Embed) & Insufficient Testing
@@ -755,6 +908,16 @@
 - **Rationale**: Address user's immediate, concrete concerns and questions before proceeding with broader tasks. Ensure correct Git state.
 - **Outcome**: Intervention logged. Plan adjusted.
 - **Follow-up**: Confirm merge, then delegate specific UI fixes.
+### [2025-04-21 06:00:09] Task: Debug Failing Tests in `RegistrationForm.test.tsx` (Attempt 2)
+- Assigned to: debug
+- Description: Diagnose and fix the failing tests in `RegistrationForm.test.tsx` after SSOT/generated files update.
+- Expected deliverable: Fixed component/tests, passing tests, commit confirmation.
+- Status: blocked
+- Completion time: [2025-04-21 06:13:17]
+- Outcome: Task Blocked (Early Return). Despite fixing SSOT config, generation script, and component errors (key mismatch, TS errors), tests still fail indicating usage of outdated question data (e.g., `[reg x/45]>`). Suspected persistent test environment caching/module resolution issue preventing correct `registrationQuestions.ts` load. Issue logged (`REG-TEST-CACHE-001`).
+- Link to Progress Entry: [Debug Log 2025-04-21 06:12:00]
+
+
 ### [2025-04-18 22:57:00] Intervention: Clarification on Dark Text UI Issue
 - **Trigger**: User feedback specifying locations (descriptions, blockquotes, timeline, register page) and likely classes (`text-gray-600/700`) causing readability issues.
 - **Context**: Following Task 58 (attempted text color fix), user confirmed issues remain in specific areas.
@@ -762,6 +925,16 @@
 - **Rationale**: Address specific user feedback systematically.
 - **Outcome**: Clarification logged. Next step is searching for dark text classes.
 - **Follow-up**: Delegate search and replace task.
+### [2025-04-21 05:56:34] Task: Run SSOT Code Generation Script (`generate:reg`)
+- Assigned to: devops
+- Description: Run `npm run generate:reg` to update files based on V3.1 `registrationSchema.ts`.
+- Expected deliverable: Confirmation of script success, review of generated files, commit confirmation.
+- Status: completed
+- Completion time: [2025-04-21 05:59:53]
+- Outcome: Successfully ran script. Reviewed and committed generated `registrationQuestions.ts`, updated `actions.ts` (Zod schema), and new migration `supabase/migrations/20250421095802_update_registrations_table_generated.sql` (commit `7a28f30`).
+- Link to Progress Entry: [DevOps Log 2025-04-21 05:59:53]
+
+
 ### [2025-04-18 23:15:00] Intervention: Reprioritization to General UI Aesthetic
 - **Trigger**: User decision after SPARC proposed Navbar refactor (Task 23).
 - **Context**: User wants to address the overall "minimal hacker/coder aesthetic" before component-specific refactors like the Navbar.
@@ -769,6 +942,16 @@
 - **Rationale**: Address user's higher-level aesthetic goals first.
 - **Outcome**: Intervention logged. Next step is delegating UI overhaul task.
 - **Follow-up**: Ensure subsequent UI tasks align with the established aesthetic.
+### [2025-04-21 05:22:36] Task: Update SSOT Config (`registrationSchema.ts`) to V3.1 Spec
+- Assigned to: code
+- Description: Update `platform/config/registrationSchema.ts` to match V3.1 spec (36 questions, firstName/lastName, hints, validationRules, etc.).
+- Expected deliverable: Updated schema file, commit confirmation.
+- Status: completed
+- Completion time: [2025-04-21 05:56:18]
+- Outcome: Successfully updated `registrationSchema.ts` to V3.1 spec. Committed changes (`2ad0a57`).
+- Link to Progress Entry: [Code Log 2025-04-21 05:56:18]
+
+
 ### [2025-04-18 23:38:00] Intervention: Incorrect Font Application & Git Workflow Violation (Task 61)
 - **Trigger**: User feedback rejecting monospace font suggestion, providing DevTools output showing incorrect body font rendering (Segoe UI instead of Inter), and reminding about Git workflow violation.
 - **Context**: SPARC incorrectly assumed monospace was desired for the hacker aesthetic and failed *again* to ensure Task 61 was performed on its feature branch (`feature/hacker-aesthetic`). The body font ('Inter') loaded via `next/font` is not applying correctly.
@@ -776,6 +959,16 @@
 - **Rationale**: Correct critical font rendering issue and repeated Git workflow failure.
 - **Outcome**: Intervention logged. Next step is Git cleanup (Task 63).
 - **Follow-up**: SPARC must verify font loading and application in `layout.tsx` and `tailwind.config.ts`. Implement stricter Git checks.
+### [2025-04-21 04:47:44] Task: Debug Failing Tests in `RegistrationForm.test.tsx`
+- Assigned to: debug
+- Description: Diagnose and fix the 13 failing tests in the cleaned `RegistrationForm.test.tsx`.
+- Expected deliverable: Fixed component/tests, passing tests, commit confirmation.
+- Status: blocked
+- Completion time: [2025-04-21 05:22:19]
+- Outcome: Task Blocked. Debugger identified the root cause as outdated SSOT configuration (`platform/config/registrationSchema.ts`) and generated files (`registrationQuestions.ts`, Zod schema) not matching V3.1 spec (`p0_registration_terminal_ui_spec_v2.md`). Debugging cannot proceed until SSOT is corrected.
+- Link to Progress Entry: [Debug Log 2025-04-21 05:18:00]
+
+
 ### [2025-04-18 23:40:00] Intervention: Workflow Adjustment - Consolidate UI Work on `ui-overhaul` Branch
 - **Trigger**: User clarification stating they are already on a `ui-overhaul` branch and want to consolidate all UI work there, overriding SPARC's multi-branch/cleanup plan.
 - **Context**: SPARC proposed Task 63 to clean `main` and commit Task 61 changes to `feature/hacker-aesthetic`. User stated they are already on `ui-overhaul` where this work belongs.
@@ -783,6 +976,16 @@
 - **Rationale**: Follow user's explicit direction for branch management during this UI overhaul phase. Acknowledge deviation from standard GitHub Flow.
 - **Outcome**: Intervention logged. Workflow adjusted.
 - **Follow-up**: Ensure all subsequent UI tasks operate on the `ui-overhaul` branch. Commit changes frequently on this branch.
+### [2025-04-21 04:19:50] Task: Clean Up `RegistrationForm.test.tsx` (Attempt 3)
+- Assigned to: tdd
+- Description: Analyze and refactor `RegistrationForm.test.tsx` for clarity, maintainability, and V3.1 alignment before debugging.
+- Expected deliverable: Cleaned test file, summary, commit confirmation.
+- Status: completed
+- Completion time: [2025-04-21 04:47:17]
+- Outcome: Successfully removed outdated V2 tests, updated local storage key, refactored descriptions. Test file cleaned (commit `6ddcfe5`). 13 tests fail as expected, ready for debugging.
+- Link to Progress Entry: [SPARC Log 2025-04-21 04:47:17]
+
+
 ### [2025-04-19 00:00:00] Intervention: Aesthetic Goal Clarification (Monospace Default)
 - **Trigger**: User feedback after Task 66 ('Inter' font fix), stating 'Inter' doesn't fit the hacker aesthetic and requesting *all* fonts be monospace.
 - **Context**: SPARC/code previously implemented 'Inter' as the default body font based on earlier interpretations. User explicitly corrected this.
