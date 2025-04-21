@@ -74,6 +74,18 @@ This file consolidates less frequently updated global project information, inclu
 
 # System Patterns
 
+### [2025-04-21 18:49:00] System Pattern: Modular Terminal UI
+
+- **Description:** A pattern for building interactive terminal-style UIs in React. It uses a main `TerminalShell` component responsible for the overall frame, output history, input line, and core state management (mode, auth status, etc.). Specific interaction logic for different modes (e.g., registration, auth, gamification) is encapsulated within separate "Dialog" components (`AuthDialog`, `RegistrationDialog`, etc.). The `TerminalShell` dynamically renders the appropriate Dialog component based on the current state mode.
+- **State Management:** Core state managed within `TerminalShell` (e.g., using `useReducer`). Dialog-specific sub-state can be stored within a dedicated `dialogState` object in the core state, keyed by mode.
+- **Communication:** `TerminalShell` passes input and state down to the active Dialog via props. The Dialog uses callback props (`addOutputLine`, `changeMode`, `setDialogState`) to communicate back to the Shell.
+- **Benefits:** Improved modularity, testability, and extensibility compared to a monolithic component. Easier to add new modes/dialogs.
+- **Reference:** `docs/architecture/terminal_component_v1.md`
+
+---
+*Existing System Patterns Below*
+
+
 
 *   **[2025-04-19 23:23:00] Vitest Mocking Strategy (`vi.spyOn`):** When mocking modules (especially server actions) that are used within React components tested with Vitest, if the mock factory needs to reference variables defined outside the factory, `vi.mock` can cause hoisting-related `ReferenceError`s. A reliable pattern is to import the actual module, define mock function variables (`const myMock = vi.fn()`), and then use `vi.spyOn(actualModule, 'functionName').mockImplementation(myMock)` within `beforeEach` to apply the mock. This avoids the hoisting issue while allowing mock control and assertion. [See Debug Issue VITEST-MOCK-HOIST-001]
 
@@ -141,6 +153,21 @@ This file consolidates less frequently updated global project information, inclu
 *   **[2025-04-18] Admin CRUD Pattern:** Implemented using Server Components for list/edit page shells, Client Components for forms (`useFormState`), and Server Actions (`actions.ts`) for data mutation (create, update, delete). Edit pages use query parameters (`?id=...`) instead of dynamic route segments to avoid previous build issues.
 
 # Decision Log
+
+### [2025-04-21 18:49:00] Decision: Adopt Modular Terminal Architecture with Reducer/Context State Management
+
+- **Context:** Need to replace the complex and buggy monolithic `RegistrationForm.tsx` with a more maintainable and extensible solution for terminal-style interactions (registration, auth, interest capture, future gamification).
+- **Decision:** Implement a modular architecture consisting of a `TerminalShell` component and dynamic "Dialog" components for each mode. Use React's `useReducer` hook combined with Context for initial state management within the `TerminalShell`.
+- **Rationale:** Decouples UI concerns, simplifies state management compared to the previous implementation, promotes reusability, and provides a clear path for adding new features/modes. `useReducer`/Context provides sufficient structure for current needs, with the option to migrate to XState if complexity significantly increases (e.g., gamification).
+- **Alternatives Considered:**
+    - Fixing existing `RegistrationForm.tsx`: Rejected due to high complexity and repeated debugging failures.
+    - Using a dedicated terminal UI library: Rejected to maintain control over styling and integration with project state/auth.
+    - State Machine Library (XState) initially: Deferred as potentially overkill for the immediate requirement, but remains an option for future evolution.
+- **Reference:** `docs/architecture/terminal_component_v1.md`
+
+---
+*Existing Decision Log Entries Below*
+
 
 ## Decision
 [2025-04-20 17:33:00] Use `minRanked` Constraint for Ranked-Choice Validation in SSOT.

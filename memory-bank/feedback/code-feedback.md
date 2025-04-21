@@ -1,3 +1,73 @@
+### [2025-04-21 18:33:41] Intervention: Task Pivot - Simple Email Capture Placeholder
+- **Trigger**: User explicit command after multiple failed attempts to fix `RegistrationForm.tsx`.
+- **Context**: The refactored `RegistrationForm` continued to exhibit critical bugs. User requested abandoning fixes and implementing a simple placeholder on `/register` to collect emails for notification, allowing other branch changes to be deployed.
+- **Action Taken**: Acknowledged user request. Abandoned `RegistrationForm` debugging. Planned to: 1) Create a simple client component (`InterestForm.tsx`) with email input/submit. 2) Create a server action (`logInterest`) to handle email submission (logging/basic save). 3) Update `register/page.tsx` to use `InterestForm`.
+- **Rationale**: Prioritize creating a stable, deployable state for the `/register` page while deferring the complex registration form implementation.
+- **Outcome**: Placeholder implementation pending.
+- **Follow-up**: Create `InterestForm.tsx`, `logInterest` action, update `register/page.tsx`, commit.
+
+
+
+### [2025-04-21 18:31:06] Intervention: Task Pivot - Placeholder for Registration
+- **Trigger**: User explicit command after multiple failed attempts to fix `RegistrationForm.tsx`.
+- **Context**: The refactored `RegistrationForm` continued to exhibit critical bugs (stuck flow, incorrect existing user check). User requested abandoning the current fixes and creating a stable placeholder page for deployment.
+- **Action Taken**: Acknowledged user request. Skipped reverting the last commit. Planned to modify `platform/src/app/register/page.tsx` to display a placeholder message instead of rendering `RegistrationForm`.
+- **Rationale**: Prioritize creating a deployable state for the branch over fixing the complex registration component immediately.
+- **Outcome**: Placeholder implementation pending.
+- **Follow-up**: Modify `register/page.tsx`, commit, and attempt completion.
+
+
+
+### [2025-04-21 17:34:10] Intervention: Early Return Clause Invoked - Sign-up Flow & Email Check Strategy
+- **Trigger**: User explicit command invoking Early Return Clause.
+- **Context**: After applying fixes to check email existence early using a dummy password sign-in attempt, the user expressed concern about the reliability of this strategy and reported the flow still gets stuck after password confirmation.
+- **Action Taken**: Halted task execution per user instruction and Early Return Clause. Planned to revert the dummy password check implementation and report the blocker.
+- **Rationale**: The dummy password strategy is potentially unreliable and doesn't fully resolve the underlying state transition issues after password confirmation. A dedicated, reliable method for checking user existence pre-password is required.
+- **Outcome**: Task stopped. Sign-up flow remains broken.
+- **Follow-up**: Revert last commit. Use `attempt_completion` to summarize state and recommend investigation into reliable pre-signup email existence checks (e.g., dedicated server action, Supabase function) and debugging the post-password state transition.
+
+
+
+### [2025-04-21 17:31:48] Intervention: Sign-up Flow Still Stuck & Existing User Check Timing
+- **Trigger**: User feedback and screenshot after second round of fixes.
+- **Context**: User ran `register new`. Issues persist: 1) Flow still gets stuck after entering password confirmation. 2) Existing user check happens *after* password creation, but user explicitly requests check *immediately* after email input, overriding spec. 3) Prompt indicator `[reg x/36]>` still shows during password entry.
+- **Action Taken**: Acknowledged regressions and user override for email check timing. Planned to: 1) Modify email processing to call `signInWithPassword` (with dummy password) immediately after email input to check existence. 2) If user exists, show error and reset. If not, proceed to password. 3) Re-debug state transitions after password confirmation/`signUpUser` call. 4) Ensure prompt text logic removes `x/36` during password steps.
+- **Rationale**: Current implementation doesn't meet user's requirement for early email check and still has bugs in state progression after password confirmation.
+- **Outcome**: Fixes pending.
+- **Follow-up**: Re-read relevant sections of `RegistrationForm.tsx` and apply fixes using `apply_diff`.
+
+
+
+### [2025-04-21 17:30:48] Intervention: Sign-up Flow Still Broken (Existing User, Stuck Password, UX)
+- **Trigger**: User feedback and screenshot after applying regression fixes.
+- **Context**: User ran `register new`. Issues persist: 1) Existing user email (`logan.rooks@mail.utoronto.ca`) was not rejected as per spec. 2) Flow gets stuck after entering password confirmation (doesn't proceed or error out correctly). 3) UX issues: No explicit prompts for password/confirmation, prompt indicator doesn't change.
+- **Action Taken**: Acknowledged regressions. Planned to: 1) Re-examine and fix the existing user check logic within the `signUpUser` result handler. 2) Debug state transitions after password confirmation and `signUpUser` call to prevent getting stuck. 3) Re-apply fixes for explicit password prompts and ensure `getPromptText` updates correctly.
+- **Rationale**: Critical sign-up logic, including existing user handling and state progression after password confirmation, remains flawed.
+- **Outcome**: Fixes pending.
+- **Follow-up**: Re-read relevant sections of `RegistrationForm.tsx` and apply fixes using `apply_diff`.
+
+
+
+### [2025-04-21 17:24:25] Intervention: Regressions in RegistrationForm V3.1 Sign-up Flow
+- **Trigger**: User feedback and screenshot after fixes for previous regressions.
+- **Context**: User ran `register new`. Issues observed: 1) Incomplete intro text displayed. 2) Existing user email (`logan.rooks@email.utoronto.ca`) was not rejected; flow proceeded incorrectly. 3) UX awkwardness: no prompt change or explicit prompt text for password/confirmation. 4) Flow gets stuck after entering password (doesn't proceed to confirmation or next step).
+- **Action Taken**: Acknowledged regressions. Planned to: 1) Fetch full intro text from `registration_outline.md` and update component. 2) Fix existing user check logic in `signUpUser` result handling. 3) Improve UX by adding specific prompts and prompt text changes for password steps. 4) Debug state transitions after password entry/confirmation and `signUpUser` call.
+- **Rationale**: The refactor and subsequent fixes failed to correctly implement critical parts of the V3.1 sign-up flow, including existing user handling and state transitions.
+- **Outcome**: Fixes pending.
+- **Follow-up**: Read `registration_outline.md`, re-read relevant sections of `RegistrationForm.tsx`, apply fixes using `apply_diff`.
+
+
+
+### [2025-04-21 17:02:50] Intervention: Infinite Loop Regression in RegistrationForm
+- **Trigger**: User feedback and screenshot after applying fixes.
+- **Context**: After attempting to fix boot sequence, command parsing, and help logic, running `register new` resulted in an infinite loop repeating the 'First Name' prompt and hint. The prompt also showed `[reg 1/45]>` indicating `TOTAL_QUESTIONS` might be incorrect.
+- **Action Taken**: Acknowledged regression. Planned to re-verify file state and re-apply fixes for `TOTAL_QUESTIONS` and the question display `useEffect` dependency array.
+- **Rationale**: The `useEffect` hook responsible for displaying questions likely still has `state.outputLines` in its dependency array, causing a loop when hints are added. The `TOTAL_QUESTIONS` constant might also be incorrect.
+- **Outcome**: Fixes pending re-verification and re-application.
+- **Follow-up**: Re-read relevant sections of `RegistrationForm.tsx` and use `apply_diff` again.
+
+
+
 ### [2025-04-21 15:46:11] Intervention: Early Return Clause Invoked (RegistrationForm.tsx Debug Loop)
 - **Trigger**: User explicit command (`OMG YOU ARE REPEATING YOURSELF I INVOKE THE EARLY RETURN CLAUSE`).
 - **Context**: Multiple attempts (5+) to fix bugs in `RegistrationForm.tsx` related to password flow, prompt display, state transitions, and profile creation resulted in regressions (double prompts, missing prompts, stuck flows) and repeated tool failures (`apply_diff`). User confirmed profile creation still fails and no confirmation email is received.

@@ -1,6 +1,33 @@
 # SPARC Orchestrator Specific Memory
 <!-- Entries below should be added reverse chronologically (newest first) -->
 
+### [2025-04-21 06:45:30] Intervention: Refine Placeholder Plan - Design Modular Terminal Architecture First
+- **Trigger**: User instruction refining the placeholder implementation plan.
+- **Context**: Workflow was about to proceed with implementing the themed email capture placeholder. User requested to first design a more modular architecture for a main "Terminal" component capable of hosting various dialog flows (Interest Form, Sign-in, Registration, Gamification).
+- **Action Taken**: Logging refinement. Updating workflow state to prioritize architectural design.
+- **Rationale**: Establish a flexible and reusable UI architecture before implementing specific placeholder functionality, aligning with SPARC principles and future needs (gamification).
+- **Outcome**: Plan refined. Architectural design task prioritized.
+- **Follow-up**: Delegate modular terminal design task to `architect` mode.
+
+
+### [2025-04-21 06:44:22] Intervention: Clarify Placeholder Implementation - Terminal Component
+- **Trigger**: User response to follow-up question.
+- **Context**: User clarified the themed email capture placeholder should not just replace `/register` page content, but be integrated into a main "Terminal" component that manages different dialogs (Interest Form, Sign-in, etc.). This replaces the buggy `RegistrationForm` for now.
+- **Action Taken**: Logging clarification. Updating workflow state and plan.
+- **Rationale**: Align implementation with user's vision for a modular terminal UI.
+- **Outcome**: Plan refined for placeholder implementation.
+- **Follow-up**: Delegate tasks for Supabase table creation and Terminal component implementation.
+
+
+### [2025-04-21 06:41:08] Intervention: Pivot from Registration Debugging to Themed Placeholder
+- **Trigger**: User instruction during task resumption.
+- **Context**: Workflow was focused on debugging `RegistrationForm.tsx`. User requested abandoning that effort for now and implementing a themed email capture placeholder (English/Greek/Hex message) triggered by the `register` command, storing emails in a new Supabase table, and deploying this to main.
+- **Action Taken**: Halted previous workflow. Logging intervention and major pivot. Will clarify implementation details before proceeding.
+- **Rationale**: Address user's explicit change in priority and requirements.
+- **Outcome**: Intervention logged. Workflow pivoted to placeholder implementation.
+- **Follow-up**: Ask user to clarify UI implementation location for the placeholder.
+
+
 ### [2025-04-21 12:14:28] Intervention: CRITICAL MISDIAGNOSIS #2 - Schema Correct (45Q), Generated File Incorrect (36Q)
 - **Trigger**: User halting debug task (Attempt 4) with corrected diagnosis and plan.
 - **Context**: Debug task was re-investigating mocks. User identified the true root cause: SSOT schema (`registrationSchema.ts`) *is* correct (45 questions). Test environment *does* load this correct data. The generated frontend file (`registrationQuestions.ts`) is *incorrect* (36 questions, incomplete structure), likely due to a faulty generation script. Tests fail because assertions expect 36 questions, but component runs with 45.
@@ -292,6 +319,13 @@
 - Status: blocked
 - Completion time: [2025-04-19 23:14:06]
 - Outcome: Implemented SSOT script (`generate-registration.ts`), auth actions (`auth/actions.ts`), registration actions (`register/actions.ts`), and rewrote `RegistrationForm.tsx`. Most tests pass (SSOT, auth, register actions - except 1 skipped). **Blocked by intractable Vitest mocking error (`ReferenceError: Cannot access 'mockQuestions' before initialization`) in `RegistrationForm.test.tsx`.** Cannot verify UI component tests.
+# Workflow State (Current - Overwrite this section)
+- Current phase: Implementation (Interest Signup Table Creation)
+- Phase start: [2025-04-21 06:50:03]
+- Current focus: Create the Supabase table (`interest_signups`) required to store emails captured by the placeholder form, as per the refined plan.
+- Next actions: Delegate Supabase table creation task to `devops` mode.
+- Last Updated: [2025-04-21 06:50:03]
+
 - Link to Progress Entry: [See Code completion message 2025-04-19 23:14:06]
 # Workflow State (Current - Overwrite this section)
 - Current phase: Implementation (TDD - Registration Terminal V3 - Red Phase)
@@ -300,6 +334,13 @@
 - Next actions: Delegate TDD task (Red phase) for the V3 terminal UI and auth system.
 - Last Updated: [2025-04-20 13:51:11]
 
+
+# Workflow State (Current - Overwrite this section)
+- Current phase: Architecture (Modular Terminal Component Design)
+- Phase start: [2025-04-21 06:45:30]
+- Current focus: Design a modular architecture for a main "Terminal" component capable of rendering different dialog flows (e.g., Interest Form placeholder, Sign-in, Registration, Gamification) based on application state.
+- Next actions: Delegate terminal architecture design task to `architect` mode.
+- Last Updated: [2025-04-21 06:45:30]
 
 
 ### [2025-04-19 21:40:38] Task: Redesigned Terminal Registration UI - TDD Red Phase
@@ -310,6 +351,13 @@
 - Current focus: Update the terminal registration specification (`docs/specs/p0_registration_terminal_ui_spec_v2.md`) based on the new user-provided outline (`docs/event_info/registration_outline.md`).
 - Next actions: Delegate specification update task to `spec-pseudocode`.
 - Last Updated: [2025-04-20 13:38:59]
+# Workflow State (Current - Overwrite this section)
+- Current phase: Architecture (Interest Signup Table) / Implementation (Terminal Placeholder)
+- Phase start: [2025-04-21 06:44:22]
+- Current focus: Implement the themed email capture placeholder within a modular Terminal component structure. Requires creating a Supabase table first.
+- Next actions: 1. Delegate Supabase table creation (`interest_signups`) to `devops`. 2. Delegate Terminal component implementation/refactor and placeholder integration to `code`.
+- Last Updated: [2025-04-21 06:44:22]
+
 
 - Description: Create initial failing tests for redesigned terminal UI and password auth based on new spec.
 - Expected deliverable: Failing tests committed to `feature/architecture-v2`.
@@ -319,6 +367,13 @@
 - Current phase: Implementation (Theme Pages Overhaul - Frontend Update)
 - Phase start: [2025-04-20 13:20:53]
 - Current focus: Update the dynamic theme page component (`/themes/[id]/page.tsx`) to read and parse content from the individual theme Markdown files in `docs/event_info/themes/`.
+# Workflow State (Current - Overwrite this section)
+- Current phase: Specification (Themed Registration Placeholder)
+- Phase start: [2025-04-21 06:41:08]
+- Current focus: Clarify implementation details for the themed email capture placeholder requested by the user.
+- Next actions: Ask user follow-up question regarding UI implementation location.
+- Last Updated: [2025-04-21 06:41:08]
+
 # Workflow State (Current - Overwrite this section)
 - Current phase: Implementation (RegistrationForm.tsx Refactor/Rewrite)
 - Phase start: [2025-04-21 04:37:35]
@@ -735,6 +790,16 @@
 - Outcome: Confirmed Red phase tests for Content Management already exist from commit `9c66a1f`. No new tests needed.
 - Link to Progress Entry: [See TDD completion message 2025-04-19 12:42:22]
 
+### [2025-04-21 06:45:56] Task: Design Modular Terminal Component Architecture
+- Assigned to: architect
+- Description: Design a modular architecture for a main Terminal component capable of hosting various dialog flows.
+- Expected deliverable: Architecture document, updated MB entries.
+- Status: completed
+- Completion time: [2025-04-21 06:50:03]
+- Outcome: Successfully designed modular architecture using `useReducer`/Context and dynamic dialog rendering. Document saved to `docs/architecture/terminal_component_v1.md`. MB updated.
+- Link to Progress Entry: [Architect Log 2025-04-21 06:50:03]
+
+
 
 
 ### [2025-04-19 10:14:17] Task: Philosothon Platform V2 - P0 Registration System TDD (Green Phase)
@@ -783,6 +848,16 @@
 - Expected deliverable: Applied migration, committed migration file.
 - Status: completed
 - Completion time: [2025-04-19 08:59:19]
+### [2025-04-21 04:37:57] Task: Refactor/Rewrite `RegistrationForm.tsx` for V3.1 Spec Compliance
+- Assigned to: code
+- Description: Refactor/rewrite `RegistrationForm.tsx` to implement updated V3.1 spec, focusing on state management.
+- Expected deliverable: Fixed/rewritten component, commit confirmation.
+- Status: superseded
+- Completion time: [2025-04-21 06:41:08]
+- Outcome: Task superseded by user request to implement a simpler email capture placeholder instead of fixing the complex component.
+- Link to Progress Entry: [SPARC Log 2025-04-21 06:41:08]
+
+
 - Outcome: Successfully applied migration `supabase/migrations/20250419121817_add_profile_trigger.sql` using `supabase db push`. Committed migration file (`fe73a49`), MB updates (`b546e07`), and DAL refactoring (`36b9db4`) to `feature/architecture-v2`.
 - Link to Progress Entry: [See DevOps completion message 2025-04-19 08:59:19]
 

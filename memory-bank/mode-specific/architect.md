@@ -74,6 +74,36 @@ C4Container
 
 ## System Diagrams
 
+### Diagram: Modular Terminal Component Structure - [2025-04-21 18:49:00]
+- Description: Shows the relationship between the Terminal Shell, Input/Output components, State Management, and dynamically rendered Dialog components.
+```mermaid
+graph TD
+    subgraph "Terminal UI"
+        TerminalShell[Terminal Shell Component] -->|Renders| ActiveDialog{Active Dialog}
+        TerminalShell -->|Displays| OutputHistory[Output History Display]
+        TerminalShell -->|Renders| InputLine[Input Line Component]
+        InputLine -- User Input --> TerminalShell
+    end
+
+    subgraph "Dialog Components (Examples)"
+        ActiveDialog -- Implements --> InterestForm[InterestFormPlaceholder]
+        ActiveDialog -- Implements --> AuthDialog[AuthDialog]
+        ActiveDialog -- Implements --> RegistrationDialog[RegistrationDialog]
+        ActiveDialog -- Implements --> GamificationDialog[GamificationDialog]
+        ActiveDialog -- Implements --> MainMenuDialog[MainMenuDialog]
+    end
+
+    TerminalShell -- Manages State --> StateManagement[State Management (Reducer/Context/Machine)]
+    StateManagement -- Determines --> ActiveDialog
+    TerminalShell -- Passes Input --> ActiveDialog
+    ActiveDialog -- Sends Output/Actions --> TerminalShell
+```
+**Notes:** This structure promotes separation of concerns. The `TerminalShell` handles the frame and global state, while `ActiveDialog` (implemented by specific components like `AuthDialog`) handles mode-specific logic. See `docs/architecture/terminal_component_v1.md` for details.
+
+---
+*Existing System Diagrams Below*
+
+
 ### Sequence Diagram: Submission Upload Flow - [2025-04-19 05:02:00]
 - Description: Illustrates the process of a team member uploading a submission file.
 ```mermaid
@@ -211,6 +241,34 @@ sequenceDiagram
 - **Internal Structure (Optional High-Level)**: Client Component managing connection to MCP server, sending user messages, receiving and displaying AI responses, potentially triggering UI transformations based on AI messages or state updates.
 
 ## Component Specifications
+
+### Component Specification: TerminalShell - [2025-04-21 18:49:00]
+- **Responsibility**: Renders the main terminal frame, manages core state (`mode`, `outputLines`, `commandHistory`, `authStatus`, `dialogState`), renders `OutputHistory` and `InputLine`, dynamically renders the `ActiveDialog` based on `state.mode`, handles global commands, delegates mode-specific input to `ActiveDialog`, provides interaction callbacks (`addOutputLine`, `changeMode`, `setDialogState`) to `ActiveDialog`.
+- **Dependencies**: React, State Management (`useReducer`/Context or XState), `InputLine`, `OutputHistory`, Specific Dialog Components (e.g., `AuthDialog`, `RegistrationDialog`).
+- **Interfaces Exposed**: Renders the overall terminal UI. Provides props to child components.
+- **Internal Structure (Optional High-Level)**: Contains the main state reducer/machine, effect hooks for managing side effects (e.g., command processing delegation), dynamic rendering logic based on `state.mode`.
+
+### Component Specification: InputLine - [2025-04-21 18:49:00]
+- **Responsibility**: Renders the command prompt and text input field. Captures user input and calls `onSubmit` prop when user presses Enter.
+- **Dependencies**: React.
+- **Interfaces Exposed**: Props: `prompt: string`, `onSubmit: (input: string) => void`, `disabled: boolean`, `commandHistory: string[]` (optional, for up/down arrow).
+- **Internal Structure (Optional High-Level)**: Uses `<input type="text">`, handles keydown events (Enter, Up/Down arrows), manages internal input value state.
+
+### Component Specification: OutputHistory - [2025-04-21 18:49:00]
+- **Responsibility**: Renders the scrollable history of commands and outputs.
+- **Dependencies**: React.
+- **Interfaces Exposed**: Props: `lines: OutputLine[]`.
+- **Internal Structure (Optional High-Level)**: Maps over the `lines` array, rendering each line with appropriate styling based on `line.type`. Manages scrolling to the bottom.
+
+### Component Specification: ActiveDialog (Conceptual) - [2025-04-21 18:49:00]
+- **Responsibility**: Represents the currently active interaction mode (e.g., Auth, Registration). Specific implementations (`AuthDialog`, `RegistrationDialog`) handle the UI, logic, and sub-state for that mode. Receives input/commands from the `TerminalShell` and uses provided callbacks to update state or display output.
+- **Dependencies**: React, potentially Server Actions or other backend interaction logic.
+- **Interfaces Exposed**: Renders the mode-specific UI within the terminal shell. Interacts via props defined in `DialogProps`.
+- **Internal Structure (Optional High-Level)**: Varies by specific dialog. Manages its own sub-state (via `setDialogState` prop), processes input/commands relevant to its mode, renders specific UI elements (forms, prompts, messages).
+
+---
+*Existing Component Specifications Below*
+
 <!-- Append new component specs using the format below -->
 
 ### Interface Definition: AI Agent MCP Server API - [2025-04-19 04:38:30]
@@ -221,6 +279,29 @@ sequenceDiagram
 - Input: `{ userId: string }` / Output: `{ puzzleState: object }` / Behavior: Retrieves the current puzzle state for the user. / Security: Requires authenticated user context.
 
 ## Interface Definitions
+
+### Interface Definition: DialogProps - [2025-04-21 18:49:00]
+- **Purpose**: Defines the standard interface for props passed from the `TerminalShell` to the currently active dialog component.
+```typescript
+interface DialogProps {
+  // Function for the dialog to process mode-specific input/commands
+  processInput: (input: string) => Promise<void>;
+
+  // Functions provided by the Shell for the Dialog to use
+  addOutputLine: (text: string, type: OutputLine['type']) => void;
+  changeMode: (newMode: TerminalMode, options?: { initialDialogState?: any }) => void;
+  setDialogState: (newState: any) => void; // Updates state.dialogState[currentMode]
+
+  // State provided by the Shell
+  currentDialogState: any; // The specific sub-state for this dialog (state.dialogState[currentMode])
+  userSession: { isAuthenticated: boolean; email: string | null } | null; // Auth info
+}
+```
+**Notes:** This interface ensures consistent communication between the shell and various dialog components. Dialogs receive necessary context and functions to interact with the terminal state and UI.
+
+---
+*Existing Interface Definitions Below*
+
 <!-- Append new interface definitions using the format below -->
 
 ### Data Model: `profiles` - [2025-04-19 04:38:30]
