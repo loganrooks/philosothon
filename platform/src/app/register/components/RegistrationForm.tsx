@@ -235,8 +235,51 @@ export function RegistrationForm({ initialAuthStatus }: { initialAuthStatus?: { 
             dispatch({ type: 'ADD_OUTPUT', payload: { text: "Type 'help' for available commands.", type: 'info' } });
         };
 
-        // Simplified boot for now, add async delays later if needed
-        runBootLogic();
+        // Always run asynchronously with delays in non-test environments
+        const bootSequenceAsync = async () => {
+            dispatch({ type: 'ADD_OUTPUT', payload: { text: "Initializing Terminal v3.1...", type: 'info' } });
+            await new Promise(r => setTimeout(r, 300));
+            dispatch({ type: 'ADD_OUTPUT', payload: { text: "Checking session...", type: 'info' } });
+            await new Promise(r => setTimeout(r, 500));
+
+            // Load from local storage first
+            const loadedData = localData ?? {};
+
+            if (initialAuthStatus?.isAuthenticated) {
+                dispatch({
+                    type: 'BOOT_COMPLETE',
+                    payload: {
+                        isAuthenticated: true,
+                        email: initialAuthStatus.email ?? null,
+                        localData: loadedData
+                    }
+                });
+                dispatch({ type: 'ADD_OUTPUT', payload: { text: `Session found for ${initialAuthStatus.email}.`, type: 'success' } });
+                // TODO: Fetch actual registration status from server
+            } else {
+                 dispatch({
+                    type: 'BOOT_COMPLETE',
+                    payload: {
+                        isAuthenticated: false,
+                        email: null,
+                        localData: loadedData
+                    }
+                });
+                dispatch({ type: 'ADD_OUTPUT', payload: { text: "No active session found.", type: 'info' } });
+                if (loadedData.currentQuestionIndex !== undefined) {
+                    dispatch({ type: 'ADD_OUTPUT', payload: { text: "Local registration data found. Use 'register continue' or 'sign-in'.", type: 'warning' } });
+                }
+            }
+            await new Promise(r => setTimeout(r, 300));
+            dispatch({ type: 'ADD_OUTPUT', payload: { text: "Type 'help' for available commands.", type: 'info' } });
+        };
+
+        // Only run sync in test, otherwise run async
+        if (process.env.NODE_ENV === 'test') {
+             runBootLogic(); // Keep sync logic for tests if needed
+        } else {
+             bootSequenceAsync();
+        }
 
     }, [initialAuthStatus, localData]); // Depend on localData read by useLocalStorage
 
@@ -310,8 +353,10 @@ export function RegistrationForm({ initialAuthStatus }: { initialAuthStatus?: { 
 
     const processInput = useCallback(async () => {
         const input = state.currentInput.trim();
-        const command = input.toLowerCase();
-        const args = input.split(' ').slice(1);
+        // Split input first, then lowercase the command part
+        const parts = input.split(' ');
+        const command = parts[0].toLowerCase();
+        const args = parts.slice(1);
 
         // Add input to output lines (mask password)
         const isMasked = state.authSubState === 'awaiting_password' || state.authSubState === 'awaiting_confirm_password';
@@ -330,8 +375,52 @@ export function RegistrationForm({ initialAuthStatus }: { initialAuthStatus?: { 
 
         // --- Global Commands ---
         if (command === 'help') {
-            // TODO: Implement detailed help logic based on mode/args
-            dispatch({ type: 'ADD_OUTPUT', payload: { text: "Help system not fully implemented yet.", type: 'info' } });
+            // Basic help: List available commands based on mode
+            dispatch({ type: 'ADD_OUTPUT', payload: { text: "Available commands:", type: 'info' } });
+            let commands: string[] = [];
+            const isRegComplete = checkCompletion(state.localData); // Check if registration questions are done
+
+            switch (state.mode) {
+                case 'main':
+                    commands = state.isAuthenticated
+                        ? ['register', 'view', 'edit', 'delete', 'sign-out', 'help', 'about', 'clear'] // Add 'register' for consistency
+                        : ['register', 'sign-in', 'reset-password', 'help', 'about', 'clear']; // Added reset-password
+                    // Filter view/edit/delete if registration not complete
+                    if (state.isAuthenticated && !isRegComplete) { // Assuming registrationStatus isn't reliable yet
+                         commands = commands.filter(c => !['view', 'edit', 'delete'].includes(c));
+                    }
+                    break;
+                case 'auth':
+                    commands = ['magiclink', 'reset-password', 'back', 'exit', 'help', 'clear'];
+                    break;
+                case 'register':
+                case 'edit':
+                     commands = ['next', 'prev', 'save', 'exit', 'back', 'help', 'clear'];
+                     if (isRegComplete) {
+                         commands.push('submit', 'review');
+                     }
+                     // Add 'edit [number]' hint if in edit mode or after review
+                     if (state.mode === 'edit' || isRegComplete) {
+                         commands.push('edit [number]');
+                     }
+                    break;
+                case 'review':
+                     commands = ['submit', 'edit [number]', 'back', 'help', 'clear'];
+                     break;
+                 case 'confirm_delete':
+                     commands = ["'DELETE'", 'cancel', 'help'];
+                     break;
+                 case 'confirm_new':
+                     commands = ['yes', 'no', 'help'];
+                     break;
+                 case 'awaiting_confirmation':
+                     commands = ['continue', 'resend', 'exit', 'back', 'help', 'clear'];
+                     break;
+                 default:
+                     commands = ['help', 'clear', 'exit', 'back']; // Generic fallback
+            }
+            dispatch({ type: 'ADD_OUTPUT', payload: { text: commands.join(', '), type: 'info' } });
+            // TODO: Implement help [command] and help [question_id] logic if args are provided
             return;
         }
         if (command === 'clear') {
