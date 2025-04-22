@@ -52,15 +52,24 @@ vi.mock('next/headers', () => ({
 
 // No longer mocking the schema, we rely on the real one imported by the action.
 
-// Updated createTestFormData helper
+// Final createTestFormData: Mimic FormData behavior accurately.
 const createTestFormData = (data: Record<string, any>): FormData => {
   const formData = new FormData();
   for (const key in data) {
-    if (Array.isArray(data[key])) {
-      // Append each value of the array with the same key
-      data[key].forEach((value: string | number | boolean) => formData.append(key, String(value)));
-    } else if (data[key] !== undefined && data[key] !== null) {
-      formData.append(key, String(data[key]));
+    const value = data[key];
+    if (value !== undefined && value !== null) {
+      if (key === 'themeRanking' || key === 'workshopRanking') {
+        // Ranking arrays are stringified
+        formData.append(key, JSON.stringify(value));
+      } else if (Array.isArray(value)) {
+         // Simple arrays: append each element
+         value.forEach((item: any) => {
+           formData.append(key, String(item)); // All elements become strings
+         });
+      } else {
+        // All other values (boolean, number, string) become strings
+        formData.append(key, String(value));
+      }
     }
   }
   return formData;
@@ -92,7 +101,8 @@ describe('Registration Server Actions', () => {
   // Define complete valid data based on the V3 schema from config/registrationSchema.ts
   const completeValidDataV3 = {
     // Section 1
-    fullName: 'Valid Test User V3', // Q1
+    firstName: 'Valid', // Q1a - Changed from fullName
+    lastName: 'User V3', // Q1b - Changed from fullName
     email: 'valid-v3@example.com', // Q2
     // password/confirmPassword skipped (handled by auth)
     pronouns: 'they/them', // Q3 (Optional)
@@ -101,35 +111,65 @@ describe('Registration Server Actions', () => {
     academicYear: '3rd Year', // Q6
     programOfStudy: 'Philosophy V3', // Q7
     // Section 2
-    philosophyCoursework: 'PHI101, PHI202', // Q8 (Optional)
-    philosophyInterests: 'Ethics of Technology, AI Alignment', // Q9 (Optional)
-    philosophyExpertise: '3', // Q10 (Scale 1-5) -> string for FormData
-    attendedPhilosothonBefore: 'false', // Q11 (Boolean) -> string for FormData
+    philosophyCoursework: 'PHI101, PHI202', // Q8 (Optional) - Keep as string for textarea
+    philosophyConfidenceDiscussion: '7', // Q6 (Scale 1-10) -> string
+    philosophyConfidenceWriting: '8', // Q7 (Scale 1-10) -> string
+    philosophyTraditions: ['Analytic philosophy', 'Continental philosophy'], // Q8 (multi-select) -> string[]
+    philosophyTraditionsOther: '', // Q8 Other
+    philosophyInterests: ['Ethics of Technology', 'AI Alignment'], // Q9 (multi-select) -> string[]
+    philosophyInterestsOther: '', // Q9 Other
+    philosophyInfluences: 'Feenberg, Heidegger', // Q10 (textarea)
+    philosophyExpertise: '3', // Q10 (Scale 1-5) -> string for FormData - NOTE: This ID seems wrong based on outline, Q10 is influences. Keeping for now.
+    attendedPhilosothonBefore: false, // Q11 (Boolean) -> Use actual boolean
     // previousPhilosothonDetails: '', // Q12 (Skipped as Q11 is false)
     // Section 3
-    themeRanking: ['3', '1', '4'], // Q13 (Ranking - Array of numbers as strings for FormData)
-    workshopPreference: ['1', '3'], // Q14 (Multi-select - Array of numbers as strings for FormData)
-    teamFormationPreference: 'Assign me to a team', // Q15
-    preformedTeamMembers: '', // Q16 (Add field, even if empty for this case)
-    availability: 'true', // Q17 (Boolean) -> string for FormData
+    // Use placeholder values, assuming action/DAL maps index/value correctly
+    themeRanking: [ { optionValue: 'Theme3', rank: 1 }, { optionValue: 'Theme1', rank: 2 }, { optionValue: 'Theme4', rank: 3 } ], // Q13 (ranking) -> Array<object>
+    // workshopPreference: ['1', '3'], // REMOVE Legacy field
+    workshopRanking: [ { optionValue: 'Workshop1', rank: 1 }, { optionValue: 'Workshop3', rank: 2 }, { optionValue: 'Workshop5', rank: 3 } ], // Q20 (ranking) -> Array<object>
+    workshopRankingOther: '', // Q21 Other
+    teamFormationPreference: 'Assign me to a team', // Q15 - NOTE: This ID seems wrong based on outline, Q15 is collab experience. Keeping for now.
+    preformedTeamMembers: '', // Q16 (Add field, even if empty for this case) - Keep as string
+    // availability: 'true', // Q17 (Boolean) -> string for FormData - REMOVE Legacy/Incorrect ID
     // availabilityDetails: '', // Q18 (Skipped as Q17 is true)
-    // Section 4
-    technicalSkills: '4', // Q19 (Scale 1-5) -> string for FormData
-    codingExperience: 'true', // Q20 (Boolean) -> string for FormData
-    codingLanguages: 'Python, JavaScript', // Q21 (Optional, shown as Q20 is true)
-    specificTools: 'Figma, VS Code', // Q22 (Optional)
+    // Section 4 (Working Style & Preferences + Technical Background)
+    workingStyle: ['I enjoy debating opposing viewpoints', 'I like collaborative consensus-building'], // Q11 (multi-select) -> string[]
+    workingStyleOther: '', // Q11 Other
+    communicationStyle: 'I adapt my style depending on the group dynamic', // Q12 (single-select)
+    collaborationRole: ['Research sources and gather evidence', 'Develop written arguments'], // Q13 (multi-select) -> string[]
+    collaborationRoleOther: '', // Q13 Other
+    presentationComfort: '6', // Q14 (Scale 1-10) -> Keep as string
+    previousCollaborationExperience: 'Yes, occasionally (e.g., class discussions, informal debates)', // Q15 (single-select)
+    previousCollaborationExperienceOther: '', // Q15 Other
+    technicalFamiliarity: '4', // Q16 (Scale 1-5) -> Keep as string
+    technicalInterests: 'AI Ethics frameworks', // Q17 (textarea)
+    codingExperience: true, // Q20 (Boolean) -> Use actual boolean
+    codingLanguages: 'Python, JavaScript', // Q21 (Optional, shown as Q20 is true) - Keep as string for textarea
+    specificTools: 'Figma, VS Code', // Q22 (Optional) - Keep as string for textarea
     // Section 5
-    dietaryRestrictions: 'None', // Q23 (Optional)
-    accessibilityNeeds: 'None', // Q24 (Optional)
-    emergencyContactName: 'Jane Doe', // Q25 (Optional)
-    emergencyContactPhone: '555-123-4567', // Q26 (Optional)
-    preferredCommunication: 'Email', // Q27
-    preferredCommunicationOther: '', // Q28 (Add field, even if empty for this case)
-    // Section 6
-    codeOfConductAgreement: 'true', // Q29 (Boolean) -> string for FormData
-    photoConsent: 'true', // Q30 (Boolean) -> string for FormData
-    dataPrivacyConsent: 'true', // Q31 (Boolean) -> string for FormData
-    finalConfirmation: 'true', // Q32 (Boolean) -> string for FormData
+    // dietaryRestrictions: 'None', // Q23 (Optional) - REMOVE Duplicate
+    // accessibilityNeeds: 'None', // Q24 (Optional) - REMOVE Duplicate
+    // Section 5 (Team Formation Preferences cont. + Communication + Logistics)
+    teammateSimilarityPreference: '5', // Q22 (Scale 1-10) -> Keep as string
+    mentorshipPreference: 'I prefer to work with students of similar experience level to mine', // Q23 (single-select)
+    mentorComfortAreas: '', // Q24 (textarea)
+    preferredTeammates: '', // Q25 (textarea)
+    discordMember: 'Yes', // Q26 (single-select)
+    learningGoals: ['Deeper understanding of specific philosophical concepts', 'Experience with collaborative philosophical inquiry'], // Q27 (multi-select) -> string[]
+    learningGoalsOther: '', // Q27 Other
+    availabilityConfirmation: 'Yes, I can attend the full event', // Q28 (single-select)
+    availabilityDetails: '', // Q29 (textarea)
+    contingencyAvailability: 'Yes, I would be fully available that weekend', // Q30 (single-select)
+    contingencyAvailabilityDetails: '', // Q31 (textarea)
+    dietaryRestrictions: 'None', // Q32 (Optional)
+    accessibilityNeeds: 'None', // Q33 (Optional)
+    heardAboutSource: ['Email announcement', 'From a professor'], // Q34 (multi-select) -> string[]
+    heardAboutSourceOther: '', // Q34 Other
+    additionalInfo: 'Looking forward to the event!', // Q35 (textarea)
+    themeRankingOther: '', // Q19 Other - Belongs with themeRanking
+    // Section 6 (Consent)
+    // codeOfConductAgreement, photoConsent, dataPrivacyConsent seem legacy/missing from V3.1 outline
+    finalConfirmationAgreement: true, // Q36 (Boolean) -> Use actual boolean
   };
 
 
@@ -239,45 +279,39 @@ describe('Registration Server Actions', () => {
       const expectedInsertDataV3 = {
           user_id: userId,
           email: completeValidDataV3.email, // V3
-          full_name: completeValidDataV3.fullName, // V3
+          full_name: `${completeValidDataV3.firstName} ${completeValidDataV3.lastName}`, // V3 - Concatenated
           university: completeValidDataV3.university, // V3
           program: completeValidDataV3.programOfStudy, // V3
           year_of_study: 3, // Mapped from V3 academicYear
           // V1.1 fields not in V3 schema - provide defaults or handle nulls
           can_attend_may_3_4: 'maybe', // Default value
           may_3_4_comment: null,
-          prior_courses: completeValidDataV3.philosophyCoursework ? [completeValidDataV3.philosophyCoursework] : null, // Map V3 coursework
-          discussion_confidence: 5, // Default value
-          writing_confidence: 5, // Default value
-          familiarity_analytic: 3, // Default value
-          familiarity_continental: 3, // Default value
-          familiarity_other: 3, // Default value
-          areas_of_interest: completeValidDataV3.philosophyInterests, // Map V3 interests
-          philosophical_traditions: [], // Default empty array for V1.1 field
-          philosophical_interests: [], // Default empty array for V1.1 field
-          theme_rankings: completeValidDataV3.themeRanking.map(Number), // Map V3 ranking (convert strings to numbers)
-          theme_suggestion: null,
-          workshop_rankings: completeValidDataV3.workshopPreference.map(Number), // Map V3 preference (convert strings to numbers)
-          preferred_working_style: 'balanced', // Default value
-          teammate_similarity: 5, // Default value
-          skill_writing: 3, // Default value
-          skill_speaking: 3, // Default value
-          skill_research: 3, // Default value
-          skill_synthesis: 3, // Default value
-          skill_critique: 3, // Default value
-          preferred_teammates: completeValidDataV3.teamFormationPreference === 'I have a pre-formed team' ? completeValidDataV3.preformedTeamMembers : null, // Map V3 preformedTeamMembers if applicable
-          complementary_perspectives: null,
-          mentorship_preference: 'no_preference', // Default value
-          mentorship_areas: null,
-          familiarity_tech_concepts: parseInt(completeValidDataV3.technicalSkills) || 3, // Map V3 technicalSkills
-          prior_hackathon_experience: completeValidDataV3.codingExperience === 'true', // Map V3 codingExperience
-          prior_hackathon_details: completeValidDataV3.codingLanguages, // Map V3 codingLanguages (approximate)
-          dietary_restrictions: completeValidDataV3.dietaryRestrictions, // V3 field matches V1.1
-          accessibility_needs: completeValidDataV3.accessibilityNeeds, // V3 field matches V1.1
-          additional_notes: null,
-          how_heard: 'other', // Default value
-          how_heard_other: completeValidDataV3.preferredCommunication === 'Other (please specify)' ? completeValidDataV3.preferredCommunicationOther : null, // Map V3 how_heard_other
-          // V3 fields like pronouns, studentId, consents are ignored as they are not in V1.1 RegistrationInput
+          prior_courses: completeValidDataV3.philosophyCoursework, // Keep as string for TEXT field
+          discussion_confidence: parseInt(completeValidDataV3.philosophyConfidenceDiscussion) || 5, // Map V3 scale
+          writing_confidence: parseInt(completeValidDataV3.philosophyConfidenceWriting) || 5, // Map V3 scale
+          // familiarity_analytic/continental/other not in V3.1 schema
+          areas_of_interest: completeValidDataV3.philosophyInterests.join(', '), // Convert array back to string for TEXT field
+          philosophical_traditions: completeValidDataV3.philosophyTraditions, // Pass array for TEXT[]
+          philosophical_interests: completeValidDataV3.philosophyInterests, // Pass array for TEXT[]
+          theme_rankings: completeValidDataV3.themeRanking, // Pass array of objects for JSONB
+          theme_suggestion: completeValidDataV3.themeRankingOther, // Correctly map V3 other field
+          workshop_rankings: completeValidDataV3.workshopRanking, // Pass array of objects for JSONB
+          preferred_working_style: completeValidDataV3.workingStyle, // Pass array for TEXT[]
+          teammate_similarity: parseInt(completeValidDataV3.teammateSimilarityPreference) || 5, // Map V3 scale
+          // skill_ fields not in V3.1 schema
+          preferred_teammates: completeValidDataV3.preformedTeamMembers, // Keep as string for TEXT field
+          // complementary_perspectives not in V3.1 schema
+          mentorship_preference: completeValidDataV3.mentorshipPreference, // Map V3 single-select
+          mentorship_areas: completeValidDataV3.mentorComfortAreas, // Map V3 textarea
+          familiarity_tech_concepts: parseInt(completeValidDataV3.technicalFamiliarity) || 3, // Map V3 scale
+          prior_hackathon_experience: completeValidDataV3.codingExperience, // Pass boolean directly
+          prior_hackathon_details: completeValidDataV3.codingLanguages, // Map V3 textarea
+          dietary_restrictions: completeValidDataV3.dietaryRestrictions, // Map V3 textarea
+          accessibility_needs: completeValidDataV3.accessibilityNeeds, // Map V3 textarea
+          additional_notes: completeValidDataV3.additionalInfo, // Map V3 textarea
+          how_heard: completeValidDataV3.heardAboutSource, // Pass array for TEXT[]
+          how_heard_other: completeValidDataV3.heardAboutSourceOther, // Map V3 other field
+          // V3 fields like studentId, consents are ignored as they are not in the expected DAL input structure
       };
       expect(mockInsertReg).toHaveBeenCalledWith(
         expect.objectContaining(expectedInsertDataV3) // Use updated expected data
@@ -349,19 +383,33 @@ describe('Registration Server Actions', () => {
        // Adjust expected data for update (V1.1 structure mapped from V3)
        const expectedUpdateDataV3 = {
            email: completeValidDataV3.email, // V3
-           full_name: completeValidDataV3.fullName, // V3
+           full_name: `${completeValidDataV3.firstName} ${completeValidDataV3.lastName}`, // V3 - Concatenated
            university: completeValidDataV3.university, // V3
            program: completeValidDataV3.programOfStudy, // V3
            year_of_study: 3, // Mapped from V3 academicYear
-           prior_courses: completeValidDataV3.philosophyCoursework ? [completeValidDataV3.philosophyCoursework] : null, // Map V3 coursework
-           areas_of_interest: completeValidDataV3.philosophyInterests, // Map V3 interests
-           theme_rankings: completeValidDataV3.themeRanking.map(Number), // Map V3 ranking
-           workshop_rankings: completeValidDataV3.workshopPreference.map(Number), // Map V3 preference
-           familiarity_tech_concepts: parseInt(completeValidDataV3.technicalSkills) || undefined, // Map V3 technicalSkills
-           prior_hackathon_experience: completeValidDataV3.codingExperience === 'true', // Map V3 codingExperience
-           prior_hackathon_details: completeValidDataV3.codingLanguages, // Map V3 codingLanguages
-           dietary_restrictions: completeValidDataV3.dietaryRestrictions, // V3 field matches V1.1
-           accessibility_needs: completeValidDataV3.accessibilityNeeds, // V3 field matches V1.1
+           prior_courses: completeValidDataV3.philosophyCoursework, // Keep as string
+           areas_of_interest: completeValidDataV3.philosophyInterests.join(', '), // Convert array to string
+           theme_rankings: completeValidDataV3.themeRanking, // Pass array of objects
+           workshop_rankings: completeValidDataV3.workshopRanking, // Pass array of objects
+           familiarity_tech_concepts: parseInt(completeValidDataV3.technicalFamiliarity) || undefined, // Map V3 scale
+           prior_hackathon_experience: completeValidDataV3.codingExperience, // Pass boolean directly
+           prior_hackathon_details: completeValidDataV3.codingLanguages, // Map V3 textarea
+           dietary_restrictions: completeValidDataV3.dietaryRestrictions, // Map V3 textarea
+           accessibility_needs: completeValidDataV3.accessibilityNeeds, // Map V3 textarea
+           // Add other mapped fields from submitRegistration's expected data
+           discussion_confidence: parseInt(completeValidDataV3.philosophyConfidenceDiscussion) || undefined,
+           writing_confidence: parseInt(completeValidDataV3.philosophyConfidenceWriting) || undefined,
+           philosophical_traditions: completeValidDataV3.philosophyTraditions,
+           philosophical_interests: completeValidDataV3.philosophyInterests,
+           theme_suggestion: completeValidDataV3.themeRankingOther, // Correctly map V3 other field
+           preferred_working_style: completeValidDataV3.workingStyle,
+           teammate_similarity: parseInt(completeValidDataV3.teammateSimilarityPreference) || undefined,
+           preferred_teammates: completeValidDataV3.preformedTeamMembers,
+           mentorship_preference: completeValidDataV3.mentorshipPreference,
+           mentorship_areas: completeValidDataV3.mentorComfortAreas,
+           additional_notes: completeValidDataV3.additionalInfo,
+           how_heard: completeValidDataV3.heardAboutSource,
+           how_heard_other: completeValidDataV3.heardAboutSourceOther,
            // Other V1.1 fields not present in V3 schema will not be in the update payload unless explicitly added
        };
 

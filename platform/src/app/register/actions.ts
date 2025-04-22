@@ -36,6 +36,126 @@ export type RegistrationState = {
   success: boolean;
 };
 
+
+// --- Partial Registration Actions ---
+
+export type PartialRegistrationState = {
+  message?: string | null;
+  success: boolean;
+};
+
+/**
+ * Saves partial registration data for the authenticated user.
+ * Performs an upsert operation.
+ */
+export async function savePartialRegistration(
+  partialData: Json
+): Promise<PartialRegistrationState> {
+  console.log("Saving partial registration...");
+  const supabase = await createClient();
+
+  // --- User Authentication ---
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (userError || !user) {
+    console.error("User fetch error:", userError);
+    return { success: false, message: 'Authentication error: Could not retrieve user.' };
+  }
+  const userId = user.id;
+
+  // --- Database Upsert ---
+  try {
+    const { error: upsertError } = await supabase
+      .from('partial_registrations')
+      .upsert({
+        user_id: userId,
+        partial_data: partialData,
+        last_updated_at: new Date().toISOString(), // Update timestamp
+      });
+
+    if (upsertError) throw upsertError;
+
+    console.log(`Partial registration saved for user ${userId}`);
+    return { success: true, message: 'Progress saved.' };
+
+  } catch (error: any) {
+    console.error('Partial Registration Save Error:', error);
+    return { success: false, message: `Database Error: Failed to save progress. ${error.message}` };
+  }
+}
+
+/**
+ * Loads partial registration data for the authenticated user.
+ * Returns the data object or null if not found.
+ */
+export async function loadPartialRegistration(): Promise<Json | null> {
+  console.log("Loading partial registration...");
+  const supabase = await createClient();
+
+  // --- User Authentication ---
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (userError || !user) {
+    console.error("User fetch error:", userError);
+    // Consider how errors should be handled by the caller. Returning null might be ambiguous.
+    // Throwing an error might be better for auth failures.
+    // Let's return null for now as per spec, but log the error.
+    return null;
+  }
+  const userId = user.id;
+
+  // --- Database Select ---
+  try {
+    const { data, error: selectError } = await supabase
+      .from('partial_registrations')
+      .select('partial_data')
+      .eq('user_id', userId)
+      .maybeSingle(); // Use maybeSingle to return null if no row found
+
+    if (selectError) throw selectError;
+
+    console.log(`Partial registration data ${data ? 'found' : 'not found'} for user ${userId}`);
+    return data?.partial_data ?? null; // Return the partial_data field or null
+
+  } catch (error: any) {
+    console.error('Partial Registration Load Error:', error);
+    return null; // Return null on error as per spec requirement
+  }
+}
+
+/**
+ * Deletes partial registration data for the authenticated user.
+ */
+export async function deletePartialRegistration(): Promise<PartialRegistrationState> {
+  console.log("Deleting partial registration...");
+  const supabase = await createClient();
+
+  // --- User Authentication ---
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (userError || !user) {
+    console.error("User fetch error:", userError);
+    return { success: false, message: 'Authentication error: Could not retrieve user.' };
+  }
+  const userId = user.id;
+
+  // --- Database Delete ---
+  try {
+    const { error: deleteError } = await supabase
+      .from('partial_registrations')
+      .delete()
+      .eq('user_id', userId);
+
+    // Note: delete doesn't error if the row doesn't exist, it just affects 0 rows.
+    if (deleteError) throw deleteError;
+
+    console.log(`Partial registration deleted (or did not exist) for user ${userId}`);
+    return { success: true, message: 'Partial registration cleared.' };
+
+  } catch (error: any) {
+    console.error('Partial Registration Delete Error:', error);
+    return { success: false, message: `Database Error: Failed to delete partial registration. ${error.message}` };
+  }
+}
+
+
 export async function submitRegistration(
   previousState: RegistrationState,
   formData: FormData
@@ -63,8 +183,8 @@ export async function submitRegistration(
         if (!processedData[key]) {
             processedData[key] = formData.getAll(key);
         }
-    } else if (!processedData[key]) {
-        // Handle single value fields
+    } else { // Simplified final else for single values
+        // Handle single value fields directly
         processedData[key] = value;
     }
   });
@@ -87,7 +207,7 @@ export async function submitRegistration(
   }
 
   // Convert boolean fields from string before validation
-  const booleanFields = ['code_of_conduct_agreement', 'photo_consent', 'data_privacy_consent'];
+  const booleanFields = ['code_of_conduct_agreement', 'photo_consent', 'data_privacy_consent', 'finalConfirmationAgreement', 'codingExperience']; // Added missing fields
   booleanFields.forEach((field) => {
       if (processedData[field] === 'true') {
           processedData[field] = true;
@@ -101,6 +221,46 @@ export async function submitRegistration(
                 processedData[field] = undefined; // Or handle as error if unexpected value
            }
       }
+  });
+
+
+
+  // --- Type Parsing Before Validation ---
+  const numberFields = [
+    'philosophyConfidenceDiscussion',
+    'philosophyConfidenceWriting',
+    'presentationComfort',
+    'technicalFamiliarity',
+    'teammateSimilarityPreference',
+    'philosophyExpertise', // Include if present in schema
+    // Add other scale fields if needed
+  ];
+  numberFields.forEach(field => {
+    if (processedData[field] && typeof processedData[field] === 'string') {
+      const parsed = parseInt(processedData[field], 10);
+      processedData[field] = isNaN(parsed) ? undefined : parsed; // Use undefined if parsing fails, Zod will catch if required
+    } else if (processedData.hasOwnProperty(field) && processedData[field] !== undefined) {
+       // Handle cases where it might already be a number or null/undefined
+       if (typeof processedData[field] !== 'number') {
+           processedData[field] = undefined; // Set to undefined if not a valid string/number
+       }
+    }
+  });
+
+  const jsonArrayFields = ['themeRanking', 'workshopRanking'];
+  jsonArrayFields.forEach(field => {
+    if (processedData[field] && typeof processedData[field] === 'string') {
+      try {
+        const parsed = JSON.parse(processedData[field]);
+        // Basic check if it's an array, could be more robust
+        processedData[field] = Array.isArray(parsed) ? parsed : undefined;
+      } catch (e) {
+        console.warn(`Failed to parse JSON for field ${field}:`, processedData[field]);
+        processedData[field] = undefined; // Set to undefined if parsing fails
+      } 
+    } else if (processedData.hasOwnProperty(field) && !Array.isArray(processedData[field])) {
+         processedData[field] = undefined; // Set to undefined if present but not a string/array
+    }
   });
 
 
@@ -206,6 +366,20 @@ export async function submitRegistration(
     const { error: insertError } = await insertRegistration(dataToInsert);
     if (insertError) throw insertError;
 
+
+      // --- Clean up partial registration data --- 
+      try {
+        console.log(`Attempting to delete partial registration for user ${userId} after full submission.`);
+        const deleteResult = await deletePartialRegistration();
+        if (!deleteResult.success) {
+          // Log the error but don't block the main success flow
+          console.error(`Failed to delete partial registration for user ${userId} after full submission: ${deleteResult.message}`);
+        }
+      } catch (cleanupError: any) {
+        // Catch any unexpected errors during cleanup
+        console.error(`Unexpected error during partial registration cleanup for user ${userId}: ${cleanupError.message}`);
+      }
+
   } catch (error: any) {
     console.error('Registration Insert Error:', error);
     return { success: false, message: `Database Error: Failed to save registration. ${error.message}` };
@@ -255,7 +429,7 @@ export async function updateRegistration(
         processedData[actualKey].push(value);
     } else if (formData.getAll(key).length > 1) {
         if (!processedData[key]) processedData[key] = formData.getAll(key);
-    } else if (!processedData[key]) {
+    } else { // Simplified final else for single values
         processedData[key] = value;
     }
   });
@@ -273,7 +447,7 @@ export async function updateRegistration(
    }
  
     // Convert boolean fields from string before validation
-    const booleanFieldsUpdate = ['code_of_conduct_agreement', 'photo_consent', 'data_privacy_consent'];
+    const booleanFieldsUpdate = ['code_of_conduct_agreement', 'photo_consent', 'data_privacy_consent', 'finalConfirmationAgreement', 'codingExperience']; // Added missing fields
     booleanFieldsUpdate.forEach((field) => {
         if (processedData[field] === 'true') {
             processedData[field] = true;
@@ -287,10 +461,48 @@ export async function updateRegistration(
     });
  
  
+    // --- Type Parsing Before Validation ---
+    const numberFieldsUpdate = [
+        'philosophyConfidenceDiscussion',
+        'philosophyConfidenceWriting',
+        'presentationComfort',
+        'technicalFamiliarity',
+        'teammateSimilarityPreference',
+        'philosophyExpertise', // Include if present in schema
+        // Add other scale fields if needed
+    ];
+    numberFieldsUpdate.forEach(field => {
+        if (processedData[field] && typeof processedData[field] === 'string') {
+        const parsed = parseInt(processedData[field], 10);
+        processedData[field] = isNaN(parsed) ? undefined : parsed; // Use undefined if parsing fails
+        } else if (processedData.hasOwnProperty(field) && processedData[field] !== undefined) {
+            if (typeof processedData[field] !== 'number') {
+                processedData[field] = undefined;
+            }
+        }
+    });
+
+    const jsonArrayFieldsUpdate = ['themeRanking', 'workshopRanking'];
+    jsonArrayFieldsUpdate.forEach(field => {
+        if (processedData[field] && typeof processedData[field] === 'string') {
+        try {
+            const parsed = JSON.parse(processedData[field]);
+            processedData[field] = Array.isArray(parsed) ? parsed : undefined;
+        } catch (e) {
+            console.warn(`Failed to parse JSON for field ${field} during update:`, processedData[field]);
+            processedData[field] = undefined;
+        }
+        } else if (processedData.hasOwnProperty(field) && !Array.isArray(processedData[field])) {
+            processedData[field] = undefined;
+        }
+    });
+
+
+
    // --- Validation ---
    // Use the same generated schema for validation
    const validatedFields = RegistrationSchema.safeParse(processedData);
- 
+
    if (!validatedFields.success) {
     console.log("Update Validation Errors:", validatedFields.error.flatten().fieldErrors);
     return {
