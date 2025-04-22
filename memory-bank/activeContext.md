@@ -1,3 +1,9 @@
+[2025-04-22 19:46:15] - Code - Completed Task (ScheduleDisplay Refinements - Green Phase) - Modified `platform/src/components/ScheduleDisplay.tsx` to implement 12h/24h time formatting via `timeFormat` prop, handle single time events, and ensure mobile responsiveness by adjusting CSS classes. Refactored `formatTime` helper to parse time strings directly, avoiding timezone issues. Updated assertions in `platform/src/components/ScheduleDisplay.test.tsx` to match expected output. Confirmed all 8 tests for `ScheduleDisplay.test.tsx` pass. Build successful. Full test suite (`npm test`) shows pre-existing unrelated failures. Committed changes (ab867a3) to `schedule-update` branch. [See MB Log 2025-04-22 19:33:03]
+
+
+[2025-04-22 19:33:03] - TDD - Completed Red Phase (ScheduleDisplay Refinements) - Added 4 new tests to `platform/src/components/ScheduleDisplay.test.tsx` for time format toggle (12h/24h), single time event rendering, and mobile visibility. Refined 12h test based on user feedback. Confirmed 3 tests fail as expected (12h format, single event rendering, mobile visibility). Committed failing tests (079748b) to `schedule-update` branch.
+
+
 [2025-04-22 19:11:44] - Code - Completed Task (Compare Schedule Implementation) - Compared DAL, Page, and Display components for schedule vs. themes/faq/workshops. Found consistent DAL/fetching patterns. Key difference: schedule page relies on display component for empty state, others handle in page. Initial hypothesis: `fetchSchedule` returned unexpected empty array due to subtle data/query issue or cache. **User confirmed issue resolved by clearing cache and rebuilding.**
 
 
