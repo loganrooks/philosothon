@@ -37,7 +37,7 @@ We believe philosophy is enriched through diverse perspectives. Our matchmaking 
 
 Upper-year students can opt to mentor newer philosophy students (and we hope you will!), while first or second years can request to be paired with more experienced students. This creates learning opportunities flowing in both directions – fresh perspectives meet developed knowledge.
 
-Teams will be announced by Thursday, April 3rd, giving you time to connect before the event.
+Teams will be announced by Friday, April 25th, giving you time to connect before the event.
 
 ## **Philosophical Themes**
 
