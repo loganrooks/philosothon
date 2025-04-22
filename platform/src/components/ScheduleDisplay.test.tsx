@@ -1,13 +1,13 @@
 /// <reference types="vitest/globals" />
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import ScheduleDisplay from './ScheduleDisplay'; // This import will fail initially
 import { ScheduleItem } from '@/lib/data/schedule'; // Corrected import path
 
 // Mock data with different dates for grouping test
 const mockScheduleItems: ScheduleItem[] = [
   {
-    id: 'uuid-day1-1',
+    id: 1, // Changed from string 'uuid-day1-1'
     item_date: '2025-10-26',
     start_time: '09:00:00',
     end_time: '10:00:00',
@@ -19,7 +19,7 @@ const mockScheduleItems: ScheduleItem[] = [
     updated_at: new Date().toISOString(),
   },
   {
-    id: 'uuid-day2-1',
+    id: 2, // Changed from string 'uuid-day2-1'
     item_date: '2025-10-27',
     start_time: '10:00:00',
     end_time: '11:00:00',
@@ -31,7 +31,7 @@ const mockScheduleItems: ScheduleItem[] = [
     updated_at: new Date().toISOString(),
   },
    {
-    id: 'uuid-day1-2', // Item later in day 1
+    id: 3, // Changed from string 'uuid-day1-2'
     item_date: '2025-10-26',
     start_time: '11:00:00',
     end_time: '12:00:00',
@@ -43,6 +43,24 @@ const mockScheduleItems: ScheduleItem[] = [
     updated_at: new Date().toISOString(),
   },
 ];
+
+// Add mock data for single time event
+const mockScheduleItemsWithSingleEvent: ScheduleItem[] = [
+  ...mockScheduleItems,
+  {
+    id: 4, // Changed from string 'uuid-day1-3'
+    item_date: '2025-10-26',
+    start_time: '14:00:00',
+    end_time: null, // Single time event
+    title: 'Day 1 - Break',
+    description: 'Coffee break',
+    location: 'Lobby',
+    speaker: null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+];
+
 
 // Mock data fetching function (assuming component fetches its own data)
 // If data is passed as prop, this mock is not needed here.
@@ -66,8 +84,8 @@ describe('ScheduleDisplay', () => {
     expect(screen.getByText('Day 1 - Opening')).toBeInTheDocument();
     expect(screen.getByText('Day 2 - Keynote')).toBeInTheDocument();
     expect(screen.getByText('Day 1 - Session 1')).toBeInTheDocument();
-    // Use regex to match start time within the time range string
-    expect(screen.getByText(/09:00/)).toBeInTheDocument();
+    // Use regex to match start time within the time range string (non-padded 12h format)
+    expect(screen.getByText(/9:00 - 10:00 AM/)).toBeInTheDocument();
     // Use regex to match speaker name within the text node
     expect(screen.getByText(/Dr\. Keynote/)).toBeInTheDocument();
   });
@@ -115,4 +133,76 @@ describe('ScheduleDisplay', () => {
   //     expect(fetchScheduleItems).toHaveBeenCalledTimes(1);
   //   });
   // });
+});
+
+describe('ScheduleDisplay Refinements', () => {
+
+  it('should format time according to timeFormat prop (12h)', () => {
+    // Requirement 1: 12H/24H Toggle
+    // This test assumes a `timeFormat` prop is added. It will fail initially.
+    const itemWithAmPm = {
+      ...mockScheduleItems[0],
+      start_time: '14:30:00', // 2:30 PM
+      end_time: '15:00:00',   // 3:00 PM
+    };
+    // Removed @ts-expect-error as prop now exists
+    render(<ScheduleDisplay items={[itemWithAmPm]} timeFormat="12h" />);
+
+    // Expect AM/PM format
+    // Updated expectation based on refinement: only end time needs PM if both are PM.
+    expect(screen.getByText(/2:30 - 3:00 PM/)).toBeInTheDocument();
+  });
+
+  it('should format time according to timeFormat prop (24h)', () => {
+    // Requirement 1: 12H/24H Toggle
+    // This test assumes a `timeFormat` prop is added. It will fail initially.
+    const itemWithAmPm = {
+      ...mockScheduleItems[0],
+      start_time: '14:30:00',
+      end_time: '15:00:00',
+    };
+    // Removed @ts-expect-error as prop now exists
+    render(<ScheduleDisplay items={[itemWithAmPm]} timeFormat="24h" />);
+
+    // Expect HH:MM format
+    expect(screen.getByText('14:30 - 15:00')).toBeInTheDocument();
+  });
+
+  it('should render only start time for single time events', () => {
+    // Requirement 2: Single Time Events
+    render(<ScheduleDisplay items={mockScheduleItemsWithSingleEvent} />);
+
+    const breakItemLi = screen.getByText('Day 1 - Break').closest('li');
+    expect(breakItemLi).toBeInTheDocument();
+
+    // Check the time display within the specific list item
+    // This assertion assumes the time is rendered within a specific structure.
+    // It will fail because the current code always renders " - {endTime}".
+    // Expect default 12h format since no timeFormat prop is passed
+    const timeElement = within(breakItemLi!).getByText(/^2:00 PM$/); // Exact match for start time only in 12h format
+    expect(timeElement).toBeInTheDocument();
+    // Verify the paragraph's text content is *exactly* the start time, with no hyphen
+    expect(timeElement.textContent).toBe('2:00 PM');
+    // Keep the original check as a backup, though it seems problematic
+    // expect(within(breakItemLi!).queryByText(/- /)).not.toBeInTheDocument();
+  });
+
+  it('should render time information visibly on small screens', () => {
+    // Requirement 3: Mobile Responsiveness (Basic Structure Check)
+    // This test checks if the time element is NOT hidden on small screens.
+    // It will fail because the current implementation uses `hidden sm:flex`.
+    render(<ScheduleDisplay items={mockScheduleItems} />);
+
+    const firstItemLi = screen.getByText('Day 1 - Opening').closest('li');
+    expect(firstItemLi).toBeInTheDocument();
+
+    // Find the div containing the time paragraph (using updated format)
+    const timeContainerDiv = within(firstItemLi!).getByText('9:00 - 10:00 AM').closest('div');
+    expect(timeContainerDiv).toBeInTheDocument();
+
+    // Assert that the container div does NOT have the 'hidden' class.
+    // This will fail because the element currently has 'hidden'.
+    expect(timeContainerDiv).not.toHaveClass('hidden');
+  });
+
 });

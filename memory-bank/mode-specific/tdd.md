@@ -1,6 +1,16 @@
 # TDD Specific Memory
 
 ## Test Execution Results
+### Test Execution: ScheduleDisplay Refinements (Red Phase) - [2025-04-22 19:32:51]
+- **Trigger**: Manual (Post-Red Phase Test Writing/Updates)
+- **Outcome**: FAIL / **Summary**: 5 tests passed, 3 failed
+- **Failed Tests**:
+    - `should format time according to timeFormat prop (12h)`: Failed finding text `/2:30 - 3:00 PM/`. Component lacks `timeFormat` prop and 12h formatting logic.
+    - `should render only start time for single time events`: Failed finding text `/^14:00$/`. Component incorrectly renders `14:00 - ` for null `end_time`.
+    - `should render time information visibly on small screens`: Failed assertion `expect(element).not.toHaveClass("hidden")`. Time container div has `hidden` class.
+- **Notes**: Confirmed tests fail correctly for the Red phase, reflecting missing implementation for time format toggle, single event rendering, and mobile visibility.
+
+
 ### Test Execution: RegistrationForm.test.tsx (V3.1 Fix Attempt 1 - Corrected Analysis) - [2025-04-21 13:21:00]
 - **Trigger**: Manual (Attempt to fix failing tests)
 - **Outcome**: FAIL / **Summary**: 5 tests passed, 12 failed
@@ -519,6 +529,13 @@ ${tddModeUpdateTestPlan}
 
 
 ${tddModeUpdateCycleLog}
+### TDD Cycle: ScheduleDisplay Refinements - [2025-04-22 19:33:03]
+- **Red**: Added 4 new tests to `platform/src/components/ScheduleDisplay.test.tsx` for time format toggle (12h/24h), single time event rendering, and mobile visibility. Refined 12h test assertion based on user feedback (`2:30 - 3:00 PM`). Refined mobile visibility test to check for absence of `hidden` class. Confirmed 3 tests fail as expected. / Test File: `platform/src/components/ScheduleDisplay.test.tsx`
+- **Green**: N/A
+- **Refactor**: N/A
+- **Outcome**: Red phase complete. Failing tests committed (079748b). Ready for Green phase implementation.
+
+
 
 
 ## TDD Cycles Log

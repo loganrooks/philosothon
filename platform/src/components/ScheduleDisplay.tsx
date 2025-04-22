@@ -4,6 +4,7 @@ import { ScheduleItem } from '@/lib/data/schedule'; // Corrected import path
 
 interface ScheduleDisplayProps {
   items: ScheduleItem[];
+  timeFormat?: '12h' | '24h';
 }
 
 // Helper function to group items by date
@@ -36,14 +37,38 @@ const formatDateHeading = (dateString: string): string => {
   }
 };
 
-// Helper function to format time string (HH:MM:SS -> HH:MM)
-const formatTime = (timeString: string | null | undefined): string => {
+// Helper function to format time string based on 12h/24h format, avoiding Date object issues
+const formatTime = (
+  timeString: string | null | undefined,
+  format: '12h' | '24h'
+): string => {
   if (!timeString) return '';
-  return timeString.substring(0, 5); // Extract HH:MM
+
+  const parts = timeString.split(':');
+  if (parts.length < 2) return timeString; // Invalid format, return original
+
+  let hours = parseInt(parts[0], 10);
+  const minutes = parts[1]; // Keep as string 'MM'
+
+  if (isNaN(hours)) return timeString; // Invalid format
+
+  if (format === '12h') {
+    const period = hours >= 12 ? ' PM' : ' AM'; // Add space before AM/PM
+    hours = hours % 12;
+    if (hours === 0) hours = 12; // Handle midnight (00:xx) -> 12 AM
+    // Don't zero-pad 12h format hour
+    const hours12 = hours.toString();
+    return `${hours12}:${minutes}${period}`; // Keep space before AM/PM
+  } else {
+    // 24h format - just return HH:MM
+    // Ensure hours are zero-padded
+    const hours24 = hours.toString().padStart(2, '0');
+    return `${hours24}:${minutes}`;
+  }
 };
 
 
-export default function ScheduleDisplay({ items }: ScheduleDisplayProps) {
+export default function ScheduleDisplay({ items, timeFormat = '12h' }: ScheduleDisplayProps) {
   if (!items || items.length === 0) {
     return <p className="text-center text-gray-400">Schedule coming soon.</p>;
   }
@@ -80,9 +105,32 @@ export default function ScheduleDisplay({ items }: ScheduleDisplayProps) {
                   )}
                 </div>
                  {/* Apply style guide: text-light-text */}
-                <div className="hidden shrink-0 sm:flex sm:flex-col sm:items-end">
+                 {/* Requirement 3: Remove 'hidden', adjust responsive classes */}
+                <div className="shrink-0 flex flex-col items-end sm:items-end">
                   <p className="text-sm leading-6 text-light-text">
-                    {formatTime(item.start_time)} - {formatTime(item.end_time)}
+                    {(() => {
+                      // Pass only timeString and format to the updated helper
+                      const startTimeFormatted = formatTime(item.start_time, timeFormat);
+                      const endTimeFormatted = item.end_time ? formatTime(item.end_time, timeFormat) : null;
+
+                      // Requirement 2: Single Time Events
+                      if (!endTimeFormatted || !item.end_time) { // Added !item.end_time check for clarity
+                        return startTimeFormatted;
+                      }
+
+                      // Requirement 1: 12h AM/PM logic
+                      if (timeFormat === '12h') {
+                        const startPeriod = startTimeFormatted.slice(-2); // AM or PM
+                        const endPeriod = endTimeFormatted.slice(-2);   // AM or PM
+                        if (startPeriod === endPeriod) {
+                          // Remove AM/PM from start time if periods match
+                          return `${startTimeFormatted.slice(0, -2).trim()} - ${endTimeFormatted}`;
+                        }
+                      }
+
+                      // Default: Render both start and end time
+                      return `${startTimeFormatted} - ${endTimeFormatted}`;
+                    })()}
                   </p>
                 </div>
               </li>

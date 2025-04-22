@@ -2,6 +2,9 @@
 - **[2025-04-22 19:11:44] - Code:** Compared schedule implementation (DAL, Page, Display) with themes, faq, workshops. Found consistent DAL/fetching patterns. Key difference: schedule page (`page.tsx`) relies on `ScheduleDisplay` for empty state handling, while other pages handle errors/empty state explicitly in JSX. Initial hypothesis: `fetchSchedule` returned unexpected empty array due to subtle data/query issue or cache. **User confirmed issue resolved by clearing cache and rebuilding.**
 
 # Progress
+- **[2025-04-22 19:46:15] - Code:** Completed ScheduleDisplay refinements (time format, single time, mobile responsiveness) on `schedule-update` branch (commit `ab867a3`). Component tests pass. Build successful. [See MB Log 2025-04-22 19:33:03]
+
+# Progress
 - **[2025-04-22 13:29:00] - Code:** Updated descriptions for 6 themes in Supabase DB using temporary script with service key.
 
 - **[2025-04-22 13:09:00] - Code:** Synced 6 themes from markdown to Supabase, renamed files to UUIDs, updated `/themes` and `/themes/[id]` pages and tests. Commit `6e96861` on `feature/theme-updates`.

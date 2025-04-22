@@ -39,6 +39,17 @@
 
 
 ## Components Implemented
+### [2025-04-22 19:46:15] ScheduleDisplay Refinement
+- **Purpose**: Display schedule items, grouped by date, with configurable time format and responsive layout.
+- **Files**: `platform/src/components/ScheduleDisplay.tsx`, `platform/src/components/ScheduleDisplay.test.tsx`
+- **Status**: Implemented (Refinement)
+- **Dependencies**: `react`, `@/lib/data/schedule`
+- **API Surface**: Exports `ScheduleDisplay` component with `items` and optional `timeFormat` props.
+- **Tests**: `platform/src/components/ScheduleDisplay.test.tsx` (All 8 tests passing)
+- **Notes**: Refactored `formatTime` helper to parse time strings directly, avoiding timezone issues. Added logic for 12h/24h format, single time events, and mobile visibility. Updated tests to match expected output.
+
+
+## Components Implemented
 ### [2025-04-22 13:09:00] Theme Detail Page (/themes/[id])
 - **Purpose**: Displays detailed information for a single theme, fetching basic data from Supabase and detailed content from a corresponding markdown file.
 - **Files**: `platform/src/app/themes/[id]/page.tsx` (Modified)
