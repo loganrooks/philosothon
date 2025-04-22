@@ -1,6 +1,24 @@
 # TDD Specific Memory
 
 ## Test Execution Results
+### Test Execution: RegistrationDialog.test.tsx (Green Phase Attempt) - [2025-04-22 10:36:00]
+- **Trigger**: Manual run after component logic fixes (Round 3).
+- **Outcome**: FAIL / **Summary**: 8 tests passed, 11 failed, 3 skipped.
+- **Failed Tests**:
+    - `Initial "register new" Flow > should display the intro message`: Intro not displayed.
+    - `Initial "register new" Flow > should display the first question`: First question not displayed.
+    - `Initial "register new" Flow > should progress to Last Name`: State index not advancing.
+    - `Initial "register new" Flow > should progress through Name, Email, Password, Confirm Password`: `signUpUser` not called.
+    - `Initial "register new" Flow > should call signUpUser action`: `signUpUser` not called.
+    - `Initial "register new" Flow > should transition to awaiting_confirmation`: `changeMode` not called.
+    - `Initial "register new" Flow > should proceed to next question`: State index not advancing correctly after signup flow.
+    - `Awaiting Confirmation Mode > should transition to next question`: `changeMode` not called.
+    - `Awaiting Confirmation Mode > should call resendConfirmationEmail`: Action not called.
+    - `Question Answering & Navigation > should show validation error`: Error message not displayed.
+    - `Question Answering & Navigation > should handle "prev" command`: Incorrect question displayed after 'prev'.
+- **Notes**: Significant failures remain in core state transitions, initial rendering, password flow, and internal mode handling. Task blocked by user invoking Early Return Clause.
+
+
 
 ### Test Execution: RegistrationDialog Red Phase Verification - [2025-04-22 09:00:00]
 - **Trigger**: Manual (Post-Red Phase Test Writing)

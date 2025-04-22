@@ -11,6 +11,14 @@
 - **Related Issue**: [MB Log 2025-04-21 07:16:45]
 
 
+### [2025-04-22 08:54:00] Fix: Data Parsing in Registration Actions Tests
+- **Purpose**: Resolve validation errors in `actions.test.ts` caused by type mismatches between stringified mock `FormData` and Zod schema expectations.
+- **Files**: `platform/src/app/register/actions.ts` (Modified), `platform/src/app/register/actions.test.ts` (Modified)
+- **Change**: Added parsing logic (boolean, number, JSON) within `submitRegistration` and `updateRegistration` *before* Zod validation. Corrected mock data (`completeValidDataV3`) and assertions in `actions.test.ts` to use `firstName`/`lastName` instead of `fullName`.
+- **Status**: Implemented.
+- **Related Issue**: Test failures reported after implementing partial registration actions.
+
+
 ## Bug Fixes
 <!-- Track specific bug fixes -->
 ### [2025-04-21 19:22:44] Fix: `platform/src/app/register/actions.ts` Export Error
@@ -21,6 +29,26 @@
 - **Related Issue**: [MB Log 2025-04-21 07:16:45]
 
 - **Details**: Removed redundant `addOutputLine` call for the next question label after password confirmation. Added `setIsPasswordInput(false)` to the successful password confirmation block to exit password input state.
+
+
+### [2025-04-22 08:08:00] TerminalShell Boot Sequence & Dynamic Prompt
+- **Purpose**: Implement initial boot animation/messages and dynamic prompt based on state.
+- **Files**: `platform/src/app/register/components/TerminalShell.tsx` (Modified)
+- **Status**: Implemented
+- **Dependencies**: `react` (`useState`, `useEffect`, `useReducer`)
+- **API Surface**: No change.
+- **Tests**: `platform/src/app/register/components/TerminalShell.test.tsx` (4/8 tests pass, 4 skipped)
+- **Notes**: Added `isBooting` state and `useEffect` with `setTimeout` for boot messages. Added `calculatePrompt` helper and `useEffect` to dispatch `SET_PROMPT` based on `state.mode`, `state.isAuthenticated`, `state.userEmail`, `state.dialogState`. Fixed related test failures using fake timers and `act`. Skipped tests require state simulation.
+
+
+### [2025-04-22 08:54:00] Partial Registration Server Actions
+- **Purpose**: Implement backend logic for saving, loading, and deleting partial registration data.
+- **Files**: `platform/src/app/register/actions.ts` (Modified)
+- **Status**: Implemented
+- **Dependencies**: `@supabase/ssr`, `next/cache`, `next/navigation`, `@/lib/supabase/database.types`
+- **API Surface**: Exports `savePartialRegistration`, `loadPartialRegistration`, `deletePartialRegistration` server actions.
+- **Tests**: No specific tests added yet. Existing tests in `actions.test.ts` pass after fixing unrelated data parsing/mock issues.
+- **Notes**: Actions interact with the `partial_registrations` table. `submitRegistration` updated to call `deletePartialRegistration` on success.
 
 
 ## Components Implemented
