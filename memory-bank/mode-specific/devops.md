@@ -1,6 +1,25 @@
 # DevOps Specific Memory
 
 ## Deployment History Log
+### Git Commit: [2025-04-22 11:22:36] - feat(db): Enable RLS and define policies for core tables
+- **Branch**: feature/rls-fixes
+- **Commit ID**: 6ebede1
+- **Files**: `supabase/migrations/20250422151859_enable_rls_core_tables.sql`
+- **Notes**: Committed migration file after applying RLS policies to schedule_items, event_details, profiles, and registrations.
+
+
+### Deployment: [2025-04-22 11:22:27] - Supabase Migration (Enable RLS Core Tables)
+- **Env**: Remote DB (`egdmaehmjuytscswybum`)
+- **Comps**: RLS Policies for `schedule_items`, `event_details`, `profiles`, `registrations`
+- **Version**: Migration `20250422151859_enable_rls_core_tables.sql`
+- **Trigger**: Manual (`supabase db push`)
+- **Status**: Success
+- **Duration**: ~3 min (incl. history repair)
+- **Rollback**: `supabase db reset` (if needed, destructive) or manual `DROP POLICY` / `ALTER TABLE ... DISABLE ROW LEVEL SECURITY`
+- **Issues Encountered**: Initial push failed due to migration history mismatch. Repaired using `supabase migration repair --status reverted 20250422113204` and `supabase migration repair --status applied 20250422151859` before successful push.
+- **Notes**: Applied RLS policies as defined in the migration file.
+
+
 ### Git Commit: [2025-04-21 19:07:49] - chore: Prepare feat/architecture-v2 for PR
 - **Branch**: feat/architecture-v2
 - **Commit ID**: 50f9337 (Merge commit after pulling main)

@@ -12,6 +12,14 @@ This file logs feedback received specifically for the DevOps mode, including iss
 - **Learning**: [Key takeaway or improvement for future tasks]
 -->
 
+## Feedback Entry - 2025-04-22 11:22:27
+- **Source**: Tool (`execute_command` - supabase db push)
+- **Issue/Suggestion**: The `supabase db push` command initially failed with "Remote migration versions not found in local migrations directory." suggesting a history mismatch. Subsequent `db pull` also failed, suggesting the *new* local migration should be marked `applied`. The history was successfully repaired by running `supabase migration repair --status reverted 20250422113204` followed by `supabase migration repair --status applied 20250422151859`.
+- **Context**: Attempting to apply migration `20250422151859_enable_rls_core_tables.sql`.
+- **Action Taken**: Followed CLI repair suggestions sequentially, which resolved the history mismatch and allowed the subsequent `db push` to report the database as up-to-date.
+- **Learning**: Supabase migration history can become desynchronized. The `migration repair` command is necessary, but the specific version and status (`reverted` vs `applied`) suggested by the CLI might need careful interpretation depending on whether the mismatch involves remote-only or local-only migrations.
+
+
 ## Feedback Entry - 2025-04-21 12:16:30
 - **Source**: DevOps Verification Step
 - **Issue/Suggestion**: The SSOT generation script (`platform/scripts/generate-registration.ts`), while running successfully and generating the correct *number* of questions (45), produced an incomplete `Question` interface in the output file `platform/src/app/register/data/registrationQuestions.ts`. It is missing the `hint`, `description`, and `validationRules` fields expected from the SSOT.
