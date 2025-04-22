@@ -6,9 +6,12 @@ import ScheduleDisplay from "@/components/ScheduleDisplay";
 import { fetchSchedule, type ScheduleItem } from '@/lib/data/schedule'; // Correct import name
 
 export default async function Home() { // Make component async
-  // Fetch schedule items
-  // fetchSchedule returns ScheduleItem[] directly, or [] on error (error logged in DAL)
-  const scheduleItems = await fetchSchedule();
+  // Fetch schedule items with error handling
+  const { scheduleItems, error } = await fetchSchedule();
+  
+  if (error) {
+    console.error('Home page - Error fetching schedule:', error);
+  }
 
   return (
     // Removed redundant padding, handled by layout container
@@ -21,7 +24,6 @@ export default async function Home() { // Make component async
 
       {/* Event Highlights Section */}
       <EventHighlights />
-
 
       {/* Schedule Section - Pass fetched items */}
       <ScheduleDisplay items={scheduleItems ?? []} />

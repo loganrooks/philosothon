@@ -45,7 +45,7 @@ export default async function ThemeDetailPage({ params }: ThemeDetailPageProps) 
     }
 
   } catch (error: any) {
-    console.error(`Error reading theme markdown file docs/event_info/themes/${id}.md:`, error.message);
+    console.error(`Error reading theme markdown file platform/markdown/themes/${id}.md:`, error.message); // Corrected error message path
     fileReadError = true;
     // Fallback: Use simple description from DB if markdown read fails
     mainDescription = theme.description || '';

@@ -1,3 +1,18 @@
+## Analysis/Comparison
+### [2025-04-22 19:10:10] Schedule Implementation Comparison
+- **Purpose**: Compare schedule implementation (DAL, Page, Display) with working examples (themes, faq, workshops) to identify reasons for schedule data not appearing.
+- **Files Compared**:
+    - DAL: `schedule.ts`, `themes.ts`, `faq.ts`, `workshops.ts`
+    - Pages: `page.tsx`, `themes/page.tsx`, `faq/page.tsx`, `workshops/page.tsx`
+    - Display: `ScheduleDisplay.tsx`, `ThemeCard.tsx`, `AccordionGroup.tsx`, `WorkshopCard.tsx`
+- **Findings**:
+    - **DAL:** Fetching patterns (`fetchSchedule`, `fetchThemes`, etc.) are highly consistent (use `createStaticSupabaseClient`, `select *`, similar return/error handling).
+    - **Pages:** Fetching patterns (async Server Component calling DAL) are consistent. **Key Difference:** `ThemesPage`, `FaqPage`, `WorkshopsPage` explicitly handle errors/empty data in JSX. `Home` page (`page.tsx`) only logs errors and passes data (`scheduleItems ?? []`) to `ScheduleDisplay`.
+    - **Display:** `ScheduleDisplay` explicitly checks for empty/null `items` and shows fallback. `ThemeCard`, `AccordionGroup`, `WorkshopCard` do not, relying on parent pages for empty state handling.
+- **Hypothesis**: Initial hypothesis was that `fetchSchedule` returned an unexpected empty array due to subtle data/query issue or cache.
+- **Resolution**: User confirmed the issue was resolved by clearing the cache (`rm -rf platform/.next`) and rebuilding. This confirms the cache/build inconsistency hypothesis.
+
+
 ### [2025-04-21 14:57:38] RegistrationForm.tsx Logic Fix (Attempt 2)
 - **Purpose**: Fix double prompt and failure to advance after password confirmation.
 - **Files**: `platform/src/app/register/components/RegistrationForm.tsx` (Modified)

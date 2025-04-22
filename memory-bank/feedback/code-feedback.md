@@ -1,3 +1,14 @@
+### [2025-04-22 19:10:10] Finding: Schedule Implementation Comparison
+- **Source**: Analysis during task "Compare Schedule Implementation with Working Examples".
+- **Issue**: Schedule data is not appearing on the home page despite data existing and RLS being confirmed okay.
+- **Analysis**: Compared DAL, Page, and Display components for schedule vs. themes/faq/workshops.
+    - DAL (`fetchSchedule`, `fetchThemes`, etc.): Patterns are consistent (static client for lists, `select *`, similar error handling).
+    - Pages (`page.tsx`, `themes/page.tsx`, etc.): Fetching patterns consistent (async Server Component calling DAL). **Difference:** `themes`, `faq`, `workshops` pages explicitly handle errors/empty data in JSX; `page.tsx` (schedule) only logs errors and passes data (`scheduleItems ?? []`) to `ScheduleDisplay`.
+    - Display (`ScheduleDisplay`, `ThemeCard`, etc.): `ScheduleDisplay` explicitly handles empty/null `items` prop; other display components rely on parent pages for this.
+- **Hypothesis**: Initial hypothesis was that `fetchSchedule` returned an unexpected empty array due to subtle data/query issue or cache.
+- **Resolution**: User confirmed the issue was resolved by clearing the cache (`rm -rf platform/.next`) and rebuilding. This confirms the cache/build inconsistency hypothesis.
+
+
 ### [2025-04-21 18:33:41] Intervention: Task Pivot - Simple Email Capture Placeholder
 - **Trigger**: User explicit command after multiple failed attempts to fix `RegistrationForm.tsx`.
 - **Context**: The refactored `RegistrationForm` continued to exhibit critical bugs. User requested abandoning fixes and implementing a simple placeholder on `/register` to collect emails for notification, allowing other branch changes to be deployed.

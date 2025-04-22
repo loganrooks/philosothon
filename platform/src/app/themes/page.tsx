@@ -1,18 +1,8 @@
 import ThemeCard from "@/components/ThemeCard";
-import { createClient } from '@/lib/supabase/server'; // Import server client
-// import { cookies } from 'next/headers'; // No longer needed here
+// Import the DAL function and Theme type
+import { fetchThemes, type Theme } from '@/lib/data/themes';
 
-// Define the type for a theme based on the database schema
-// Adjust types as necessary based on actual schema (e.g., TEXT vs VARCHAR, JSONB vs JSON)
-interface Theme {
-  id: string; // Assuming UUID is treated as string
-  created_at: string; // Assuming TIMESTAMPTZ is treated as string
-  title: string;
-  description: string;
-  analytic_tradition: string[] | null; // Changed from string | null for JSONB
-  continental_tradition: string[] | null; // Changed from string | null for JSONB
-  is_selected: boolean | null; // Assuming BOOLEAN, nullable
-}
+// Remove local Theme interface definition, use imported one
 
 // Opt out of caching to ensure data is fetched at request time for SSR
 // For SSG, remove this line or set to a revalidation time (e.g., export const revalidate = 3600;)
@@ -22,21 +12,10 @@ interface Theme {
 // export const revalidate = 0; // Explicitly mark as static
 
 export default async function ThemesPage() {
-  // const cookieStore = cookies(); // No longer needed here, handled in createClient
-  const supabase = await createClient(); // Call without arguments
+  // Fetch data using the DAL function
+  const { themes, error } = await fetchThemes();
 
-  // Fetch data from Supabase
-  const { data: themes, error } = await supabase
-    .from('themes') // Ensure this table name matches your Supabase schema
-    .select('*')
-    .order('title', { ascending: true }); // Optional: order themes alphabetically
-
-  if (error) {
-    console.error('Error fetching themes:', error);
-    // Optionally render an error message to the user
-  }
-
-  // Use fetched themes (or empty array if error)
+  // Use fetched themes (or empty array if error or null)
   const themeList: Theme[] = themes || [];
 
   return (
@@ -59,7 +38,7 @@ export default async function ThemesPage() {
             key={theme.id}
             id={theme.id} // Added the missing id prop
             title={theme.title}
-            description={theme.description}
+            description={theme.description ?? ''} // Provide fallback for null description
             analyticTradition={theme.analytic_tradition ?? undefined} // Pass undefined if null
             continentalTradition={theme.continental_tradition ?? undefined} // Pass undefined if null
           />
