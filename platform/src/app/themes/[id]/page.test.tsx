@@ -138,7 +138,7 @@ describe('ThemeDetailPage', () => {
     // Verify mocks
     expect(mockSupabaseClient.from).toHaveBeenCalledWith('themes');
     expect(mockSupabaseClient.from('themes').select('*').eq).toHaveBeenCalledWith('id', 'mock-theme-id');
-    expect(fs.readFile).toHaveBeenCalledWith(expect.stringContaining('docs/event_info/themes/mock-theme-id.md'), 'utf8');
+    expect(fs.readFile).toHaveBeenCalledWith(expect.stringContaining('platform/markdown/themes/mock-theme-id.md'), 'utf8'); // Corrected path
     expect(notFound).not.toHaveBeenCalled();
     expect(screen.queryByText(/Note: Could not load detailed description/)).not.toBeInTheDocument();
   });
@@ -165,7 +165,7 @@ describe('ThemeDetailPage', () => {
     // Check Suggested Readings heading is NOT present
     expect(screen.queryByRole('heading', { name: /Suggested Readings/i })).not.toBeInTheDocument();
 
-    expect(fs.readFile).toHaveBeenCalledWith(expect.stringContaining('docs/event_info/themes/mock-theme-id-no-readings.md'), 'utf8');
+    expect(fs.readFile).toHaveBeenCalledWith(expect.stringContaining('platform/markdown/themes/mock-theme-id-no-readings.md'), 'utf8'); // Corrected path
     expect(notFound).not.toHaveBeenCalled();
   });
 
@@ -233,7 +233,7 @@ describe('ThemeDetailPage', () => {
     // Verify mocks
     expect(mockSupabaseClient.from).toHaveBeenCalledWith('themes');
     expect(mockSupabaseClient.from('themes').select('*').eq).toHaveBeenCalledWith('id', 'file-error-id');
-    expect(fs.readFile).toHaveBeenCalledWith(expect.stringContaining('docs/event_info/themes/file-error-id.md'), 'utf8');
+    expect(fs.readFile).toHaveBeenCalledWith(expect.stringContaining('platform/markdown/themes/file-error-id.md'), 'utf8'); // Corrected path
     expect(notFound).not.toHaveBeenCalled();
   });
 
@@ -255,7 +255,7 @@ describe('ThemeDetailPage', () => {
     // Verify mocks
     expect(mockSupabaseClient.from).toHaveBeenCalledWith('themes');
     expect(mockSupabaseClient.from('themes').select('*').eq).toHaveBeenCalledWith('id', 'file-error-no-fallback-id');
-    expect(fs.readFile).toHaveBeenCalledWith(expect.stringContaining('docs/event_info/themes/file-error-no-fallback-id.md'), 'utf8');
+    expect(fs.readFile).toHaveBeenCalledWith(expect.stringContaining('platform/markdown/themes/file-error-no-fallback-id.md'), 'utf8'); // Corrected path
   });
 
   // This test replaces the previous 'should render expanded description...' test
@@ -309,7 +309,7 @@ describe('ThemeDetailPage', () => {
     // Check Suggested Readings heading is NOT present
     expect(screen.queryByRole('heading', { name: /Suggested Readings/i })).not.toBeInTheDocument();
 
-    expect(fs.readFile).toHaveBeenCalledWith(expect.stringContaining('docs/event_info/themes/empty-file-id.md'), 'utf8');
+    expect(fs.readFile).toHaveBeenCalledWith(expect.stringContaining('platform/markdown/themes/empty-file-id.md'), 'utf8'); // Corrected path
     expect(notFound).not.toHaveBeenCalled();
   });
 });
