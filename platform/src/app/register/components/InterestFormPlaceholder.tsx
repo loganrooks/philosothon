@@ -112,6 +112,7 @@ const InterestFormPlaceholder: React.FC<DialogProps> = ({
             id="email"
             name="email"
             required
++           pattern="^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
             className="w-full px-2 py-1 bg-gray-800 border border-medium-gray text-hacker-green focus:outline-none focus:ring-1 focus:ring-hacker-green"
             autoComplete="off"
           />
