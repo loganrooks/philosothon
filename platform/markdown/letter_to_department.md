@@ -14,20 +14,20 @@ The Philosothon adapts the hackathon format to philosophical inquiry. Participan
 
 ## **Detailed Schedule**
 
-**Monday, April 7, 2025:**
+## **Event Details**
 
-* 8:30AM-9:00AM: Sign-in and welcome
-* 9:00AM-9:30AM: Opening remarks and theme announcement
-* 9:30AM-11:30AM: Initial team meetings
-* 12:00PM-1:00PM: Philosophy of technology workshop (with lunch provided)
-* 6:00PM-8:00PM: Pascal Quest workshop (limited to one representative per team)
-* 11:59PM: Submission deadline for presentations and written components
+**Saturday, April 26:**
+* 8:30AM: Sign-in and welcome
+* 9:00AM: Opening remarks and theme announcement
+* 12:00-1:00PM: Workshop #1
+* 6:00-8:00PM: Workshop #2
+* 11:59PM: Submission deadline
 
-**Tuesday, April 8, 2025:**
-
+**Sunday, April 27:**
 * 10:30AM-12:30PM: Team presentations
-* 12:30PM-1:30PM: Feedback collection and discussion
-* 1:30PM-2:00PM: Closing remarks
+* 12:30-2:00PM: Discussion, feedback, and closing
+
+**Location:** BA1230
 
 ## **Organizational Structure**
 

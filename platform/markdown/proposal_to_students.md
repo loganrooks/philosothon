@@ -2,7 +2,7 @@
 
 Hey Philosophy Students!
 
-Ever wanted more chances to dive into extended philosophical discussions with your peers? Tired of philosophy being just you, alone with your books and papers? The **Philosophy of Technology Group** invites you to join our experimental **Philosothon** – a one-day intensive philosophical collaboration event happening **April 7-8, 2025**.
+Ever wanted more chances to dive into extended philosophical discussions with your peers? Tired of philosophy being just you, alone with your books and papers? The **Philosophy of Technology Group** invites you to join our experimental **Philosothon** – a one-day intensive philosophical collaboration event happening **April 26-27, 2025**.
 
 ## **What is a Philosothon?**
 
@@ -19,14 +19,14 @@ Think of it as a philosophy hackathon – but instead of coding, we're creating 
 
 ## **Event Details**
 
-**Monday, April 26:**
+**Saturday, April 26:**
 * 8:30AM: Sign-in and welcome
 * 9:00AM: Opening remarks and theme announcement
 * 12:00-1:00PM: Workshop #1
 * 6:00-8:00PM: Workshop #2
 * 11:59PM: Submission deadline
 
-**Tuesday, April 27:**
+**Sunday, April 27:**
 * 10:30AM-12:30PM: Team presentations
 * 12:30-2:00PM: Discussion, feedback, and closing
 
@@ -38,7 +38,7 @@ We believe philosophy is enriched through diverse perspectives. Our matchmaking 
 
 Upper-year students can opt to mentor newer philosophy students (and we hope you will!), while first or second years can request to be paired with more experienced students. This creates learning opportunities flowing in both directions – fresh perspectives meet developed knowledge.
 
-Teams will be announced by Thursday, April 3rd, giving you time to connect before the event.
+Teams will be announced by Friday, April 25th, giving you time to connect before the event.
 
 ## **Philosophical Themes**
 
@@ -64,9 +64,8 @@ You'll also help us choose a workshop for Saturday evening, with options like:
 
 ## **How to Apply**
 
-This is a small trial event limited to 15-30 participants. Simply fill out the sign-up form by Thursday, April 3rd at noon. We'll ask about your interests, experience level, and preferences for teammates and topics. If more people apply than we can accommodate, we'll aim for a diverse mix of participants.
+This is a small trial event limited to 15-30 participants. Simply fill out the sign-up form by Thursday, April 24th at midnight. We'll ask about your interests, experience level, and preferences for teammates and topics. If more people apply than we can accommodate, we'll aim for a diverse mix of participants.
 
-[Google Form Link]
 
 ## **Questions?**
 
