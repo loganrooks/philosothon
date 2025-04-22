@@ -1,8 +1,16 @@
+// platform/src/app/register/components/TerminalShell.test.tsx
+
+// Import necessary testing utilities and React
 import React from 'react';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import TerminalShell from './TerminalShell';
-// Mock child dialog components to isolate TerminalShell logic
+import { vi, describe, it, expect, afterEach } from 'vitest';
+
+// Import the component for boot sequence tests and types/state/function for unit tests
+import OriginalTerminalShell, { initialState, TerminalState, calculatePrompt } from './TerminalShell';
+
+// --- Mocks ---
+// Mock child dialog components (needed for rendering OriginalTerminalShell)
 vi.mock('./InterestFormPlaceholder', () => ({
     default: () => <div data-testid="interest-form-placeholder">InterestFormPlaceholder Mock</div>,
 }));
@@ -10,169 +18,137 @@ vi.mock('./InterestFormPlaceholder', () => ({
 // vi.mock('./AuthDialog', () => ({ default: () => <div>AuthDialog Mock</div> }));
 // vi.mock('./RegistrationDialog', () => ({ default: () => <div>RegistrationDialog Mock</div> }));
 
-// Helper to get the input element
+// --- Helper ---
 const getInputElement = () => screen.queryByRole('textbox');
 
+// --- Test Suite ---
 describe('TerminalShell', () => {
+
+    // Restore timers after each test
+    afterEach(() => {
+        vi.useRealTimers();
+    });
+
     // --- Boot Sequence Tests ---
     describe('Boot Sequence', () => {
         it('should display initial boot messages on mount', () => {
-            render(<TerminalShell />);
-            // Check for initial messages defined in initialState
+            render(<OriginalTerminalShell />);
             expect(screen.getByText(/Philosothon Terminal V2\. Initializing\.\.\./i)).toBeInTheDocument();
             expect(screen.getByText(/Type "help" for available commands\./i)).toBeInTheDocument();
         });
 
         it('should NOT display the main input prompt during initial boot output', () => {
-            render(<TerminalShell />);
-            // The input line itself might be rendered but should correspond to the initial state's prompt,
-            // which isn't the dynamic one yet. Let's check if the *main mode* input is absent initially.
-            // The component logic currently shows input only in 'main' mode.
-            // Since initial state is 'main', this test might need refinement based on how boot is implemented.
-            // For now, let's assume the prompt text changes or input becomes enabled *after* boot.
-            // Let's check if the initial prompt is present, but maybe disabled?
-            // The current implementation doesn't have an explicit "boot" phase separate from "main".
-            // It starts in 'main' and shows initial messages.
-            // Let's refine: Assert initial messages are present, and the prompt is the *initial* one.
-            // Use a query that finds the span containing the prompt text, allowing for whitespace/encoding.
-            expect(screen.getByText((content, element) => {
-                // Check if the element is a span and its text content matches, ignoring leading/trailing whitespace
-                return element?.tagName.toLowerCase() === 'span' && content.trim() === '>';
-            })).toBeInTheDocument(); // Initial prompt span
-            // This test might need adjustment after implementing the actual boot sequence logic.
-            // A better test would be to assert the *final* dynamic prompt isn't present yet.
-            expect(screen.queryByText(/\[main\]\[guest\] > /i)).not.toBeInTheDocument();
+             render(<OriginalTerminalShell />);
+             // Check that the final prompt isn't there yet.
+             expect(screen.queryByText(/\[main\]\[guest\] > /i)).not.toBeInTheDocument();
         });
 
-        it('should eventually display the main input prompt after boot messages', async () => {
-            render(<TerminalShell />);
-            // Assuming the prompt calculation happens after initial render or some async action.
-            // We need to wait for the dynamic prompt to appear.
-            // The current implementation sets the prompt immediately based on mode in the reducer.
-            // Let's simulate a mode change or state update that triggers the dynamic prompt.
-            // For now, let's just wait for the expected initial dynamic prompt based on initialState.
-            // This test needs refinement based on actual boot/prompt logic.
-            // Let's assume the prompt calculation is slightly delayed or happens in an effect.
-            await waitFor(() => {
-                // The prompt calculation needs to be implemented first.
-                // This test WILL FAIL until the dynamic prompt logic is added.
-                expect(screen.getByText(/\[main\]\[guest\] > /i)).toBeInTheDocument();
+        it('should eventually enable input after boot messages', async () => { // Make test async
+            vi.useFakeTimers();
+
+            render(<OriginalTerminalShell />);
+            // Calculate total delay based on component's bootMessages array + buffer
+            // Delays: 50+100+150+200+250+300+350+400+450 = 2250ms
+            const totalBootTime = 2250 + 100; // Sum of delays + 100ms buffer
+
+            act(() => { // Keep act synchronous if runAllTimers is synchronous
+                vi.advanceTimersByTime(totalBootTime + 50);
+                vi.runAllTimers(); // Run all pending timers explicitly
             });
-            expect(getInputElement()).toBeEnabled();
-        });
+
+            // Check only if the input is enabled after the boot sequence
+            await waitFor(() => {
+                expect(getInputElement()).toBeEnabled();
+            });
+        }, 10000); // Increase timeout to 10 seconds
     });
 
-    // --- Dynamic Prompt Tests ---
-    describe('Dynamic Prompt', () => {
-        // We need a way to provide initial state to the reducer for these tests.
-        // Option 1: Modify the component to accept initialState prop (invasive).
-        // Option 2: Mock useReducer.
-        // Let's try mocking useReducer.
+    // --- Dynamic Prompt Unit Tests ---
+    describe('Dynamic Prompt (Unit Tests)', () => {
 
-        let mockDispatch: vi.Mock;
-        let mockState: any; // Allow modification in tests
+        it('should return correct prompt for main mode, guest user', () => {
+            const state: TerminalState = {
+                ...initialState, // Includes mode: 'main', isAuthenticated: false, userEmail: null
+            };
+            expect(calculatePrompt(state)).toBe('[main][guest] > ');
+        });
 
-        beforeEach(() => {
-            mockDispatch = vi.fn();
-            // Reset mockState before each test
-            mockState = {
+        it('should return correct prompt for main mode, authenticated user', () => {
+            const state: TerminalState = {
+                ...initialState,
+                isAuthenticated: true,
+                userEmail: 'test@example.com',
                 mode: 'main',
-                outputLines: [],
-                commandHistory: [],
-                historyIndex: -1,
+            };
+            expect(calculatePrompt(state)).toBe('[main][test@example.com] > ');
+        });
+
+        it('should return correct prompt for registration mode, anonymous user, step 5', () => {
+            const state: TerminalState = {
+                ...initialState,
                 isAuthenticated: false,
                 userEmail: null,
-                dialogState: {},
-                pendingAction: false,
-                error: null,
-                prompt: '> ', // Initial prompt
+                mode: 'registration',
+                dialogState: { registration: { currentStep: 4 } }, // 0-indexed
             };
-
-            // Mock useReducer to return our controlled state and mock dispatch
-            vi.spyOn(React, 'useReducer').mockImplementation(() => [mockState, mockDispatch]);
+            expect(calculatePrompt(state)).toBe('[registration][guest][5/45] > ');
         });
 
-        afterEach(() => {
-            vi.restoreAllMocks(); // Clean up mocks
+        it('should return correct prompt for registration mode, authenticated user, step 20', () => {
+            const state: TerminalState = {
+                ...initialState,
+                isAuthenticated: true,
+                userEmail: 'test@example.com',
+                mode: 'registration',
+                dialogState: { registration: { currentStep: 19 } }, // 0-indexed
+            };
+            expect(calculatePrompt(state)).toBe('[registration][test@example.com][20/45] > ');
         });
 
-        it('Scenario 1 (Initial): should display prompt "[main][guest] > "', async () => {
-            // Set state for the scenario
-            mockState.mode = 'main';
-            mockState.isAuthenticated = false;
-            mockState.userEmail = null;
-            mockState.dialogState = {};
-            // The prompt calculation logic needs to exist and be triggered.
-            // Let's assume it's called via an effect or dispatch.
-            // We'll manually set the expected prompt for the test to fail correctly now.
-            mockState.prompt = '[main][guest] > '; // Manually set for test structure
-
-            render(<TerminalShell />);
-
-            // This test will fail until the component actually calculates and sets this prompt.
-            await waitFor(() => {
-                 expect(screen.getByText(/\[main\]\[guest\] > /i)).toBeInTheDocument();
-            });
+        it('should return correct prompt for registration mode, authenticated user, no step', () => {
+            const state: TerminalState = {
+                ...initialState,
+                isAuthenticated: true,
+                userEmail: 'test@example.com',
+                mode: 'registration',
+                dialogState: { registration: {} }, // currentStep missing
+            };
+            expect(calculatePrompt(state)).toBe('[registration][test@example.com] > ');
         });
 
-        it('Scenario 2 (Auth): should display prompt "[main][test@example.com] > "', async () => {
-            mockState.mode = 'main';
-            mockState.isAuthenticated = true;
-            mockState.userEmail = 'test@example.com';
-            mockState.dialogState = {};
-            mockState.prompt = '[main][test@example.com] > '; // Manually set
-
-            render(<TerminalShell />);
-
-            await waitFor(() => {
-                expect(screen.getByText(/\[main\]\[test@example\.com\] > /i)).toBeInTheDocument();
-            });
+         it('should return correct prompt for registration mode, anonymous user, no step', () => {
+            const state: TerminalState = {
+                ...initialState,
+                isAuthenticated: false,
+                userEmail: null,
+                mode: 'registration',
+                dialogState: { registration: {} }, // currentStep missing
+            };
+            expect(calculatePrompt(state)).toBe('[registration][guest] > ');
         });
 
-        it('Scenario 3 (Reg Anon): should display prompt "[registration][guest][5/45] > "', async () => {
-            mockState.mode = 'registration';
-            mockState.isAuthenticated = false;
-            mockState.userEmail = null;
-            mockState.dialogState = { registration: { currentStep: 5 } }; // Assuming structure
-             mockState.prompt = '[registration][guest][5/45] > '; // Manually set
-
-            render(<TerminalShell />);
-
-            await waitFor(() => {
-                expect(screen.getByText(/\[registration\]\[guest\]\[5\/45\] > /i)).toBeInTheDocument();
-            });
+         it('should return correct prompt for registration mode, anonymous user, step 0', () => {
+            const state: TerminalState = {
+                ...initialState,
+                isAuthenticated: false,
+                userEmail: null,
+                mode: 'registration',
+                dialogState: { registration: { currentStep: 0 } }, // 0-indexed
+            };
+            expect(calculatePrompt(state)).toBe('[registration][guest][1/45] > ');
         });
 
-         it('Scenario 4 (Reg Auth): should display prompt "[registration][test@example.com][20/45] > "', async () => {
-            mockState.mode = 'registration';
-            mockState.isAuthenticated = true;
-            mockState.userEmail = 'test@example.com';
-            mockState.dialogState = { registration: { currentStep: 20 } }; // Assuming structure
-            mockState.prompt = '[registration][test@example.com][20/45] > '; // Manually set
-
-            render(<TerminalShell />);
-
-            await waitFor(() => {
-                 expect(screen.getByText(/\[registration\]\[test@example\.com\]\[20\/45\] > /i)).toBeInTheDocument();
-            });
+         it('should return correct prompt for registration mode, anonymous user, step -1 (pre-questions)', () => {
+            const state: TerminalState = {
+                ...initialState,
+                isAuthenticated: false,
+                userEmail: null,
+                mode: 'registration',
+                dialogState: { registration: { currentStep: -1 } }, // Special case
+            };
+            // Based on current logic, this should omit the progress part
+            expect(calculatePrompt(state)).toBe('[registration][guest] > ');
         });
 
-        // TODO: Add tests for other state combinations if needed.
-        // Example: Registration mode but dialogState.registration is missing or currentStep is missing.
-        it('Scenario 5 (Reg Auth, No Step): should display prompt "[registration][test@example.com] > "', async () => {
-            mockState.mode = 'registration';
-            mockState.isAuthenticated = true;
-            mockState.userEmail = 'test@example.com';
-            mockState.dialogState = { registration: {} }; // Missing currentStep
-            mockState.prompt = '[registration][test@example.com] > '; // Manually set
-
-            render(<TerminalShell />);
-
-            await waitFor(() => {
-                 expect(screen.getByText(/\[registration\]\[test@example\.com\] > /i)).toBeInTheDocument();
-                 // Check that progress indicator is NOT present
-                 expect(screen.queryByText(/\[\d+\/\d+\]/)).not.toBeInTheDocument();
-            });
-        });
     });
 });

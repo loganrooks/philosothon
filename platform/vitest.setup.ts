@@ -20,6 +20,8 @@ vi.mock('react-dom', async (importOriginal) => {
 
 // Mock scrollIntoView for JSDOM
 window.HTMLElement.prototype.scrollIntoView = vi.fn();
+// Mock scrollTo for JSDOM
+window.HTMLElement.prototype.scrollTo = vi.fn();
 
 // Optional: Add any other global setup needed for tests here
 // For example, mocking global objects or setting up mocks for external services

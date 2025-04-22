@@ -14,9 +14,9 @@ import InterestFormPlaceholder from './InterestFormPlaceholder'; // Placeholder 
 
 // --- Types ---
 
-type TerminalMode = 'main' | 'interest_capture' | 'auth' | 'registration'; // Add more modes as needed
+export type TerminalMode = 'main' | 'interest_capture' | 'auth' | 'registration'; // Add more modes as needed
 
-interface OutputLine {
+export interface OutputLine { // Export if needed elsewhere, maybe not for this test
   id: number;
   text: string;
   type:
@@ -28,11 +28,11 @@ interface OutputLine {
     | 'info'
     | 'question'
     | 'prompt';
-}
-
-interface TerminalState {
-  mode: TerminalMode;
-  outputLines: OutputLine[];
+  }
+  
+  export interface TerminalState { // Export for test file
+    mode: TerminalMode;
+    outputLines: OutputLine[];
   commandHistory: string[];
   historyIndex: number; // -1 for new command, 0+ for history navigation
   isAuthenticated: boolean; // Placeholder for auth state
@@ -58,7 +58,7 @@ type TerminalAction =
 
 // --- Initial State & Reducer ---
 
-const initialState: TerminalState = {
+export const initialState: TerminalState = { // Export for test file
   mode: 'main',
   outputLines: [
     { id: 0, text: 'Philosothon Terminal V2. Initializing...', type: 'info' },
@@ -314,10 +314,40 @@ const dialogComponents: Record<TerminalMode, React.FC<any>> = { // Use 'any' for
 };
 
 
+// Helper function to calculate the dynamic prompt - Export for testing
+export function calculatePrompt(state: TerminalState): string {
+  const mode = state.mode;
+  const authStatus = state.isAuthenticated ? state.userEmail || 'user' : 'guest';
+  let progress = '';
+
+  if (mode === 'registration') {
+    const regState = state.dialogState?.registration;
+    // Assuming V3.1 schema with 45 questions total
+    const totalQuestions = 45;
+    const currentStep = regState?.currentStep; // Use optional chaining
+
+    // Ensure currentStep is a valid number before displaying progress
+    if (typeof currentStep === 'number' && currentStep >= 0 && currentStep < totalQuestions) {
+        // Display step number (1-based)
+        progress = `[${currentStep + 1}/${totalQuestions}]`;
+    }
+     // Handle case where step might be 0 or undefined during initial registration phases
+     else if (typeof currentStep === 'number' && currentStep === -1) {
+         // Maybe show nothing or a specific indicator for pre-question steps
+         progress = ''; // Or '[0/45]' if preferred
+     }
+     // Add handling for other potential states if needed
+  }
+  // Add progress calculation for other modes if necessary
+
+  return `[${mode}][${authStatus}]${progress} > `;
+}
+
 // --- TerminalShell Component ---
 
 const TerminalShell: React.FC = () => {
   const [state, dispatch] = useReducer(terminalReducer, initialState);
+  const [isBooting, setIsBooting] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // --- Helper Functions ---
@@ -426,6 +456,50 @@ const TerminalShell: React.FC = () => {
   }, []);
 
 
+  // Boot sequence effect
+  useEffect(() => {
+    // Optional: Clear initial messages if desired
+    // dispatch({ type: 'CLEAR_OUTPUT' }); // Uncomment if you want to clear initial messages
+
+    const bootMessages = [
+      { delay: 50, text: '██╗     ███████╗███████╗ ██████╗ ██████╗ ██╗   ██╗███████╗', type: 'info' as OutputLine['type'] },
+      { delay: 100, text: '██║     ██╔════╝██╔════╝██╔════╝ ██╔══██╗██║   ██║██╔════╝', type: 'info' as OutputLine['type'] },
+      { delay: 150, text: '██║     ███████╗███████╗██║  ███╗██████╔╝██║   ██║███████╗', type: 'info' as OutputLine['type'] },
+      { delay: 200, text: '██║     ╚════██║╚════██║██║   ██║██╔══██╗██║   ██║╚════██║', type: 'info' as OutputLine['type'] },
+      { delay: 250, text: '███████╗███████║███████║╚██████╔╝██║  ██║╚██████╔╝███████║', type: 'info' as OutputLine['type'] },
+      { delay: 300, text: '╚══════╝╚══════╝╚══════╝ ╚═════╝ ╚═╝  ╚═╝ ╚═════╝ ╚══════╝', type: 'info' as OutputLine['type'] },
+      { delay: 350, text: '-----------------------------------------------------------', type: 'info' as OutputLine['type'] },
+      { delay: 400, text: 'Philosothon Terminal V2 Initialized.', type: 'success' as OutputLine['type'] },
+      { delay: 450, text: 'Type "help" for available commands.', type: 'info' as OutputLine['type'] },
+    ];
+
+    let cumulativeDelay = 0;
+    bootMessages.forEach(msg => {
+      cumulativeDelay += msg.delay;
+      setTimeout(() => {
+        dispatch({ type: 'ADD_OUTPUT', payload: { text: msg.text, outputType: msg.type } });
+      }, cumulativeDelay);
+    });
+
+    // Final timeout to finish booting
+    setTimeout(() => {
+      setIsBooting(false);
+      // Optionally dispatch initial prompt calculation here if needed immediately
+      // dispatch({ type: 'SET_PROMPT', payload: calculatePrompt(state) }); // Needs state access or refactor
+    }, cumulativeDelay + 100); // Add a small buffer
+
+  }, []); // Run only once on mount
+
+  // Effect to update prompt dynamically
+  useEffect(() => {
+    const newPrompt = calculatePrompt(state);
+    // Avoid unnecessary dispatches if prompt hasn't changed
+    if (newPrompt !== state.prompt) {
+      dispatch({ type: 'SET_PROMPT', payload: newPrompt });
+    }
+    // Watch relevant state parts for prompt changes
+  }, [state.mode, state.isAuthenticated, state.userEmail, state.dialogState, state.prompt]); // Added state.prompt to dependencies
+
   // --- Context Value ---
   const contextValue: TerminalContextProps = {
     state,
@@ -463,7 +537,7 @@ const TerminalShell: React.FC = () => {
              <InputLine
                 prompt={state.prompt}
                 onSubmit={processCommand}
-                disabled={state.pendingAction}
+                disabled={isBooting || state.pendingAction}
                 commandHistory={state.commandHistory}
                 historyIndex={state.historyIndex}
                 onHistoryNav={handleHistoryNav}
