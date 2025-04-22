@@ -15,7 +15,6 @@ Think of it as a philosophy hackathon – but instead of coding, we're creating 
 * **Experience philosophy as a creative, generative practice** – Not just analyzing others' ideas, but building something together
 * **Connect with other philosophy students** you might not meet in your courses
 * **Get feedback on your ideas** in a low-stakes, supportive environment from graduate students
-* **Participate in unique workshops** including a hands-on session with Pascal Quest technology
 
 ## **Event Details**
 
@@ -30,7 +29,7 @@ Think of it as a philosophy hackathon – but instead of coding, we're creating 
 * 10:30AM-12:30PM: Team presentations
 * 12:30-2:00PM: Discussion, feedback, and closing
 
-**Location:** BA1230
+**Location:** BA 1230
 
 ## **How Teams Work**
 
@@ -65,7 +64,6 @@ You'll also help us choose a workshop for Saturday evening, with options like:
 ## **How to Apply**
 
 This is a small trial event limited to 15-30 participants. Simply fill out the sign-up form by Thursday, April 24th at midnight. We'll ask about your interests, experience level, and preferences for teammates and topics. If more people apply than we can accommodate, we'll aim for a diverse mix of participants.
-
 
 ## **Questions?**
 
