@@ -21,8 +21,8 @@ describe('Home Page Component', () => {
   beforeEach(() => {
     // Reset mocks before each test
     vi.clearAllMocks();
-    // Provide a default mock implementation for fetchSchedule
-    (fetchSchedule as Mock).mockResolvedValue([]); // Use imported Mock type
+    // Provide a default mock implementation for fetchSchedule with new structure
+    (fetchSchedule as Mock).mockResolvedValue({ scheduleItems: [], error: null });
   });
 
   // Await the async component resolution before rendering
@@ -46,8 +46,9 @@ describe('Home Page Component', () => {
 
   // Add tests for ScheduleDisplay
   it('should render the ScheduleDisplay component and pass items', async () => {
-    const mockSchedule = [{ id: '1', title: 'Test Event', time: '10:00', description: 'Desc' }];
-    (fetchSchedule as Mock).mockResolvedValue(mockSchedule); // Specific mock for this test
+    const mockScheduleItems = [{ id: '1', title: 'Test Event', time: '10:00', description: 'Desc' }];
+    (fetchSchedule as Mock).mockResolvedValue({ scheduleItems: mockScheduleItems, error: null });
+    
     const resolvedComponent = await Home();
     render(resolvedComponent);
     expect(screen.getByTestId('mock-schedule-display')).toBeInTheDocument();
@@ -56,7 +57,7 @@ describe('Home Page Component', () => {
   });
 
   it('should handle empty schedule gracefully', async () => {
-    // Default mock from beforeEach handles this case (returns [])
+    // Default mock from beforeEach handles this case (returns { scheduleItems: [], error: null })
     const resolvedComponent = await Home();
     render(resolvedComponent);
     expect(screen.getByTestId('mock-schedule-display')).toBeInTheDocument();
@@ -64,4 +65,16 @@ describe('Home Page Component', () => {
     expect(fetchSchedule).toHaveBeenCalledTimes(1);
   });
 
+  it('should handle error case gracefully', async () => {
+    (fetchSchedule as Mock).mockResolvedValue({ 
+      scheduleItems: null, 
+      error: new Error('Failed to fetch schedule') 
+    });
+    
+    const resolvedComponent = await Home();
+    render(resolvedComponent);
+    expect(screen.getByTestId('mock-schedule-display')).toBeInTheDocument();
+    expect(screen.getByTestId('mock-schedule-display')).toHaveTextContent('Schedule Items: 0');
+    expect(fetchSchedule).toHaveBeenCalledTimes(1);
+  });
 });

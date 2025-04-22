@@ -1,3 +1,9 @@
+[2025-04-22 19:11:44] - Code - Completed Task (Compare Schedule Implementation) - Compared DAL, Page, and Display components for schedule vs. themes/faq/workshops. Found consistent DAL/fetching patterns. Key difference: schedule page relies on display component for empty state, others handle in page. Initial hypothesis: `fetchSchedule` returned unexpected empty array due to subtle data/query issue or cache. **User confirmed issue resolved by clearing cache and rebuilding.**
+
+
+[2025-04-22 19:10:10] - Code - Completed Task (Compare Schedule Implementation) - Compared DAL, Page, and Display components for schedule vs. themes/faq/workshops. Found consistent DAL/fetching patterns. Key difference: schedule page relies on display component for empty state, others handle in page. Hypothesis: `fetchSchedule` returns unexpected empty array despite data existing, possibly due to subtle data/query issue or cache. Recommended checking `fetchSchedule` console log.
+
+
 [2025-04-22 13:29:00] - Code - Completed Task (Update Theme Descriptions) - Rewrote descriptions for 6 themes in Supabase DB using a temporary script with service key to match concise style. Cleaned up script.
 
 

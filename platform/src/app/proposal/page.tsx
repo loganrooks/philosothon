@@ -47,7 +47,7 @@ export default async function ProposalPage() {
   // Fetch all data concurrently
   const [
     markdownContent,
-    scheduleItemsResult, // Renamed to avoid conflict, assuming fetchSchedule returns array directly
+    scheduleResult,
     themesResult,
     workshopsResult
   ] = await Promise.all([
@@ -58,18 +58,20 @@ export default async function ProposalPage() {
   ]);
 
   // Extract data and handle potential errors from DAL functions
-  const scheduleItems = scheduleItemsResult ?? []; // Keep existing nullish coalescing for schedule
+  const scheduleItems = scheduleResult.error ? [] : scheduleResult.scheduleItems ?? [];
   const themes = themesResult.error ? null : themesResult.themes;
   const workshops = workshopsResult.error ? null : workshopsResult.workshops;
 
   // Log errors if any
+  if (scheduleResult.error) {
+    console.error("Error fetching schedule:", scheduleResult.error);
+  }
   if (themesResult.error) {
     console.error("Error fetching themes:", themesResult.error);
   }
   if (workshopsResult.error) {
     console.error("Error fetching workshops:", workshopsResult.error);
   }
-
 
   return (
     <div className="container mx-auto px-4 py-8">

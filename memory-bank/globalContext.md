@@ -1,4 +1,6 @@
 - **[2025-04-22 11:58:07] - DocsWriter:** Created new theme description file `platform/markdown/themes/meaning-in-ai-world.md` based on fetched essay content.
+- **[2025-04-22 19:11:44] - Code:** Compared schedule implementation (DAL, Page, Display) with themes, faq, workshops. Found consistent DAL/fetching patterns. Key difference: schedule page (`page.tsx`) relies on `ScheduleDisplay` for empty state handling, while other pages handle errors/empty state explicitly in JSX. Initial hypothesis: `fetchSchedule` returned unexpected empty array due to subtle data/query issue or cache. **User confirmed issue resolved by clearing cache and rebuilding.**
+
 # Progress
 - **[2025-04-22 13:29:00] - Code:** Updated descriptions for 6 themes in Supabase DB using temporary script with service key.
 
