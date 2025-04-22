@@ -92,6 +92,15 @@
 
 
 ## Intervention Log
+### [2025-04-22 11:41:11] Intervention: Pivot to Security/Themes/etc.
+- **Trigger**: User Input [2025-04-22 11:15:41]
+- **Context**: Implementation of RegistrationDialog on feat/architecture-v2 blocked/paused. User requested addressing Security/RLS, Theme updates, Dynamic Reg Options, and Interest Form Email first on separate branches from main.
+- **Action Taken**: Halted RegistrationDialog work. Pivoted workflow to address new priorities.
+- **Rationale**: Address user priorities and critical security concerns before resuming complex feature implementation.
+- **Outcome**: Workflow pivoted. RLS fixes delegated and completed. Security review delegated.
+- **Follow-up**: Delegate Theme Updates next.
+
+
 ### [2025-04-20 16:35:59] Intervention: SSOT/V3 Spec Mismatch with Outline & New Requirements
 - **Trigger**: User interruption and detailed feedback during Green Phase delegation.
 - **Context**: User identified that the current SSOT config (`registrationSchema.ts`) and generated files do not match the structure/content of `docs/event_info/registration_outline.md` (e.g., separate First/Last Name). Additionally, the SSOT mechanism lacks support for required hints, descriptions, complex validation rules (e.g., ranked choice), specific error hints, and flexible input handling.
@@ -294,11 +303,11 @@
 - Link to Progress Entry: [See Debug completion message 2025-04-20 02:42:29]
 
 # Workflow State (Current - Overwrite this section)
-- Current phase: Implementation (Registration Terminal V3.1 - SSOT Update)
-- Phase start: [2025-04-20 17:37:44]
-- Current focus: Update the SSOT configuration (`platform/config/registrationSchema.ts`) and generation script (`platform/scripts/generate-registration.ts`) to align with the V3.1 specification (`docs/specs/p0_registration_terminal_ui_spec_v2.md`). Run the script.
-- Next actions: Delegate SSOT update and execution task to `code` mode.
-- Last Updated: [2025-04-20 17:37:44]
+- Current phase: Security Review
+- Phase start: 2025-04-22 11:41:54
+- Current focus: Perform security review of 'main' branch and define development guidelines. Address RLS policy implementation.
+- Next actions: Delegate Theme Updates task (Task 1).
+- Last Updated: 2025-04-22 11:41:54
 
 
 ### [2025-04-19 23:56:27] Task: Debug Vitest Mocking Error in RegistrationForm Test
