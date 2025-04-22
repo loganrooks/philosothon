@@ -1,6 +1,15 @@
 # SPARC Orchestrator Specific Memory
 <!-- Entries below should be added reverse chronologically (newest first) -->
 
+### [2025-04-22 07:10:37] Intervention: Major Pivot & Delegate Clause Invocation
+- **Trigger**: User instruction upon task resumption.
+- **Context**: User confirmed placeholder deployment to `main`. Provided extensive new requirements: Re-implement full registration flow (with partial saves, refined auth/resume logic, UI updates) within modular terminal; update landing page; refine schedule component. User noted high context (42%) and suggested handover.
+- **Action Taken**: Logging intervention, major pivot, and decision to invoke Delegate Clause.
+- **Rationale**: Acknowledge significant new scope. Proactively manage context window limitations as per user suggestion and Delegate Clause rules before performance degrades.
+- **Outcome**: Workflow pivoted. Preparing handover to new SPARC instance.
+- **Follow-up**: Delegate orchestration to a new `sparc` instance via `new_task` with a detailed handover message covering new requirements and current state.
+
+
 ### [2025-04-21 07:44:55] Intervention: Interest Form 'Submit on Enter' Not Working
 - **Trigger**: User feedback reporting Enter key does not submit the interest form.
 - **Context**: `code` mode previously reported fixing this (commit `642e8e4`) by removing the button and relying on standard form behavior. User reports this is not functional.
@@ -319,6 +328,13 @@
 - Phase start: [2025-04-20 14:22:25]
 - Current focus: Implement minimal code for the V3 terminal registration UI, SSOT script fixes, password auth, and registration actions to pass the newly created/updated failing tests.
 - Next actions: Delegate Green Phase implementation task to `code` mode.
+# Workflow State (Current - Overwrite this section)
+- Current phase: Handover Preparation
+- Phase start: [2025-04-22 07:10:37]
+- Current focus: Prepare handover message detailing new requirements (Full registration V3.1 implementation with partial saves, UI updates, landing page changes, schedule component refinement) for delegation to a new SPARC instance due to context limits and scope change.
+- Next actions: Delegate to new `sparc` instance via `new_task`.
+- Last Updated: [2025-04-22 07:10:37]
+
 - Last Updated: [2025-04-20 14:22:25]
 
 - Outcome: Successfully resolved the `ReferenceError` by switching from `vi.mock` to `vi.spyOn` for action modules (commit `b83053d`). *However*, this revealed 16/17 tests now fail due to component logic issues (stuck in boot sequence). Invoked Early Return Clause as fixing logic errors is out of scope.
@@ -782,6 +798,16 @@
 - Current focus: Debug issues (double boot message, unresponsiveness) in the user-provided terminal-style `RegistrationForm.tsx`.
 - Next actions: Delegate debugging task to `debug` mode based on `code` mode's analysis.
 - Last Updated: [2025-04-19 19:11:04]
+
+### [2025-04-21 07:45:25] Task: Debug Interest Form Placeholder 'Submit on Enter'
+- Assigned to: debug
+- Description: Debug why Enter key doesn't submit the interest form.
+- Expected deliverable: Diagnosis or fix.
+- Status: superseded
+- Completion time: [2025-04-22 07:10:37]
+- Outcome: Task superseded. User confirmed placeholder was deployed to main, implying issue was resolved manually or is no longer relevant. New requirements provided.
+- Link to Progress Entry: [SPARC Log 2025-04-22 07:10:37]
+
 
 
 - **Outcome**: Intervention logged. Proceeding with pre-handover steps (Memory Bank Doctor check).

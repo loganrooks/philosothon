@@ -496,4 +496,39 @@ CREATE TRIGGER handle_updated_at BEFORE UPDATE ON user_puzzle_progress
 - **Notes**: RLS ensures users only modify their own progress. `puzzle_state` JSONB offers flexibility. Consider if the MCP server needs a dedicated service role for updates instead of using admin privileges.
 
 ## Data Models
+### Data Model: `partial_registrations` - [2025-04-22 07:21:00]
+- **Purpose**: Store temporary, in-progress registration data for signed-in users to allow resuming later.
+- **Structure**:
+```sql
+CREATE TABLE public.partial_registrations (
+  user_id UUID PRIMARY KEY REFERENCES public.profiles(id) ON DELETE CASCADE, -- Link directly to profiles which links to auth.users
+  partial_data JSONB NOT NULL DEFAULT '{}'::jsonb, -- Stores answers keyed by question ID (e.g., {"firstName": "Test", "email": "test@example.com", ...})
+  last_updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+
+-- Enable RLS
+ALTER TABLE public.partial_registrations ENABLE ROW LEVEL SECURITY;
+
+-- Allow users to manage their own partial registration data
+CREATE POLICY "Allow individual user access" ON public.partial_registrations
+  FOR ALL
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+-- Optional: Allow admins to view/delete any partial registration (for cleanup/support)
+CREATE POLICY "Allow admin read/delete access" ON public.partial_registrations
+  FOR SELECT, DELETE -- Admins likely shouldn't modify partial data directly
+  USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+-- Trigger to automatically update last_updated_at timestamp on modification
+CREATE TRIGGER handle_updated_at BEFORE UPDATE ON public.partial_registrations
+  FOR EACH ROW EXECUTE PROCEDURE moddatetime (last_updated_at);
+
+-- Optional: Index on last_updated_at for potential cleanup jobs
+CREATE INDEX IF NOT EXISTS idx_partial_registrations_last_updated_at ON public.partial_registrations(last_updated_at);
+```
+- **Relationships**: One-to-one with `profiles` (and thus `auth.users`).
+- **Notes**: RLS ensures data privacy. Data in this table is transient and should be deleted upon final registration submission or explicit overwrite. `partial_data` stores a JSON object mapping question IDs (from `registrationSchema.ts`) to user answers.
+
+
 <!-- Append new data models using the format below -->

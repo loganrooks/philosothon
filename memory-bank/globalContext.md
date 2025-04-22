@@ -97,6 +97,20 @@ This file consolidates less frequently updated global project information, inclu
 ---
 
 # System Patterns
+### [2025-04-22 07:21:00] System Pattern: Partial Registration Save/Resume (Signed-In Users)
+
+- **Description:** Enables signed-in users to save their progress during the terminal registration process and resume later. Uses a dedicated `partial_registrations` table to store temporary progress.
+- **Flow:**
+    1.  **Save:** On `exit` command (signed-in), frontend calls `savePartialRegistration` server action, which upserts the current form data (as JSONB) into `partial_registrations` keyed by `user_id`.
+    2.  **Resume:** On `register continue` command (signed-in), frontend calls `loadPartialRegistration` action. If data exists, it's loaded into the terminal state, and registration resumes.
+    3.  **Overwrite:** On `register new` command (signed-in), frontend checks via `loadPartialRegistration`. If data exists, prompts user confirmation. If confirmed, calls `deletePartialRegistration` action before starting anew.
+    4.  **Cleanup:** On successful final submission (`submitRegistration` action), the entry in `partial_registrations` for the user is deleted.
+- **Components:** `TerminalShell`, `RegistrationDialog`, `savePartialRegistration` (Action), `loadPartialRegistration` (Action), `deletePartialRegistration` (Action), `partial_registrations` (Table).
+- **Benefits:** Improves user experience for longer forms, prevents data loss on accidental exit.
+- **Related:** Modular Terminal UI Pattern, `partial_registrations` Data Model.
+
+---
+
 
 ### [2025-04-21 18:49:00] System Pattern: Modular Terminal UI
 
@@ -177,6 +191,16 @@ This file consolidates less frequently updated global project information, inclu
 *   **[2025-04-18] Admin CRUD Pattern:** Implemented using Server Components for list/edit page shells, Client Components for forms (`useFormState`), and Server Actions (`actions.ts`) for data mutation (create, update, delete). Edit pages use query parameters (`?id=...`) instead of dynamic route segments to avoid previous build issues.
 
 # Decision Log
+### [2025-04-22 07:21:00] Decision: Use New `partial_registrations` Table for Partial Saves
+
+- **Context:** Need to store partial registration progress for signed-in users to support save/resume functionality in the V3.1 terminal UI.
+- **Decision:** Create a new dedicated table `partial_registrations` (schema: `user_id` PK/FK, `partial_data` JSONB, `last_updated_at`) instead of modifying the existing `registrations` table.
+- **Rationale:** Provides better separation of concerns (temporary vs. final data), simplifies the main `registrations` table schema, improves maintainability (e.g., cleanup of old partial saves), and potentially offers better query performance for completed registrations.
+- **Alternatives Considered:** Modifying `registrations` table with `status` and `partial_data` columns (rejected due to schema complexity and mixing transient/final data).
+- **Implementation:** Create the new table via migration. Implement server actions (`savePartialRegistration`, `loadPartialRegistration`, `deletePartialRegistration`). Update frontend logic (`register new`, `register continue`, `exit`, `submit`) to interact with these actions and the new table for signed-in users. Ensure partial data is deleted upon final submission or overwrite.
+
+---
+
 
 ### [2025-04-21 18:49:00] Decision: Adopt Modular Terminal Architecture with Reducer/Context State Management
 

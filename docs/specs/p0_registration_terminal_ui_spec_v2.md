@@ -93,7 +93,7 @@ The system operates in distinct modes, each offering specific commands and visua
 4.  **Main Menu (Authenticated):** If valid session exists, prompt `[user@philosothon]$` appears with commands based on registration status: `register`, `view`, `edit`, `delete`, `sign-out`, `help`, `about`.
 5.  **Status Line:** A status line indicates relevant state:
     *   Anonymous + Local Data: "Registration in progress found. Use 'register continue' to resume."
-    *   Authenticated: "Signed in as [user_email]. Registration [status: complete/incomplete/not started]." (Status fetched from server).
+    *   Authenticated: "Signed in as [user_email]. Registration [status: complete/incomplete/not started]." (Status fetched from server, including check on `partial_registrations` table). *(Saved progress found if applicable)*
     *   *TDD Anchor:* Test status line displays correct message based on local storage state (pre-auth).
     *   *TDD Anchor:* Test status line displays correct message based on server data/session (post-auth).
 
@@ -101,8 +101,15 @@ The system operates in distinct modes, each offering specific commands and visua
 
 1.  **Entry:** User enters `register` in Main Mode.
 2.  **Sub-Menu:** System presents registration sub-commands: `new`, `continue` (if local data exists), `back`.
-    *   `new`: Displays the introductory message: *"Welcome to the Philosothon registration form! This questionnaire will help us understand your interests, background, and preferences to create balanced teams and select themes that resonate with participants. The event will take place on **April 26-27, 2025**. Completing this form should take approximately 10-15 minutes. Please submit your responses by **Thursday, April 24th at midnight**."* If local data exists, display warning: "Existing registration data found. Starting new will overwrite it. Proceed? (yes/no)". Requires confirmation (`yes`). Clears relevant local storage. Enters Registration Mode at Step 3 (First Name).
-    *   `continue`: Loads state from local storage. Visually displays previously answered questions and answers leading up to the resume point. Resumes registration from the last unanswered question index. If no local data exists, display error: "No registration in progress found. Use 'register new'." Enters Registration Mode at the saved index.
+    *   `new`:
+        *   **Behavior:** Displays the introductory message: *"Welcome to the Philosothon registration form! ... Please submit your responses by **Thursday, April 24th at midnight**."*
+        *   **Overwrite Check (Signed-In Users):** If the user is signed in, check the `partial_registrations` table via a backend call. If partial data exists, display warning: "You have saved registration progress. Starting new will overwrite it. Proceed? (yes/no)". Requires confirmation (`yes`). On confirmation, call `deletePartialRegistration` server action.
+        *   **Overwrite Check (Anonymous Users):** If the user is anonymous and local data exists (from `philosothon-registration-v3.1`), display warning: "Existing registration data found. Starting new will overwrite it. Proceed? (yes/no)". Requires confirmation (`yes`). Clears relevant local storage.
+        *   **Proceed:** After any necessary confirmations/deletions, enters Registration Mode at Step 3 (First Name).
+    *   `continue`:
+        *   **Behavior (Signed-In Users):** Check `partial_registrations` table via backend call. If data found, load `partial_data`, visually display previous answers, and resume from the correct index. If not found, display error: "No saved progress found."
+        *   **Behavior (Anonymous Users):** Check local storage (`philosothon-registration-v3.1`). If data found, load state, visually display previous answers, and resume from the correct index. If not found, display error: "No registration in progress found. Use 'register new'."
+        *   Enters Registration Mode at the saved/loaded index.
     *   `back`: Returns to Main Terminal Mode.
     *   *TDD Anchor:* Test `register` command shows sub-menu (anonymous).
     *   *TDD Anchor:* Test `register new` displays intro message.
@@ -174,7 +181,9 @@ The system operates in distinct modes, each offering specific commands and visua
     *   `next`: Moves to the next question (if current answer is valid or not required). Skips if already at the last question.
     *   `prev`: Moves to the previous question.
     *   `save`: Explicitly saves current progress to local storage. Displays confirmation message.
-    *   `exit`: Saves progress and returns to Main Terminal Mode.
+    *   `exit`:
+        *   **Behavior (Signed-In Users):** Calls `savePartialRegistration` server action with current answers. Displays confirmation "Progress saved." Returns to Main Terminal Mode.
+        *   **Behavior (Anonymous Users):** Saves progress to local storage. Displays confirmation "Progress saved locally." Returns to Main Terminal Mode.
     *   `back`: Removes the last saved answer from local storage and moves focus back to re-ask the *previous* question, considering dependencies. If at the first question (Q3), display message "Cannot go back further."
     *   `help`: Displays available commands or specific help (`help [command]`, `help [question_id]`).
     *   *TDD Anchor:* Test `next` command functions correctly.
@@ -258,6 +267,17 @@ This password-based flow replaces the previous Magic Link/OTP system for all use
     *   *TDD Anchor:* Test `exit` command prompts confirmation for unsaved changes.
 5.  **Delete Registration:**
     *   Command: `delete` (Main Mode, signed-in, registration complete)
+
+7.  **Partial Save & Resume (Signed-In Users):**
+    *   **Save on Exit:** When a signed-in user uses the `exit` command in Registration Mode, the current state of answered questions (`formData`) is saved to the `partial_registrations` table via the `savePartialRegistration` server action. The action performs an upsert based on the `user_id`.
+    *   **Resume on Continue:** When a signed-in user uses the `register continue` command, the system calls `loadPartialRegistration` to check for data in `partial_registrations`. If found, this data is loaded into the component's state, and registration resumes.
+    *   **Overwrite on New:** When a signed-in user uses `register new`, the system checks for existing partial data via `loadPartialRegistration`. If found, it prompts for confirmation before proceeding. On confirmation, it calls `deletePartialRegistration` before starting the new registration.
+    *   **Clear on Submit:** Upon successful final submission via the `submitRegistration` action (which saves to the main `registrations` table), the corresponding entry in `partial_registrations` for that user MUST be deleted.
+    *   *TDD Anchor:* Test `exit` command calls `savePartialRegistration` for signed-in users.
+    *   *TDD Anchor:* Test `register continue` calls `loadPartialRegistration` and resumes correctly for signed-in users.
+    *   *TDD Anchor:* Test `register new` checks for partial data, prompts confirmation, and calls `deletePartialRegistration` for signed-in users.
+    *   *TDD Anchor:* Test `submitRegistration` action deletes the entry from `partial_registrations` on success.
+
     *   Behavior: Requires multiple confirmations ("Are you sure? This cannot be undone.", "Type 'DELETE' to confirm."). Calls backend `deleteRegistration` action.
     *   *TDD Anchor:* Test `delete` requires multiple confirmations.
     *   *TDD Anchor:* Test `delete` calls delete action on final confirmation.
@@ -373,6 +393,7 @@ This password-based flow replaces the previous Magic Link/OTP system for all use
     *   `auth.users`: Email, hashed password.
     *   `profiles`: User role, linked to `auth.users`.
     *   `registrations`: Stores submitted registration data (Q1-Q36, including separate `first_name`, `last_name`, and new fields), linked to `auth.users`. Schema updated via reviewed SSOT-generated migrations. Use appropriate types (TEXT, INTEGER, BOOLEAN, TEXT[], JSONB for ranking).
+    *   `partial_registrations`: Stores in-progress registration data for signed-in users to allow resuming later. Contains `user_id` (PK/FK), `partial_data` (JSONB), `last_updated_at`. Data is deleted upon final submission or overwrite.
 3.  **Backend API / Server Actions:**
     *   **Authentication:**
         *   `signInWithPassword` (Server Action): Email/password check, session creation.
@@ -383,6 +404,9 @@ This password-based flow replaces the previous Magic Link/OTP system for all use
         *   `submitRegistration` (Server Action): Validates (Zod), links data to user, saves to `registrations`.
         *   `updateRegistration` (Server Action): Fetches existing, validates, saves edited data.
         *   `deleteRegistration` (Server Action): Deletes registration data.
+        *   `savePartialRegistration` (Server Action): Upserts current answers into `partial_registrations` table for the logged-in user.
+        *   `loadPartialRegistration` (Server Action or Route Handler): Fetches data from `partial_registrations` for the logged-in user.
+        *   `deletePartialRegistration` (Server Action): Deletes data from `partial_registrations` for the logged-in user.
     *   **Data Fetching:** Server Components/Route Handlers for `view`/`edit`.
     *   *TDD Anchor (Placeholder):* Integration tests verify backend actions handle expected parameters and return correct states/errors.
 
