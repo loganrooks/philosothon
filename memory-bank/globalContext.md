@@ -1,4 +1,12 @@
 # Progress
+- **[2025-04-22 09:01:00] TDD:** Completed Red Phase for `RegistrationDialog` component. Created test file `RegistrationDialog.test.tsx` with initial failing tests covering V3.1 requirements. Tests fail as expected due to missing component. [See MB Log 2025-04-22 09:01:00]
+
+
+- **[2025-04-22 08:54:00] Code:** Implemented backend actions (`save/load/deletePartialRegistration`) for partial registration saves in `platform/src/app/register/actions.ts` and updated `submitRegistration` to clean up partial data. Fixed related build/test issues. [See MB Log 2025-04-22 08:54:00]
+
+
+- **[2025-04-22 08:08:00] Code:** Implemented boot sequence and dynamic prompt logic in `TerminalShell.tsx` to pass initial tests (4/8 pass, 4 skipped). Build successful. [See MB Log 2025-04-22 08:08:00]
+
 - **[2025-04-22 07:33:59] DevOps:** Created and applied Supabase migration `20250422113204_create_partial_registrations_table.sql` for the `partial_registrations` table (including `moddatetime` function and RLS policies) after fixing an initial syntax error. Committed migration (commit `53acacf`) to `feat/architecture-v2`.
 
 - **[2025-04-21 19:54:12] Debug:** Verified `InterestFormPlaceholder` 'Submit on Enter' functionality. Server action triggers and UI updates correctly. Original issue ([MB Log 2025-04-21 07:44:55]) not reproducible. No code changes required.
@@ -193,6 +201,16 @@ This file consolidates less frequently updated global project information, inclu
 *   **[2025-04-18] Admin CRUD Pattern:** Implemented using Server Components for list/edit page shells, Client Components for forms (`useFormState`), and Server Actions (`actions.ts`) for data mutation (create, update, delete). Edit pages use query parameters (`?id=...`) instead of dynamic route segments to avoid previous build issues.
 
 # Decision Log
+### [2025-04-22 08:54:00] Decision: Implement Partial Registration Actions
+
+- **Context:** Implement backend logic for saving/loading/deleting partial registration data as per V3.1 spec and `partial_registrations` table schema.
+- **Decision:** Create three new server actions (`savePartialRegistration`, `loadPartialRegistration`, `deletePartialRegistration`) in `platform/src/app/register/actions.ts` using Supabase client. Update `submitRegistration` to call `deletePartialRegistration` on success.
+- **Rationale:** Encapsulates logic cleanly in server actions, adheres to spec requirements.
+- **Implementation:** Added actions, updated `submitRegistration`, fixed build/test issues related to data parsing and mock data.
+
+---
+
+
 ### [2025-04-22 07:21:00] Decision: Use New `partial_registrations` Table for Partial Saves
 
 - **Context:** Need to store partial registration progress for signed-in users to support save/resume functionality in the V3.1 terminal UI.
