@@ -24,6 +24,23 @@
 
 
 ## Components Implemented
+### [2025-04-22 13:09:00] Theme Detail Page (/themes/[id])
+- **Purpose**: Displays detailed information for a single theme, fetching basic data from Supabase and detailed content from a corresponding markdown file.
+- **Files**: `platform/src/app/themes/[id]/page.tsx` (Modified)
+- **Status**: Implemented (Path Correction)
+- **Dependencies**: `react`, `next/link`, `next/navigation`, `@/lib/data/themes`, `react-markdown`, `fs/promises`, `path`
+- **API Surface**: Dynamic page route `/themes/[id]`.
+- **Tests**: `platform/src/app/themes/[id]/page.test.tsx` (Updated path assertion)
+
+### [2025-04-22 13:09:00] Themes List Page (/themes)
+- **Purpose**: Displays a list of all available event themes fetched from Supabase.
+- **Files**: `platform/src/app/themes/page.tsx` (Modified)
+- **Status**: Implemented (DAL Integration)
+- **Dependencies**: `react`, `@/components/ThemeCard`, `@/lib/data/themes`
+- **API Surface**: Page route `/themes`.
+- **Tests**: `platform/src/app/themes/page.test.tsx` (Updated mocks)
+
+
 ### [2025-04-21 19:20:19] InterestFormPlaceholder Modification
 - **Purpose**: Refine UI to remove explicit submit button and rely on Enter key press for submission.
 - **Files**: `platform/src/app/register/components/InterestFormPlaceholder.tsx` (Modified)
