@@ -1,6 +1,23 @@
 # DevOps Specific Memory
 
 ## Deployment History Log
+### Git Commit: [2025-04-22 07:33:59] - feat(db): Create partial_registrations table and moddatetime function
+- **Branch**: feat/architecture-v2
+- **Commit ID**: 53acacf
+- **Files**: `supabase/migrations/20250422113204_create_partial_registrations_table.sql`
+- **Notes**: Committed the new migration file for the partial_registrations table, including the moddatetime function definition and RLS policies.
+
+### Deployment: [2025-04-22 07:33:51] - Supabase Migration (Create `partial_registrations`)
+- **Env**: Remote DB (`egdmaehmjuytscswybum`)
+- **Comps**: `partial_registrations` table, `moddatetime` function, RLS policies
+- **Version**: Migration `20250422113204_create_partial_registrations_table.sql`
+- **Trigger**: Manual (`supabase db push`)
+- **Status**: Success
+- **Duration**: ~2 min (incl. initial failure and fix)
+- **Rollback**: `supabase db reset` (if needed, destructive)
+- **Notes**: Created the `partial_registrations` table and supporting function/policies. Fixed initial syntax error in admin policy (split SELECT/DELETE).
+
+
 ### Git Commit: [2025-04-21 19:07:49] - chore: Prepare feat/architecture-v2 for PR
 - **Branch**: feat/architecture-v2
 - **Commit ID**: 50f9337 (Merge commit after pulling main)

@@ -1,4 +1,6 @@
 # Progress
+- **[2025-04-22 07:33:59] DevOps:** Created and applied Supabase migration `20250422113204_create_partial_registrations_table.sql` for the `partial_registrations` table (including `moddatetime` function and RLS policies) after fixing an initial syntax error. Committed migration (commit `53acacf`) to `feat/architecture-v2`.
+
 - **[2025-04-21 19:54:12] Debug:** Verified `InterestFormPlaceholder` 'Submit on Enter' functionality. Server action triggers and UI updates correctly. Original issue ([MB Log 2025-04-21 07:44:55]) not reproducible. No code changes required.
 
 
