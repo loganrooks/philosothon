@@ -23,6 +23,7 @@ const mockSendToShellMachine = vi.fn();
 const mockSetDialogState = vi.fn();
 const mockClearDialogState = vi.fn();
 
+const mockChangeMode = vi.fn();
 // Import the actual component
 import RegistrationDialog from './RegistrationDialog';
 
@@ -34,6 +35,7 @@ const defaultProps = {
   clearDialogState: mockClearDialogState,
   userSession: null, // Or mock a session object
   dialogState: {},
+  changeMode: mockChangeMode
 };
 
 describe('RegistrationDialog (V3.1)', () => {
@@ -442,7 +444,79 @@ describe('RegistrationDialog (V3.1)', () => {
       // Or potentially the password prompt if it resets further back on error
       expect(mockAddOutputLine).toHaveBeenLastCalledWith("Please confirm your password:");
     });
-    it.todo('should transition to "awaiting_confirmation" state after successful signUpUser');
+    it('should transition to "awaiting_confirmation" state after successful signUpUser', async () => {
+      // Mock signUpUser to return success
+      const testEmail = 'success@example.com';
+      vi.mocked(authActions.signUpUser).mockResolvedValue({
+        success: true,
+        message: 'User signed up successfully',
+        // Ensure the mock data structure matches what the component expects
+        data: { user: { email: testEmail, id: 'mock-user-id' } },
+        error: null
+      });
+
+      const handleInput = vi.fn();
+      const { container } = render(<RegistrationDialog {...defaultProps} onInput={handleInput} />);
+
+      // Simulate getting to the confirm password prompt (copy from previous test)
+      const inputElement = container.querySelector('input');
+      expect(inputElement).not.toBeNull();
+      if (!inputElement) return;
+
+      const testData = {
+        firstName: 'Success',
+        lastName: 'User',
+        email: testEmail, // Use the same email as mock
+        password: 'password123',
+      };
+
+      // Enter First Name, Last Name, Email, Password
+      fireEvent.change(inputElement, { target: { value: testData.firstName } });
+      fireEvent.submit(inputElement.closest('form')!);
+      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.firstName); });
+      fireEvent.change(inputElement, { target: { value: testData.lastName } });
+      fireEvent.submit(inputElement.closest('form')!);
+      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.lastName); });
+      fireEvent.change(inputElement, { target: { value: testData.email } });
+      fireEvent.submit(inputElement.closest('form')!);
+      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.email); });
+      fireEvent.change(inputElement, { target: { value: testData.password } });
+      fireEvent.submit(inputElement.closest('form')!);
+      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.password); });
+
+      // Wait for Confirm Password prompt
+      await waitFor(() => {
+        // Use stringContaining because other output might precede it
+        expect(mockAddOutputLine).toHaveBeenCalledWith(expect.stringContaining("Please confirm your password:"));
+      });
+
+      // Enter matching password
+      fireEvent.change(inputElement, { target: { value: testData.password } });
+      fireEvent.submit(inputElement.closest('form')!);
+      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.password); });
+
+      // Check that signUpUser was called
+      await waitFor(() => {
+        expect(authActions.signUpUser).toHaveBeenCalledTimes(1);
+        // Check arguments again for this specific test
+        expect(authActions.signUpUser).toHaveBeenCalledWith(
+          testData.email,
+          testData.password,
+          expect.objectContaining({ data: { first_name: testData.firstName, last_name: testData.lastName } })
+        );
+      });
+
+      // Check for mode change
+      await waitFor(() => {
+        expect(mockChangeMode).toHaveBeenCalledWith('awaiting_confirmation');
+      });
+
+      // Check for confirmation message output
+      const expectedMessage = `Account created. Please check your email (${testEmail}) for a confirmation link. Enter 'continue' here once confirmed, or 'resend' to request a new link.`;
+      await waitFor(() => {
+        expect(mockAddOutputLine).toHaveBeenCalledWith(expectedMessage);
+      });
+    });
     it.todo('should display confirmation instructions in "awaiting_confirmation" state');
     it.todo('should periodically call checkEmailConfirmation in "awaiting_confirmation" state');
     it.todo('should transition to the first registration question after email is confirmed');
