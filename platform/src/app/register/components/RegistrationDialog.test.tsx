@@ -663,9 +663,170 @@ describe('RegistrationDialog (V3.1)', () => {
       // Use toHaveBeenLastCalledWith to be more precise
       expect(mockAddOutputLine).toHaveBeenLastCalledWith(confirmationPrompt);
     });
+    it('should call resendConfirmationEmail and show message on "resend" command', async () => {
+      // Mock signUpUser to return success
+      const testEmail = 'resend-test@example.com';
+      vi.mocked(authActions.signUpUser).mockResolvedValue({
+        success: true,
+        userId: 'mock-resend-user-id',
+        message: 'User signed up successfully',
+        data: { user: { email: testEmail, id: 'mock-resend-user-id' } },
+        error: null
+      });
+      // Mock resendConfirmationEmail to return success
+      vi.mocked(authActions.resendConfirmationEmail).mockResolvedValue({
+        success: true,
+        message: 'Confirmation email resent successfully.', // Example success message
+        data: {},
+        error: null
+      });
+
+      const handleInput = vi.fn();
+      const { container } = render(<RegistrationDialog {...defaultProps} dialogState={currentDialogState} onInput={handleInput} />);
+
+      // --- Simulate flow to awaiting_confirmation state ---
+      const inputElement = container.querySelector('input');
+      expect(inputElement).not.toBeNull();
+      if (!inputElement) return;
+
+      const testData = { firstName: 'Resend', lastName: 'User', email: testEmail, password: 'password123' };
+
+      fireEvent.change(inputElement, { target: { value: testData.firstName } });
+      fireEvent.submit(inputElement.closest('form')!);
+      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.firstName); });
+      fireEvent.change(inputElement, { target: { value: testData.lastName } });
+      fireEvent.submit(inputElement.closest('form')!);
+      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.lastName); });
+      fireEvent.change(inputElement, { target: { value: testData.email } });
+      fireEvent.submit(inputElement.closest('form')!);
+      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.email); });
+      fireEvent.change(inputElement, { target: { value: testData.password } });
+      fireEvent.submit(inputElement.closest('form')!);
+      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.password); });
+      await waitFor(() => { expect(mockAddOutputLine).toHaveBeenCalledWith(expect.stringContaining("Please confirm your password:")); });
+      fireEvent.change(inputElement, { target: { value: testData.password } });
+      fireEvent.submit(inputElement.closest('form')!);
+      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.password); });
+      await waitFor(() => { expect(authActions.signUpUser).toHaveBeenCalledTimes(1); });
+      await waitFor(() => { expect(mockSetDialogState).toHaveBeenCalledWith('pendingUserId', 'mock-resend-user-id'); });
+      const confirmationPrompt = `Account created. Please check your email (${testEmail}) for a confirmation link. Enter 'continue' here once confirmed, or 'resend' to request a new link.`;
+      await waitFor(() => { expect(mockAddOutputLine).toHaveBeenCalledWith(confirmationPrompt); });
+      // --- End simulation ---
+
+      // Simulate user entering 'resend'
+      fireEvent.change(inputElement, { target: { value: 'resend' } });
+      fireEvent.submit(inputElement.closest('form')!); // Use submit on form
+      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('resend'); });
+
+      // Assert resendConfirmationEmail was called with the correct email
+      await waitFor(() => {
+        expect(authActions.resendConfirmationEmail).toHaveBeenCalledTimes(1);
+        expect(authActions.resendConfirmationEmail).toHaveBeenCalledWith(testEmail);
+      });
+
+      // Assert success message was shown
+      const expectedMessage = "Resending confirmation email..."; // Message shown *before* action completes
+      await waitFor(() => {
+        expect(mockAddOutputLine).toHaveBeenCalledWith(expectedMessage);
+      });
+      // Optionally, assert the message from the mock response if the component displays it
+      // await waitFor(() => {
+      //   expect(mockAddOutputLine).toHaveBeenCalledWith('Confirmation email resent successfully.');
+      // });
+
+
+      // Assert mode did NOT change
+      expect(mockChangeMode).not.toHaveBeenCalled();
+
+      // Assert the confirmation prompt is shown again (indicating still in awaiting_confirmation)
+      expect(mockAddOutputLine).toHaveBeenLastCalledWith(confirmationPrompt);
+    });
     it.todo('should handle existing users detected during signUpUser (needs clarification from spec/impl)');
   });
   describe('Question Flow', () => {
+    it('should display the first question (academicYear) and handle valid input', async () => {
+      // Mock successful auth flow
+      const testEmail = 'questioning@example.com';
+      vi.mocked(authActions.signUpUser).mockResolvedValue({
+        success: true, userId: 'mock-question-user-id', message: 'OK',
+        data: { user: { email: testEmail, id: 'mock-question-user-id' } }, error: null
+      });
+      vi.mocked(regActions.checkEmailConfirmation).mockResolvedValue({ isConfirmed: true });
+
+      const handleInput = vi.fn();
+      const { container } = render(<RegistrationDialog {...defaultProps} dialogState={currentDialogState} onInput={handleInput} />);
+
+      // --- Simulate flow to questioning state ---
+      const inputElement = container.querySelector('input');
+      expect(inputElement).not.toBeNull();
+      if (!inputElement) return;
+
+      const testData = { firstName: 'Quest', lastName: 'User', email: testEmail, password: 'password123' };
+
+      // Enter First Name, Last Name, Email, Password, Confirm Password
+      fireEvent.change(inputElement, { target: { value: testData.firstName } });
+      fireEvent.submit(inputElement.closest('form')!); // Use submit on form
+      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.firstName); });
+      fireEvent.change(inputElement, { target: { value: testData.lastName } });
+      fireEvent.submit(inputElement.closest('form')!); // Use submit on form
+      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.lastName); });
+      fireEvent.change(inputElement, { target: { value: testData.email } });
+      fireEvent.submit(inputElement.closest('form')!); // Use submit on form
+      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.email); });
+      fireEvent.change(inputElement, { target: { value: testData.password } });
+      fireEvent.submit(inputElement.closest('form')!); // Use submit on form
+      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.password); });
+      await waitFor(() => { expect(mockAddOutputLine).toHaveBeenCalledWith(expect.stringContaining("Please confirm your password:")); });
+      fireEvent.change(inputElement, { target: { value: testData.password } });
+      fireEvent.submit(inputElement.closest('form')!); // Use submit on form
+      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.password); });
+      await waitFor(() => { expect(authActions.signUpUser).toHaveBeenCalledTimes(1); });
+      await waitFor(() => { expect(mockSetDialogState).toHaveBeenCalledWith('pendingUserId', 'mock-question-user-id'); });
+      const confirmationPrompt = `Account created. Please check your email (${testEmail}) for a confirmation link. Enter 'continue' here once confirmed, or 'resend' to request a new link.`;
+      await waitFor(() => { expect(mockAddOutputLine).toHaveBeenCalledWith(confirmationPrompt); });
+
+      // Enter 'continue'
+      fireEvent.change(inputElement, { target: { value: 'continue' } });
+      fireEvent.submit(inputElement.closest('form')!); // Use submit on form
+      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('continue'); });
+      await waitFor(() => { expect(regActions.checkEmailConfirmation).toHaveBeenCalledTimes(1); });
+      await waitFor(() => { expect(mockChangeMode).toHaveBeenCalledWith('questioning'); });
+      // --- End simulation ---
+
+      // Assert first question prompt (academicYear) is shown
+      const academicYearPrompt = `Year of Study`;
+      const academicYearHint = `Select your current academic year.`;
+      const academicYearOptions = [
+        "1: First year", "2: Second year", "3: Third year", "4: Fourth year",
+        "5: Fifth year", "6: Graduate student", "7: Other"
+      ].join('\n'); // Assuming options are listed line by line
+
+      await waitFor(() => {
+        // Check for label, hint, and options
+        expect(mockAddOutputLine).toHaveBeenCalledWith(academicYearPrompt);
+        expect(mockAddOutputLine).toHaveBeenCalledWith(academicYearHint, { type: 'hint' });
+        expect(mockAddOutputLine).toHaveBeenCalledWith(academicYearOptions);
+      });
+
+      // Simulate valid input for academicYear (e.g., '2' for Second year)
+      fireEvent.change(inputElement, { target: { value: '2' } });
+      fireEvent.submit(inputElement.closest('form')!); // Use submit on form
+      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('2'); });
+
+      // Assert next question prompt (programOfStudy) is shown
+      const programPrompt = `Program/Major(s)`;
+      const programHint = `Please list all applicable programs (e.g., Philosophy Specialist, CS Major).`;
+      await waitFor(() => {
+        expect(mockAddOutputLine).toHaveBeenCalledWith(programPrompt);
+        expect(mockAddOutputLine).toHaveBeenCalledWith(programHint, { type: 'hint' });
+      });
+
+      // Assert answer was stored (optional, depends on state visibility)
+      // await waitFor(() => {
+      //   expect(mockSetDialogState).toHaveBeenCalledWith('answers', expect.objectContaining({ academicYear: 'Second year' }));
+      // });
+    });
+
     it.todo('should display questions sequentially based on registrationQuestions data');
     it.todo('should display question hints');
     it.todo('should display question descriptions');
