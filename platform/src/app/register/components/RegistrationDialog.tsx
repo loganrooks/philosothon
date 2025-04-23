@@ -5,13 +5,13 @@ import { questions } from '@/app/register/data/registrationQuestions'; // Use co
 // import useLocalStorage from '@/lib/hooks/useLocalStorage'; // Will be mocked
 import { checkEmailConfirmation } from '@/app/register/actions'; // Import specific action
 import * as regActions from '@/app/register/actions'; // Keep for other mocks if needed
-import { signUpUser } from '@/lib/data/auth'; // Import the actual (placeholder) function
+import { signUpUser, resendConfirmationEmail } from '@/lib/data/auth'; // Import the actual (placeholder) functions
 
 // Define types based on V2 Architecture / Test Mocks (Refine as needed)
 type DialogMode = 'intro' | 'early_auth' | 'questioning' | 'awaiting_confirmation' | 'review' | 'submitting' | 'success' | 'error';
 
 interface DialogProps {
-  addOutputLine: (line: string | React.ReactNode, options?: { timestamp?: boolean; type?: 'input' | 'output' | 'error' | 'system' }) => void;
+  addOutputLine: (line: string | React.ReactNode, options?: { timestamp?: boolean; type?: 'input' | 'output' | 'error' | 'system' | 'hint' }) => void; // Added 'hint'
   sendToShellMachine: (event: any) => void; // Type based on XState machine if used
   setDialogState: (key: string, value: any) => void;
   clearDialogState: () => void;
@@ -51,9 +51,11 @@ const earlyAuthSteps = ['firstName', 'lastName', 'email', 'password', 'confirmPa
 function reducer(state: State, action: Action): State {
   switch (action.type) {
     case 'SET_MODE':
-      return { ...state, mode: action.payload, currentQuestionIndex: 0 }; // Reset index on mode change
+      // Start actual questions at index 3 ('academicYear')
+      const startIndex = action.payload === 'questioning' ? 3 : 0;
+      return { ...state, mode: action.payload, currentQuestionIndex: startIndex };
     case 'NEXT_STEP':
-       // Add logic to transition mode if at the end of early_auth steps
+      // TODO: Add logic for end of questions
       return { ...state, currentQuestionIndex: state.currentQuestionIndex + 1 };
     case 'PREV_STEP':
       return { ...state, currentQuestionIndex: Math.max(0, state.currentQuestionIndex - 1) };
@@ -103,10 +105,11 @@ const RegistrationDialog: React.FC<DialogProps> = ({
 
   // Effect to display current prompt based on state.mode and currentStepId
   useEffect(() => {
-    if (state.mode === 'early_auth' && currentStepId) {
-      // const currentStepId = earlyAuthSteps[state.currentQuestionIndex]; // No longer needed here
-      switch (currentStepId) {
-        case 'firstName':
+    if (state.mode === 'early_auth') {
+       const currentStepId = earlyAuthSteps[state.currentQuestionIndex]; // Get step ID for early auth
+       if (currentStepId) { // Check if step ID is valid
+        switch (currentStepId) {
+          case 'firstName':
           addOutputLine("Please enter your First Name:");
           break;
         case 'lastName':
@@ -125,18 +128,34 @@ const RegistrationDialog: React.FC<DialogProps> = ({
           // Handle end of early auth or invalid index
           break;
       }
+    }
     } else if (state.mode === 'questioning') {
-      // TODO: Fetch question from mocked registrationQuestions based on currentQuestionIndex
-      // const currentQuestion = registrationQuestions[state.currentQuestionIndex];
-      // if (currentQuestion) {
-      //   addOutputLine(`\n${currentQuestion.text}`);
-      //   if (currentQuestion.hint) addOutputLine(`Hint: ${currentQuestion.hint}`);
-      //   // Add logic for different question types (text, boolean, select, etc.)
-      // }
-      // addOutputLine(`[reg ${state.currentQuestionIndex + 1}/${registrationQuestions.length}]> `); // Prompt
+      // Ensure we only display prompts when the index is valid for questioning mode
+      if (state.currentQuestionIndex >= 3) { // Index 3 is 'academicYear'
+        const currentQuestion = questions[state.currentQuestionIndex];
+        if (currentQuestion) {
+          addOutputLine(currentQuestion.label); // Display label
+          if (currentQuestion.hint) {
+            addOutputLine(currentQuestion.hint, { type: 'hint' }); // Display hint
+          }
+          if (currentQuestion.options) {
+            // Format options as numbered list
+            const optionsText = currentQuestion.options
+              .map((opt, index) => `${index + 1}: ${opt}`)
+              .join('\n');
+            addOutputLine(optionsText);
+          }
+          // TODO: Add prompt indicator like [reg 4/47]> (adjusting for 0-based index vs 1-based display)
+        } else {
+          // Handle end of questions or invalid index
+          addOutputLine("Error: Could not find next question.", { type: 'error' });
+          // Potentially change mode or show summary
+        }
+      }
     } else if (state.mode === 'awaiting_confirmation') {
-        addOutputLine("Please check your email for a confirmation link.");
-        // TODO: Add logic for checkEmailConfirmation polling
+        // Prompt is now handled by the transition logic in handleSubmit/handleSignUp
+        // TODO: Add logic for checkEmailConfirmation polling? Or rely on user 'continue'/'resend'
+        // TODO: Add logic for checkEmailConfirmation polling? Or rely on user 'continue'/'resend'
     }
     // Add other modes (review, success, error)
   }, [state.mode, state.currentQuestionIndex, addOutputLine]);
@@ -221,19 +240,8 @@ const RegistrationDialog: React.FC<DialogProps> = ({
                if (result.isConfirmed) {
                    addOutputLine("Email confirmed. Starting registration questions...");
                    clearDialogState(); // Clear the pending user ID
-                   changeMode('questioning'); // Change mode via prop
-                   // Display first question prompt
-                   // Use the correct named import 'questions'
-                   if (questions && questions.length > 0) {
-                        // Use state.currentQuestionIndex which should be 0 after mode change
-                        const questionIndex = 0; // Explicitly 0 for the first question after confirmation
-                        // Simplify output for now to bypass length issue in test
-                        addOutputLine(`${questions[questionIndex].label}`);
-                        // Original: addOutputLine(`${questionIndex + 1}/${questions.length}: ${questions[questionIndex].label}`);
-                   } else {
-                        addOutputLine("No registration questions found.", { type: 'error' });
-                        // Handle error state?
-                   }
+                   dispatch({ type: 'SET_MODE', payload: 'questioning' }); // Use internal dispatch to change mode
+                   // useEffect will handle displaying the prompt based on new state
                } else {
                    // Display specific error message
                    addOutputLine("Email not confirmed yet. Please check your email or use 'resend'.", { type: 'error' });
@@ -248,13 +256,89 @@ const RegistrationDialog: React.FC<DialogProps> = ({
                 addOutputLine(confirmationPrompt);
            }
        } else if (input.toLowerCase() === 'resend') {
-           // TODO: Implement resend logic
-           addOutputLine("Resend functionality not yet implemented.");
+           const email = state.answers.email;
+           if (!email) {
+               addOutputLine("Error: Could not find email to resend confirmation.", { type: 'error' });
+               // Re-display prompt
+               const confirmationPrompt = `Account created. Please check your email for a confirmation link. Enter 'continue' here once confirmed, or 'resend' to request a new link.`;
+               addOutputLine(confirmationPrompt);
+               return;
+           }
+           addOutputLine("Resending confirmation email...");
+           try {
+               // Assuming resendConfirmationEmail is imported from authActions or similar
+               const resendResult = await resendConfirmationEmail(email);
+               if (resendResult.success) {
+                   addOutputLine(resendResult.message || "Confirmation email resent successfully.");
+               } else {
+                   addOutputLine(resendResult.message || resendResult.error?.message || "Failed to resend confirmation email.", { type: 'error' });
+               }
+           } catch (error) {
+               addOutputLine(`Error resending confirmation: ${error instanceof Error ? error.message : String(error)}`, { type: 'error' });
+           } finally {
+               // Always re-display the prompt after attempting resend
+               const confirmationPrompt = `Account created. Please check your email (${email}) for a confirmation link. Enter 'continue' here once confirmed, or 'resend' to request a new link.`;
+               addOutputLine(confirmationPrompt);
+           }
        } else {
            addOutputLine(`Unknown command: ${input}. Please enter 'continue' or 'resend'.`);
        }
+    } else if (state.mode === 'questioning') {
+        const currentQuestion = questions[state.currentQuestionIndex];
+        if (!currentQuestion) {
+            addOutputLine("Error: No current question found.", { type: 'error' });
+            return; // Should not happen in normal flow
+        }
+
+        // Basic validation (specifics depend on question type)
+        let isValid = true;
+        let errorMessage = "Invalid input.";
+        let processedAnswer = input; // Default to raw input
+
+        if (currentQuestion.required && !input) {
+            isValid = false;
+            errorMessage = "This field is required.";
+        } else if (currentQuestion.type === 'single-select' || currentQuestion.type === 'scale') {
+            const choiceIndex = parseInt(input, 10);
+            if (isNaN(choiceIndex) || choiceIndex < 1 || (currentQuestion.options && choiceIndex > currentQuestion.options.length)) {
+                 // Basic number/range check for select/scale
+                 isValid = false;
+                 errorMessage = `Please enter a valid number between 1 and ${currentQuestion.options?.length || 10}.`;
+            } else if (currentQuestion.options) {
+                 processedAnswer = currentQuestion.options[choiceIndex - 1]; // Store the selected option text
+            } else {
+                 processedAnswer = String(choiceIndex); // Store the scale number as string
+            }
+        }
+        // TODO: Add validation for other types (text, email, multi-select, ranking, etc.) based on currentQuestion.validationRules
+
+        if (isValid) {
+            dispatch({ type: 'SET_ANSWER', payload: { stepId: currentQuestion.id, answer: processedAnswer } });
+
+            // Check if the next question should be skipped
+            const nextQuestionIndex = state.currentQuestionIndex + 1;
+            const nextQuestion = questions[nextQuestionIndex];
+            let skipNext = false;
+            if (nextQuestion?.dependsOn === currentQuestion.id && nextQuestion.dependsValue !== processedAnswer) {
+                skipNext = true;
+            }
+
+            dispatch({ type: 'NEXT_STEP' }); // Always advance at least one step
+            if (skipNext) {
+                dispatch({ type: 'NEXT_STEP' }); // Advance again to skip
+            }
+        } else {
+            addOutputLine(errorMessage, { type: 'error' });
+            // Re-display current question prompt (will happen via useEffect)
+             addOutputLine(currentQuestion.label);
+             if (currentQuestion.hint) addOutputLine(currentQuestion.hint, { type: 'hint' });
+             if (currentQuestion.options) {
+               const optionsText = currentQuestion.options.map((opt, index) => `${index + 1}: ${opt}`).join('\n');
+               addOutputLine(optionsText);
+             }
+        }
     }
-    // Add logic for other modes (questioning, commands) here
+    // Add logic for other modes (review, commands) here
   };
 
   // Async function to handle the sign-up process

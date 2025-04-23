@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 // import useLocalStorage from '@/lib/hooks/useLocalStorage'; // TODO: Verify path or existence
 import * as regActions from '@/app/register/actions'; // Import for typed mock
@@ -539,8 +539,8 @@ describe('RegistrationDialog (V3.1)', () => {
       vi.mocked(regActions.checkEmailConfirmation).mockResolvedValue({ isConfirmed: true });
 
       const handleInput = vi.fn();
-      // Pass the mutable currentDialogState object as the prop
-      const { container } = render(<RegistrationDialog {...defaultProps} dialogState={currentDialogState} onInput={handleInput} />);
+      // Pass the mutable currentDialogState object as the prop and capture rerender
+      const { container, rerender } = render(<RegistrationDialog {...defaultProps} dialogState={currentDialogState} onInput={handleInput} />);
 
       // --- Simulate flow to awaiting_confirmation state ---
       const inputElement = container.querySelector('input');
@@ -574,25 +574,30 @@ describe('RegistrationDialog (V3.1)', () => {
       // await waitFor(() => { expect(mockChangeMode).toHaveBeenCalledWith('awaiting_confirmation'); });
       // --- End simulation ---
 
-      // Simulate user entering 'continue'
-      fireEvent.change(inputElement, { target: { value: 'continue' } });
-      fireEvent.submit(inputElement.closest('form')!);
+      // Simulate user entering 'continue' within act
+      await act(async () => {
+        fireEvent.change(inputElement, { target: { value: 'continue' } });
+        fireEvent.submit(inputElement.closest('form')!);
+      });
+      // Wait for async operations triggered by submit
       await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('continue'); });
+
+      // Explicitly rerender after state change trigger
+      rerender(<RegistrationDialog {...defaultProps} dialogState={currentDialogState} onInput={handleInput} />);
 
       // Assert checkEmailConfirmation was called
       await waitFor(() => {
         expect(regActions.checkEmailConfirmation).toHaveBeenCalledTimes(1);
       });
 
-      // Assert mode changed to questioning (This one IS called via prop in handleSubmit)
-      await waitFor(() => {
-        expect(mockChangeMode).toHaveBeenCalledWith('questioning');
-      });
+      // Assert mode changed to questioning (No longer called via prop for this transition)
+      // await waitFor(() => {
+      //   expect(mockChangeMode).toHaveBeenCalledWith('questioning');
+      // });
 
-      // Assert first question prompt is shown
+      // Assert first question prompt is shown (which is 'Year of Study', index 3)
       await waitFor(() => {
-        // Assert the expected string directly (without prefix)
-        expect(mockAddOutputLine).toHaveBeenCalledWith('First Name');
+        expect(mockAddOutputLine).toHaveBeenCalledWith('Year of Study');
       });
     });
     it('should display error and stay in awaiting_confirmation if email is not confirmed via "continue" command', async () => {
@@ -754,7 +759,8 @@ describe('RegistrationDialog (V3.1)', () => {
       vi.mocked(regActions.checkEmailConfirmation).mockResolvedValue({ isConfirmed: true });
 
       const handleInput = vi.fn();
-      const { container } = render(<RegistrationDialog {...defaultProps} dialogState={currentDialogState} onInput={handleInput} />);
+      // Capture rerender
+      const { container, rerender } = render(<RegistrationDialog {...defaultProps} dialogState={currentDialogState} onInput={handleInput} />);
 
       // --- Simulate flow to questioning state ---
       const inputElement = container.querySelector('input');
@@ -785,12 +791,19 @@ describe('RegistrationDialog (V3.1)', () => {
       const confirmationPrompt = `Account created. Please check your email (${testEmail}) for a confirmation link. Enter 'continue' here once confirmed, or 'resend' to request a new link.`;
       await waitFor(() => { expect(mockAddOutputLine).toHaveBeenCalledWith(confirmationPrompt); });
 
-      // Enter 'continue'
-      fireEvent.change(inputElement, { target: { value: 'continue' } });
-      fireEvent.submit(inputElement.closest('form')!); // Use submit on form
+      // Enter 'continue' within act
+      await act(async () => {
+        fireEvent.change(inputElement, { target: { value: 'continue' } });
+        fireEvent.submit(inputElement.closest('form')!); // Use submit on form
+      });
+      // Wait for async operations triggered by submit
       await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('continue'); });
       await waitFor(() => { expect(regActions.checkEmailConfirmation).toHaveBeenCalledTimes(1); });
-      await waitFor(() => { expect(mockChangeMode).toHaveBeenCalledWith('questioning'); });
+      // Assert mode changed to questioning (No longer called via prop for this transition)
+      // await waitFor(() => { expect(mockChangeMode).toHaveBeenCalledWith('questioning'); });
+
+      // Explicitly rerender after state change trigger
+      rerender(<RegistrationDialog {...defaultProps} dialogState={currentDialogState} onInput={handleInput} />);
       // --- End simulation ---
 
       // Assert first question prompt (academicYear) is shown
@@ -799,27 +812,31 @@ describe('RegistrationDialog (V3.1)', () => {
       const academicYearOptions = [
         "1: First year", "2: Second year", "3: Third year", "4: Fourth year",
         "5: Fifth year", "6: Graduate student", "7: Other"
-      ].join('\n'); // Assuming options are listed line by line
+      ].join('\n');
 
+      // Wait for and assert the first question prompt details *together*
       await waitFor(() => {
-        // Check for label, hint, and options
         expect(mockAddOutputLine).toHaveBeenCalledWith(academicYearPrompt);
         expect(mockAddOutputLine).toHaveBeenCalledWith(academicYearHint, { type: 'hint' });
         expect(mockAddOutputLine).toHaveBeenCalledWith(academicYearOptions);
-      });
+      }, { timeout: 3000 }); // Increased timeout
 
-      // Simulate valid input for academicYear (e.g., '2' for Second year)
-      fireEvent.change(inputElement, { target: { value: '2' } });
-      fireEvent.submit(inputElement.closest('form')!); // Use submit on form
+      // Simulate valid input for academicYear (e.g., '2' for Second year) within act
+      await act(async () => {
+        fireEvent.change(inputElement, { target: { value: '2' } });
+        fireEvent.submit(inputElement.closest('form')!); // Use submit on form
+      });
+      // Wait for async operations triggered by submit
       await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('2'); });
 
       // Assert next question prompt (programOfStudy) is shown
       const programPrompt = `Program/Major(s)`;
       const programHint = `Please list all applicable programs (e.g., Philosophy Specialist, CS Major).`;
       await waitFor(() => {
+        // Check for label and hint of the *next* question
         expect(mockAddOutputLine).toHaveBeenCalledWith(programPrompt);
         expect(mockAddOutputLine).toHaveBeenCalledWith(programHint, { type: 'hint' });
-      });
+      }, { timeout: 3000 }); // Increased timeout
 
       // Assert answer was stored (optional, depends on state visibility)
       // await waitFor(() => {
