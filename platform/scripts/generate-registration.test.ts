@@ -89,7 +89,7 @@ describe('SSOT Registration Generation Script', () => {
     expect(content).toContain('export const questions: Question[] = [');
     expect(content).toContain('export type FormDataStore = {');
     // Check if a known question ID is present
-    expect(content).toContain("id: 'fullName'");
+    expect(content).toContain("id: 'firstName'");
     // Check if password fields are excluded
     expect(content).not.toContain("id: 'password'");
     expect(content).not.toContain("id: 'confirmPassword'");
