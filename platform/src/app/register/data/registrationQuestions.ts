@@ -16,7 +16,7 @@ export type QuestionType =
   | 'ranking-numbered'; // Added V3 type
 
 // Re-import QuestionDefinition to reuse nested types if needed
-import { QuestionDefinition } from '../../../../config/registrationSchema';
+import { QuestionDefinition } from '../config/registrationSchema';
 
 export interface Question {
   id: string;
@@ -45,6 +45,7 @@ export type FormDataStore = {
   email?: any; // TODO: Refine types based on q.type
   academicYear?: any; // TODO: Refine types based on q.type
   academicYearOther?: any; // TODO: Refine types based on q.type
+  universityInstitution?: any; // TODO: Refine types based on q.type
   programOfStudy?: any; // TODO: Refine types based on q.type
   philosophyCoursework?: any; // TODO: Refine types based on q.type
   philosophyConfidenceDiscussion?: any; // TODO: Refine types based on q.type
@@ -175,9 +176,27 @@ export const questions: Question[] = [
     dbType: 'TEXT',
   },
   {
-    id: 'programOfStudy',
+    id: 'universityInstitution',
     section: 'Personal Information', // Added
     order: 8, // Added
+    label: `University / Institution`,
+    type: 'text',
+    required: true,
+    hint: `Please provide the full name of your current or most recent institution.`,
+    description: `Your university or institution name is used for demographic purposes and team balancing.`,
+    validationRules: {
+      "required": "University/Institution is required.",
+      "minLength": {
+            "value": 2,
+            "message": "Please enter a valid institution name."
+      }
+},
+    dbType: 'TEXT',
+  },
+  {
+    id: 'programOfStudy',
+    section: 'Personal Information', // Added
+    order: 9, // Added
     label: `Program/Major(s)`,
     type: 'text',
     required: true,
@@ -195,7 +214,7 @@ export const questions: Question[] = [
   {
     id: 'philosophyCoursework',
     section: 'Philosophy Background', // Added
-    order: 9, // Added
+    order: 10, // Added
     label: `Philosophy courses completed`,
     type: 'textarea',
     required: true,
@@ -209,7 +228,7 @@ export const questions: Question[] = [
   {
     id: 'philosophyConfidenceDiscussion',
     section: 'Philosophy Background', // Added
-    order: 10, // Added
+    order: 11, // Added
     label: `How would you rate your confidence in philosophical discussion?`,
     type: 'scale',
     required: true,
@@ -232,7 +251,7 @@ export const questions: Question[] = [
   {
     id: 'philosophyConfidenceWriting',
     section: 'Philosophy Background', // Added
-    order: 11, // Added
+    order: 12, // Added
     label: `How would you rate your confidence in philosophical writing?`,
     type: 'scale',
     required: true,
@@ -255,7 +274,7 @@ export const questions: Question[] = [
   {
     id: 'philosophyTraditions',
     section: 'Philosophy Background', // Added
-    order: 12, // Added
+    order: 13, // Added
     label: `Which philosophical traditions are you most familiar with?`,
     type: 'multi-select-numbered',
     required: true,
@@ -275,7 +294,7 @@ export const questions: Question[] = [
   {
     id: 'philosophyTraditionsOther',
     section: 'Philosophy Background', // Added
-    order: 13, // Added
+    order: 14, // Added
     label: `Other Philosophical Traditions`,
     type: 'text',
     required: false,
@@ -291,7 +310,7 @@ export const questions: Question[] = [
   {
     id: 'philosophyInterests',
     section: 'Philosophy Background', // Added
-    order: 14, // Added
+    order: 15, // Added
     label: `Areas of philosophical interest`,
     type: 'multi-select-numbered',
     required: true,
@@ -311,7 +330,7 @@ export const questions: Question[] = [
   {
     id: 'philosophyInterestsOther',
     section: 'Philosophy Background', // Added
-    order: 15, // Added
+    order: 16, // Added
     label: `Other Areas of Philosophical Interest`,
     type: 'text',
     required: false,
@@ -327,7 +346,7 @@ export const questions: Question[] = [
   {
     id: 'philosophyInfluences',
     section: 'Philosophy Background', // Added
-    order: 16, // Added
+    order: 17, // Added
     label: `Philosophical influences (Optional)`,
     type: 'textarea',
     required: false,
@@ -339,7 +358,7 @@ export const questions: Question[] = [
   {
     id: 'workingStyle',
     section: 'Working Style & Preferences', // Added
-    order: 17, // Added
+    order: 18, // Added
     label: `Working Style Preferences`,
     type: 'multi-select-numbered',
     required: true,
@@ -359,7 +378,7 @@ export const questions: Question[] = [
   {
     id: 'workingStyleOther',
     section: 'Working Style & Preferences', // Added
-    order: 18, // Added
+    order: 19, // Added
     label: `Other Working Style Preference`,
     type: 'text',
     required: false,
@@ -375,7 +394,7 @@ export const questions: Question[] = [
   {
     id: 'communicationStyle',
     section: 'Working Style & Preferences', // Added
-    order: 19, // Added
+    order: 20, // Added
     label: `Communication Style`,
     type: 'single-select',
     required: true,
@@ -390,7 +409,7 @@ export const questions: Question[] = [
   {
     id: 'collaborationRole',
     section: 'Working Style & Preferences', // Added
-    order: 20, // Added
+    order: 21, // Added
     label: `In collaborative philosophical work, I typically prefer to:`,
     type: 'multi-select-numbered',
     required: true,
@@ -410,7 +429,7 @@ export const questions: Question[] = [
   {
     id: 'collaborationRoleOther',
     section: 'Working Style & Preferences', // Added
-    order: 21, // Added
+    order: 22, // Added
     label: `Other Preferred Collaboration Role`,
     type: 'text',
     required: false,
@@ -426,7 +445,7 @@ export const questions: Question[] = [
   {
     id: 'presentationComfort',
     section: 'Working Style & Preferences', // Added
-    order: 22, // Added
+    order: 23, // Added
     label: `How comfortable are you with presenting philosophical ideas to a group?`,
     type: 'scale',
     required: true,
@@ -449,7 +468,7 @@ export const questions: Question[] = [
   {
     id: 'previousCollaborationExperience',
     section: 'Working Style & Preferences', // Added
-    order: 23, // Added
+    order: 24, // Added
     label: `Have you previously participated in collaborative philosophical discussions?`,
     type: 'single-select',
     required: true,
@@ -465,7 +484,7 @@ export const questions: Question[] = [
   {
     id: 'previousCollaborationExperienceOther',
     section: 'Working Style & Preferences', // Added
-    order: 24, // Added
+    order: 25, // Added
     label: `Other Collaboration Experience`,
     type: 'text',
     required: false,
@@ -481,7 +500,7 @@ export const questions: Question[] = [
   {
     id: 'technicalFamiliarity',
     section: 'Technical Background', // Added
-    order: 25, // Added
+    order: 26, // Added
     label: `How familiar are you with technical concepts generally (e.g., programming, AI, digital culture)?`,
     type: 'scale',
     required: true,
@@ -504,7 +523,7 @@ export const questions: Question[] = [
   {
     id: 'technicalInterests',
     section: 'Technical Background', // Added
-    order: 26, // Added
+    order: 27, // Added
     label: `Technical Interests (Optional)`,
     type: 'textarea',
     required: false,
@@ -516,7 +535,7 @@ export const questions: Question[] = [
   {
     id: 'themeRanking',
     section: 'Theme Preferences', // Added
-    order: 27, // Added
+    order: 28, // Added
     label: `Please rank your top 3 preferred themes`,
     type: 'ranking-numbered',
     required: true,
@@ -536,7 +555,7 @@ export const questions: Question[] = [
   {
     id: 'themeRankingOther',
     section: 'Theme Preferences', // Added
-    order: 28, // Added
+    order: 29, // Added
     label: `If you ranked "Other" theme, please describe your idea`,
     type: 'textarea',
     required: false,
@@ -552,7 +571,7 @@ export const questions: Question[] = [
   {
     id: 'workshopRanking',
     section: 'Workshop Preferences', // Added
-    order: 29, // Added
+    order: 30, // Added
     label: `Please rank your top 3 preferred workshops`,
     type: 'ranking-numbered',
     required: true,
@@ -572,7 +591,7 @@ export const questions: Question[] = [
   {
     id: 'workshopRankingOther',
     section: 'Workshop Preferences', // Added
-    order: 30, // Added
+    order: 31, // Added
     label: `If you ranked "Other" workshop, please describe your idea`,
     type: 'textarea',
     required: false,
@@ -588,7 +607,7 @@ export const questions: Question[] = [
   {
     id: 'teammateSimilarityPreference',
     section: 'Team Formation Preferences', // Added
-    order: 31, // Added
+    order: 32, // Added
     label: `Teammate similarity preference`,
     type: 'scale',
     required: true,
@@ -611,7 +630,7 @@ export const questions: Question[] = [
   {
     id: 'mentorshipPreference',
     section: 'Team Formation Preferences', // Added
-    order: 32, // Added
+    order: 33, // Added
     label: `Experience level and mentorship preferences`,
     type: 'single-select',
     required: true,
@@ -626,7 +645,7 @@ export const questions: Question[] = [
   {
     id: 'mentorComfortAreas',
     section: 'Team Formation Preferences', // Added
-    order: 33, // Added
+    order: 34, // Added
     label: `If you selected that you'd like to be a mentor, what aspects of philosophy are you comfortable mentoring in?`,
     type: 'textarea',
     required: false,
@@ -642,7 +661,7 @@ export const questions: Question[] = [
   {
     id: 'preferredTeammates',
     section: 'Team Formation Preferences', // Added
-    order: 34, // Added
+    order: 35, // Added
     label: `Do you have any specific people you'd like to have as teammates? (Optional)`,
     type: 'textarea',
     required: false,
@@ -654,7 +673,7 @@ export const questions: Question[] = [
   {
     id: 'discordMember',
     section: 'Communication & Community', // Added
-    order: 35, // Added
+    order: 36, // Added
     label: `Are you a member of the Philosophy of Technology Group Discord?`,
     type: 'single-select',
     required: true,
@@ -669,7 +688,7 @@ export const questions: Question[] = [
   {
     id: 'learningGoals',
     section: 'Learning Goals', // Added
-    order: 36, // Added
+    order: 37, // Added
     label: `What do you hope to gain from the Philosothon experience?`,
     type: 'multi-select-numbered',
     required: true,
@@ -689,7 +708,7 @@ export const questions: Question[] = [
   {
     id: 'learningGoalsOther',
     section: 'Learning Goals', // Added
-    order: 37, // Added
+    order: 38, // Added
     label: `Other Learning Goals`,
     type: 'text',
     required: false,
@@ -705,7 +724,7 @@ export const questions: Question[] = [
   {
     id: 'availabilityConfirmation',
     section: 'Availability and Scheduling', // Added
-    order: 38, // Added
+    order: 39, // Added
     label: `Please confirm your availability for the full duration of the event (April 26-27, 2025)`,
     type: 'single-select',
     required: true,
@@ -720,7 +739,7 @@ export const questions: Question[] = [
   {
     id: 'availabilityDetails',
     section: 'Availability and Scheduling', // Added
-    order: 39, // Added
+    order: 40, // Added
     label: `If you have partial availability, please specify the times you CAN attend`,
     type: 'textarea',
     required: false,
@@ -736,7 +755,7 @@ export const questions: Question[] = [
   {
     id: 'contingencyAvailability',
     section: 'Availability and Scheduling', // Added
-    order: 40, // Added
+    order: 41, // Added
     label: `Contingency Planning: If we need to postpone the event, would you be available the following weekend (May 3-4, 2025)?`,
     type: 'single-select',
     required: true,
@@ -751,7 +770,7 @@ export const questions: Question[] = [
   {
     id: 'contingencyAvailabilityDetails',
     section: 'Availability and Scheduling', // Added
-    order: 41, // Added
+    order: 42, // Added
     label: `If you have partial availability for the contingency dates, please specify`,
     type: 'textarea',
     required: false,
@@ -767,7 +786,7 @@ export const questions: Question[] = [
   {
     id: 'dietaryRestrictions',
     section: 'Logistics', // Added
-    order: 42, // Added
+    order: 43, // Added
     label: `Do you have any dietary restrictions or preferences?`,
     type: 'textarea',
     required: false,
@@ -779,7 +798,7 @@ export const questions: Question[] = [
   {
     id: 'accessibilityNeeds',
     section: 'Logistics', // Added
-    order: 43, // Added
+    order: 44, // Added
     label: `Do you require any accessibility accommodations?`,
     type: 'textarea',
     required: false,
@@ -791,7 +810,7 @@ export const questions: Question[] = [
   {
     id: 'heardAboutSource',
     section: 'Logistics', // Added
-    order: 44, // Added
+    order: 45, // Added
     label: `How did you hear about the Philosothon?`,
     type: 'multi-select-numbered',
     required: true,
@@ -811,7 +830,7 @@ export const questions: Question[] = [
   {
     id: 'heardAboutSourceOther',
     section: 'Logistics', // Added
-    order: 45, // Added
+    order: 46, // Added
     label: `Other Source`,
     type: 'text',
     required: false,
@@ -827,7 +846,7 @@ export const questions: Question[] = [
   {
     id: 'additionalInfo',
     section: 'Additional Information', // Added
-    order: 46, // Added
+    order: 47, // Added
     label: `Is there anything else you'd like us to know? (Optional)`,
     type: 'textarea',
     required: false,
@@ -839,7 +858,7 @@ export const questions: Question[] = [
   {
     id: 'finalConfirmationAgreement',
     section: 'Consent & Agreement', // Added
-    order: 47, // Added
+    order: 48, // Added
     label: `By submitting this form, I confirm that I understand the time commitment required for the Philosothon (all day April 26 and morning of April 27) and will make arrangements to fully participate and provide feedback on my experience.`,
     type: 'boolean',
     required: true,

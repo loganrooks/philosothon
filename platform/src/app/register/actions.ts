@@ -8,6 +8,9 @@ import { z } from 'zod'; // For validation
 import { fetchRegistrationByUserId, insertRegistration, RegistrationInput } from '@/lib/data/registrations';
 import { Database, Json } from '@/lib/supabase/database.types'; // Import generated types including Json
 
+
+// Generated Zod schema based on central configuration
+export const RegistrationSchema = generateRegistrationSchema();
 // Generated Zod schema based on central configuration
 // Generated Zod schema based on central configuration
 // Generated Zod schema based on central configuration
