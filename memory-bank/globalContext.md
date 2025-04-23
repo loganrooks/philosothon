@@ -90,6 +90,12 @@ This file consolidates less frequently updated global project information, inclu
 
 # Product Context
 
+### [2025-04-23] Product Context V3 Update
+- **Scope:** Expanded to include a unified Terminal UI as the central hub for Registration (V3.1), Status Viewing, Submissions (P3), Document Library (P2), Chatbot (P2), and Gamification (P2). 
+- **Priorities:** P0 (Security, Reg V3.1, Content Mgmt, Core Terminal), P1 (Team Mgmt), P2 (Gamification, Library, Chatbot, Analytics), P3 (Submissions, Judge Portal, Admin Analytics), P4 (Survey).
+- **Specs:** See `docs/project_specifications_v3.md`.
+
+
 ## Project Goal
 
 -   Develop a web platform for the University of Toronto Philosothon event.
@@ -116,6 +122,12 @@ This file consolidates less frequently updated global project information, inclu
 ---
 
 # System Patterns
+
+### [2025-04-23] System Pattern: Modular Terminal UI (V2)
+- **Description:** Evolves V1 architecture (`docs/architecture/terminal_component_v1.md`) to support expanded V3 scope. Retains `TerminalShell` / `ActiveDialog` pattern but recommends **XState** for core `TerminalShell` state management due to increased complexity (Chat, Gamification). Defines specific dialogs (`MainMenu`, `Auth`, `Registration`, `ViewStatus`, `Submission`, `Library`, `Chat`, `Gamification`). Defines file upload pattern via standard input triggered by `SubmissionDialog`.
+- **State Management:** XState (Shell), `useReducer`/`useState`/XState (Dialogs), React Context (Shared Data).
+- **Reference:** `docs/architecture/terminal_component_v2.md`
+
 
 ### [2025-04-21 18:49:00] System Pattern: Modular Terminal UI
 
@@ -196,6 +208,14 @@ This file consolidates less frequently updated global project information, inclu
 *   **[2025-04-18] Admin CRUD Pattern:** Implemented using Server Components for list/edit page shells, Client Components for forms (`useFormState`), and Server Actions (`actions.ts`) for data mutation (create, update, delete). Edit pages use query parameters (`?id=...`) instead of dynamic route segments to avoid previous build issues.
 
 # Decision Log
+
+### [2025-04-23] Decision: Recommend XState for Terminal Shell State Management
+- **Context:** The expanded scope of the Terminal UI (including real-time chat, complex gamification state) increases the complexity of managing mode transitions and side effects.
+- **Decision:** Recommend using XState library for managing the core state machine within `TerminalShell` (V2 Architecture).
+- **Rationale:** Provides better structure, visualization, and handling of complex/asynchronous state transitions compared to `useReducer`, improving maintainability and scalability for features like Chat and Gamification.
+- **Alternatives Considered:** Sticking with `useReducer` (potentially complex), other state management libraries.
+- **Reference:** `docs/architecture/terminal_component_v2.md`
+
 
 ### [2025-04-21 18:49:00] Decision: Adopt Modular Terminal Architecture with Reducer/Context State Management
 

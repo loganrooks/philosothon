@@ -74,6 +74,39 @@ C4Container
 
 ## System Diagrams
 
+### Diagram: Modular Terminal Component Structure (V2) - [2025-04-23 09:30:00]
+- Description: Shows the V2 relationship between the Terminal Shell, Dialogs, State Management (XState recommended), and File Upload handling.
+```mermaid
+graph TD
+    subgraph "Terminal UI"
+        TerminalShell[Terminal Shell Component] -->|Renders| ActiveDialog{Active Dialog}
+        TerminalShell -->|Displays| OutputHistory[Output History Display]
+        TerminalShell -->|Renders| InputLine[Input Line Component]
+        InputLine -- User Input --> TerminalShell
+        TerminalShell -->|Optionally Renders| FileUploader[File Upload Input]
+    end
+
+    subgraph "Dialog Components (V2 Examples)"
+        ActiveDialog -- Implements --> MainMenuDialog[MainMenuDialog]
+        ActiveDialog -- Implements --> AuthDialog[AuthDialog]
+        ActiveDialog -- Implements --> RegistrationDialog[RegistrationDialog]
+        ActiveDialog -- Implements --> ViewStatusDialog[ViewStatusDialog]
+        ActiveDialog -- Implements --> SubmissionDialog[SubmissionDialog]
+        ActiveDialog -- Implements --> LibraryDialog[LibraryDialog]
+        ActiveDialog -- Implements --> ChatDialog[ChatDialog]
+        ActiveDialog -- Implements --> GamificationDialog[GamificationDialog]
+    end
+
+    TerminalShell -- Manages State --> StateManagement[State Management (XState Recommended)]
+    StateManagement -- Determines --> ActiveDialog
+    TerminalShell -- Passes Input/Context --> ActiveDialog
+    ActiveDialog -- Sends Output/Actions --> TerminalShell
+    SubmissionDialog -- Triggers --> FileUploader
+    FileUploader -- File Selected --> SubmissionDialog
+```
+**Notes:** Recommends XState for shell state management. Defines specific dialogs for V3 scope. Includes conceptual FileUploader interaction. See `docs/architecture/terminal_component_v2.md`.
+
+
 ### Diagram: Modular Terminal Component Structure - [2025-04-21 18:49:00]
 - Description: Shows the relationship between the Terminal Shell, Input/Output components, State Management, and dynamically rendered Dialog components.
 ```mermaid
@@ -241,6 +274,43 @@ sequenceDiagram
 - **Internal Structure (Optional High-Level)**: Client Component managing connection to MCP server, sending user messages, receiving and displaying AI responses, potentially triggering UI transformations based on AI messages or state updates.
 
 ## Component Specifications
+
+### Component Specification: TerminalShell (V2) - [2025-04-23 09:30:00]
+- **Responsibility**: Renders terminal frame, manages core state machine (XState recommended for mode transitions), renders `OutputHistory`/`InputLine`/`ActiveDialog`, handles global commands, delegates mode-specific input, provides context/callbacks, triggers file input rendering.
+- **Dependencies**: React, XState (recommended), `InputLine`, `OutputHistory`, Specific Dialog Components, React Context.
+- **Interfaces Exposed**: Renders UI. Provides context (`userSession`) and interaction functions (`addOutputLine`, `sendToShellMachine`, `requestFileUpload`) to dialogs.
+- **Internal Structure**: Contains main XState machine, effect hooks, dynamic rendering logic based on machine state.
+
+### Component Specification: ActiveDialog (V2 Conceptual) - [2025-04-23 09:30:00]
+- **Responsibility**: Represents the currently active interaction mode (Auth, Registration, Library, Chat, Game, etc.). Specific implementations handle mode-specific UI, logic, state, and backend interactions (Server Actions, MCP).
+- **Dependencies**: React, `DialogProps` interface, potentially Server Actions/MCP clients.
+- **Interfaces Exposed**: Renders mode-specific UI. Interacts via props/context defined in `DialogProps`.
+- **Internal Structure**: Varies. Manages own state (simple or complex, potentially XState). Processes input via `processInput` prop. Calls `addOutputLine`, `sendToShellMachine`, backend services.
+
+### Component Specification: SubmissionDialog - [2025-04-23 09:30:00]
+- **Responsibility**: Handles the submission flow within the terminal UI.
+- **Dependencies**: React, `DialogProps`, Server Action for upload/metadata, `FileUploader` interaction.
+- **Interfaces Exposed**: Commands (`submit list`, `submit upload`, `submit status`).
+- **Internal Structure**: Processes commands. Calls `requestFileUpload` from shell. Receives `File` object via callback. Invokes Server Action for upload to Supabase Storage and DB metadata update. Reports progress/status via `addOutputLine`.
+
+### Component Specification: LibraryDialog - [2025-04-23 09:30:00]
+- **Responsibility**: Handles browsing and reading philosophical texts within the terminal.
+- **Dependencies**: React, `DialogProps`, Data source for texts (DAL function or file reader).
+- **Interfaces Exposed**: Commands (`library list`, `library search`, `library read`, `next`, `prev`).
+- **Internal Structure**: Fetches text list/content. Manages display state (pagination/scrolling). Processes commands via `processInput`. Displays text via `addOutputLine`.
+
+### Component Specification: ChatDialog - [2025-04-23 09:30:00]
+- **Responsibility**: Handles interaction with the AI Chatbot.
+- **Dependencies**: React, `DialogProps`, AI Agent MCP Server client (WebSocket recommended).
+- **Interfaces Exposed**: Chat input via `processInput`.
+- **Internal Structure**: Manages WebSocket connection to MCP. Sends user messages, receives AI responses. Displays conversation via `addOutputLine`. May have internal state machine (XState) for complex conversation flows.
+
+### Component Specification: GamificationDialog - [2025-04-23 09:30:00]
+- **Responsibility**: Handles interaction with the ARG/puzzle AI Agent.
+- **Dependencies**: React, `DialogProps`, AI Agent MCP Server client (WebSocket recommended), Server Actions for progress updates.
+- **Interfaces Exposed**: Puzzle commands/input via `processInput`.
+- **Internal Structure**: Manages WebSocket connection to MCP. Sends user actions, receives AI responses/state updates. Displays narrative/clues via `addOutputLine`. May trigger UI effects via shell interaction. May have complex internal state machine (XState).
+
 
 ### Component Specification: TerminalShell - [2025-04-21 18:49:00]
 - **Responsibility**: Renders the main terminal frame, manages core state (`mode`, `outputLines`, `commandHistory`, `authStatus`, `dialogState`), renders `OutputHistory` and `InputLine`, dynamically renders the `ActiveDialog` based on `state.mode`, handles global commands, delegates mode-specific input to `ActiveDialog`, provides interaction callbacks (`addOutputLine`, `changeMode`, `setDialogState`) to `ActiveDialog`.
