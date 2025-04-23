@@ -10,3 +10,8 @@
 - **Source**: User Feedback on `attempt_completion`
 - **Issue**: Initial `attempt_completion` summary lacked sufficient detail regarding specific test failures and reasons for invoking Early Return Clause.
 - **Action**: Will provide a more detailed breakdown in the next `attempt_completion`.
+### Feedback Log - 2025-04-23 13:03:11
+- **Source**: TDD Mode - Early Return Clause Invoked
+- **Issue**: Persistent failure in `RegistrationDialog.test.tsx` test `should handle text input for programOfStudy and advance to the next question`. Component incorrectly skips question index 5 (`university`) and advances from 4 to 6. Multiple attempts to fix logic in `handleSubmit` (validation, submission guard, state update refactor, skip logic refactor) were unsuccessful.
+- **Analysis**: Root cause likely not in the conditional logic structure itself, but potentially incorrect data in `registrationQuestions.ts` (specifically `dependsOn`/`dependsValue` around indices 4-6) or a state/effect timing issue in React.
+- **Action**: Invoking Early Return Clause. Recommend inspecting `platform/src/app/register/data/registrationQuestions.ts` or delegating to `debug` mode for deeper investigation into state/effect timing.

@@ -1,4 +1,15 @@
 ## Analysis/Comparison
+### [2025-04-23 13:05:57] Registration Skip Logic Analysis (Indices 4-6)
+- **Purpose**: Analyze `registrationQuestions.ts` data to verify skip logic related to TDD blocker [MB Log 2025-04-23 13:03:11].
+- **Files Analyzed**: `platform/src/app/register/data/registrationQuestions.ts`
+- **Findings**:
+    - Index 4 (`academicYearOther`, order 7): `dependsOn: 'academicYear'`, `dependsValue: 'Other'`.
+    - Index 5 (`programOfStudy`, order 8): No `dependsOn` or `dependsValue` defined.
+    - Index 6 (`philosophyCoursework`, order 9): No `dependsOn` or `dependsValue` defined.
+- **Conclusion**: The data structure in `registrationQuestions.ts` does *not* define a skip condition that would cause index 5 to be skipped after answering index 4. The issue reported in TDD is likely within the component's state management or skip logic implementation.
+
+
+## Analysis/Comparison
 ### [2025-04-22 19:10:10] Schedule Implementation Comparison
 - **Purpose**: Compare schedule implementation (DAL, Page, Display) with working examples (themes, faq, workshops) to identify reasons for schedule data not appearing.
 - **Files Compared**:
@@ -39,6 +50,26 @@
 
 
 ## Components Implemented
+### [2025-04-23 16:37:51] Registration Schema Update (V3.1)
+- **Purpose**: Update the SSOT schema for registration questions.
+- **Files**: `platform/config/registrationSchema.ts` (Modified)
+- **Status**: Implemented
+- **Dependencies**: `docs/specs/p0_registration_terminal_ui_spec_v2.md`, `docs/event_info/registration_outline.md`
+- **API Surface**: Exports `registrationSchema` array and `generateRegistrationSchema` function (structure unchanged, content modified).
+- **Tests**: Relies on `scripts/generate-registration.test.ts` for validation of the generation script using this schema.
+- **Notes**: Added missing 'universityInstitution' question (order 8) and incremented subsequent orders (9-48) to resolve TDD blocker REG-SKIP-LOGIC-001. [See MB Log 2025-04-23 13:09:33]
+
+
+### [2025-04-23 11:54:31] RegistrationDialog (V3.1 - Green Phase: signUpUser)
+- **Purpose**: Handles user registration via a terminal-style interface.
+- **Files**: `platform/src/app/register/components/RegistrationDialog.tsx`, `platform/src/app/register/components/RegistrationDialog.test.tsx`
+- **Status**: In Progress (Green Phase - signUpUser logic implemented)
+- **Dependencies**: `react`, `@/lib/data/auth` (`signUpUser`), `@/app/register/actions`
+- **API Surface**: Exports `RegistrationDialog` component.
+- **Tests**: `platform/src/app/register/components/RegistrationDialog.test.tsx` (9/60 tests passing, covering implemented logic)
+- **Notes**: Implemented minimal logic to call `signUpUser` after password confirmation. Added `isSubmitting` state via reducer. Fixed test assertion. Next step is to implement logic for remaining `it.todo` tests.
+
+
 ### [2025-04-22 19:46:15] ScheduleDisplay Refinement
 - **Purpose**: Display schedule items, grouped by date, with configurable time format and responsive layout.
 - **Files**: `platform/src/components/ScheduleDisplay.tsx`, `platform/src/components/ScheduleDisplay.test.tsx`

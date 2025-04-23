@@ -1,3 +1,46 @@
+[2025-04-23 16:37:51] - Code - Completed Task (Update Registration Schema) - Added 'universityInstitution' question (order 8) to `platform/config/registrationSchema.ts` and incremented subsequent question orders (9-48). Committed changes to `feature/registration-v3.1-impl`. Addresses debug issue REG-SKIP-LOGIC-001. [See MB Log 2025-04-23 13:09:33]
+
+
+[2025-04-23 13:09:33] - Debug - Root Cause Identified (RegistrationDialog Skip Logic - REG-SKIP-LOGIC-001) - Test for index 4 ('programOfStudy') still fails after case-insensitive fix. Analysis of `registrationQuestions.ts` reveals the expected next question (conceptual index 5, 'University/Institution') is MISSING from the data array. Component correctly advances from array index 5 ('programOfStudy') to array index 6 ('philosophyCoursework') based on available data. Issue is missing data, not component logic error. Test is out of sync with data. [See MB Log 2025-04-23 13:03:11, 2025-04-23 13:05:57]
+
+
+[2025-04-23 13:05:57] - Code - Analysis Complete (Registration Skip Logic) - Analyzed platform/src/app/register/data/registrationQuestions.ts for skip logic around array indices 4-6. Found no data-defined reason in dependsOn/dependsValue for index 5 (id: 'programOfStudy') to be skipped after index 4 (id: 'academicYearOther'). Issue likely in component logic/state management. [See MB Log 2025-04-23 13:03:11]
+
+
+[2025-04-23 13:03:11] - TDD - Task Blocked (RegistrationDialog V3.1 - programOfStudy Input Handling - EARLY RETURN) - Implemented failing test for handling 'programOfStudy' text input and advancing. Multiple Green phase attempts (validation logic, submission guard, state update refactor, skip logic refactor) failed to resolve issue where component incorrectly skips index 5 ('university') and advances from 4 to 6. Root cause likely incorrect data in registrationQuestions.ts or state/timing issue. Invoked Early Return Clause. Feedback logged.
+
+
+[2025-04-23 12:55:16] - TDD - Completed Red/Green Cycle (RegistrationDialog V3.1 - First Question) - Implemented test for displaying/handling first question ('academicYear') in 'questioning' state. Added minimal code to component (useEffect prompt display, handleSubmit validation/state update/skip logic). Fixed test timing/logic issues. Tests pass. Commits f25b602, ba3d9ab.
+
+
+[2025-04-23 12:33:56] - TDD - Completed Red/Green Cycle (RegistrationDialog V3.1 - Resend Command) - Implemented test for handling 'resend' command in awaiting_confirmation state. Added minimal code to component to call resendConfirmationEmail, display messages, and stay in mode. Test passes. Files: RegistrationDialog.test.tsx, RegistrationDialog.tsx.
+
+
+[2025-04-23 12:29:52] - TDD - Completed Red/Green Cycle (RegistrationDialog V3.1 - Confirmation Check Failure) - Implemented test for handling 'continue' command when checkEmailConfirmation returns false. Added minimal code to component to display error and stay in mode. Test passes. Commits cfaf504, aacc829.
+
+
+[2025-04-23 12:24:17] - TDD - Completed Red/Green Cycle (RegistrationDialog V3.1 - Confirmation Check) - Implemented test for handling 'continue' command after successful signup, checking email confirmation, and transitioning to 'questioning' state. Added minimal code to component, including state management fixes and mocking workarounds. Test passes. Commits b168811, 3b51e5a.
+
+
+[2025-04-23 12:07:18] - TDD - Completed Red/Green Cycle (RegistrationDialog V3.1 - awaiting_confirmation Transition) - Implemented test for successful signUpUser transition to awaiting_confirmation state. Added minimal code (changeMode call, confirmation message) to component. Test passes. Commits eeef7c5, 4def292.
+
+
+[2025-04-23 11:59:45] - TDD - Completed Red/Green Cycle (RegistrationDialog V3.1 - signUpUser Failure) - Implemented test for signUpUser failure, fixed component error message display. Test passes. Commit 4659e19.
+
+
+[2025-04-23 11:54:31] - Code - Completed Green Phase (RegistrationDialog V3.1 - signUpUser) - Implemented minimal `signUpUser` call logic in `platform/src/app/register/components/RegistrationDialog.tsx` using `apply_diff`. Added `isSubmitting` state via reducer. Fixed failing test assertion in `RegistrationDialog.test.tsx` to account for metadata argument. Confirmed relevant tests pass (commit `89d2237`). Ready for next TDD phase (implementing remaining `it.todo` tests).
+
+
+[2025-04-23 10:37:15] - TDD - Completed Red Phase (RegistrationDialog V3.1) - Created new test file `platform/src/app/register/components/RegistrationDialog.test.tsx` with placeholder tests (`it.todo`) covering V3.1 spec/V2 arch requirements. Fixed initial ESLint errors. Confirmed TS errors related to missing component/dependencies are expected for Red phase. Committed failing tests (commit 0c77c6b) to `feature/registration-v3.1-impl`. Ready for Green phase.
+
+
+[2025-04-23 10:30:23] - TDD - Completed Registration Test Evaluation (Phase 3.2 - Task A) - Evaluated existing registration tests against V3.1 spec and V2 architecture. Removed obsolete `platform/src/app/register/components/RegistrationForm.test.tsx` (commit c1c7339). No tests remain for V3.1 registration flow. Ready for Red Phase (writing new failing tests for `RegistrationDialog`).
+
+
+[2025-04-23 10:24:44] - DevOps - Branch Created - Created and pushed feature branch 'feature/registration-v3.1-impl' from latest 'main' for Phase 3.1/3.2 implementation.
+
+[2025-04-23 10:20:56] - SPARC - Handover: Context window at 60%. Handing over orchestration to new instance. V3 Planning complete and merged (based on commit `faba2eb` merged to main). Security, Themes, Schedule fixes also merged. Ready to execute Phase 3 plan (`docs/plans/phase_3_plan.md`). Emphasizing TDD rigor (evaluate first!), SSOT verification, modularity, and assumption checking based on past failures.
+
 [2025-04-23 09:31:00] - Architect - Completed V3 Planning Task - Reviewed V2 specs, V3.1 registration spec, V1 terminal architecture, and MB logs. Created V3 Project Specification (`docs/project_specifications_v3.md`) incorporating expanded terminal scope (Registration, Library, Chatbot, Gamification, Submission) and lessons learned. Proposed and documented V2 Terminal Architecture (`docs/architecture/terminal_component_v2.md`) recommending XState for shell state management and defining specific dialogs. Analyzed feature dependencies. Created Phase 3 Implementation Plan (`docs/plans/phase_3_plan.md`) with branching strategy. Preparing MB updates.
 [2025-04-22 19:46:15] - Code - Completed Task (ScheduleDisplay Refinements - Green Phase) - Modified `platform/src/components/ScheduleDisplay.tsx` to implement 12h/24h time formatting via `timeFormat` prop, handle single time events, and ensure mobile responsiveness by adjusting CSS classes. Refactored `formatTime` helper to parse time strings directly, avoiding timezone issues. Updated assertions in `platform/src/components/ScheduleDisplay.test.tsx` to match expected output. Confirmed all 8 tests for `ScheduleDisplay.test.tsx` pass. Build successful. Full test suite (`npm test`) shows pre-existing unrelated failures. Committed changes (ab867a3) to `schedule-update` branch. [See MB Log 2025-04-22 19:33:03]
 

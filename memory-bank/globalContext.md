@@ -1,7 +1,24 @@
 - **[2025-04-22 11:58:07] - DocsWriter:** Created new theme description file `platform/markdown/themes/meaning-in-ai-world.md` based on fetched essay content.
 - **[2025-04-22 19:11:44] - Code:** Compared schedule implementation (DAL, Page, Display) with themes, faq, workshops. Found consistent DAL/fetching patterns. Key difference: schedule page (`page.tsx`) relies on `ScheduleDisplay` for empty state handling, while other pages handle errors/empty state explicitly in JSX. Initial hypothesis: `fetchSchedule` returned unexpected empty array due to subtle data/query issue or cache. **User confirmed issue resolved by clearing cache and rebuilding.**
 
+- **[2025-04-23 10:24:44] - DevOps:** Created feature branch `feature/registration-v3.1-impl` from latest `main` and pushed to origin for Phase 3.1/3.2 implementation.
+
+- **[2025-04-23 10:30:23] - TDD:** Completed evaluation of existing registration tests against V3.1 spec/V2 arch. Removed obsolete `RegistrationForm.test.tsx` (commit `c1c7339`). No relevant tests remain. Ready for Red Phase (new tests for `RegistrationDialog`).
+
+
+- **[2025-04-23 10:37:15] - TDD:** Completed Red Phase for `RegistrationDialog` (V3.1). Created failing test file `platform/src/app/register/components/RegistrationDialog.test.tsx` (commit `0c77c6b`) on `feature/registration-v3.1-impl`.
+
+- **[2025-04-23 11:54:31] - Code:** Completed Green Phase for `RegistrationDialog` (V3.1 - signUpUser logic). Implemented minimal code to call `signUpUser` after password confirmation, added `isSubmitting` state via reducer, and fixed related test assertion. Commit `89d2237` on `feature/registration-v3.1-impl`. [See MB Log 2025-04-23 11:54:31]
+
+- **[2025-04-23 16:37:51] - Code:** Updated `platform/config/registrationSchema.ts` to include missing 'universityInstitution' question (order 8) and re-ordered subsequent questions (9-48) to fix TDD blocker REG-SKIP-LOGIC-001. Committed to `feature/registration-v3.1-impl`. [See MB Log 2025-04-23 13:09:33]
+
+
 # Progress
+- **[2025-04-23 13:09:33] - Debug:** Diagnosed `RegistrationDialog` skip logic bug (REG-SKIP-LOGIC-001). Root cause identified as missing question data (conceptual index 5) in `registrationQuestions.ts`, not component logic error. Test failure is due to test expecting missing data. Fix requires data source update or test correction. [See MB Log 2025-04-23 13:09:33]
+
+
+- **[2025-04-23 13:03:11] - TDD:** Blocked on `RegistrationDialog` TDD cycle for `programOfStudy` input handling due to persistent test failure (incorrect step advancement). Multiple Green phase attempts failed. Root cause suspected in `registrationQuestions.ts` data or state/timing issue. Early Return Clause invoked. [See MB Log 2025-04-23 13:03:11]
+
 - **[2025-04-22 19:46:15] - Code:** Completed ScheduleDisplay refinements (time format, single time, mobile responsiveness) on `schedule-update` branch (commit `ab867a3`). Component tests pass. Build successful. [See MB Log 2025-04-22 19:33:03]
 
 # Progress

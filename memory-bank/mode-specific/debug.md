@@ -1,6 +1,21 @@
 # Debug Specific Memory
 
 ## Issue History
+### Issue: REG-SKIP-LOGIC-001 - RegistrationDialog skips index 5 after 4 - [Status: Open] - [2025-04-23 13:09:33]
+- **Reported**: 2025-04-23 13:03:11 (TDD MB Log) / **Severity**: High / **Symptoms**: Test `should handle text input for programOfStudy` fails, expecting prompt for index 5 ('University/Institution') but receiving prompt for index 6 ('Philosophy courses completed').
+- **Investigation**:
+    1. Reviewed component `RegistrationDialog.tsx` skip logic in `handleSubmit`. (2025-04-23 13:08:32)
+    2. Hypothesized case-sensitivity issue in skip condition comparison. (2025-04-23 13:08:32)
+    3. Applied case-insensitive fix to line 345. (2025-04-23 13:08:59)
+    4. Ran test: Failed with same symptom. (2025-04-23 13:09:16)
+    5. Read data file `registrationQuestions.ts`. (2025-04-23 13:09:33)
+    6. Compared array indices to conceptual indices: Found question for conceptual index 5 ('University/Institution') is MISSING from the array. Array index 5 is 'programOfStudy', array index 6 is 'philosophyCoursework'. (2025-04-23 13:09:33)
+- **Root Cause**: The question expected by the test (conceptual index 5, 'University/Institution') is missing from the data source (`registrationQuestions.ts`). The component's skip logic correctly advances past the missing index based on the available data.
+- **Fix Applied**: None (Issue is in data source or test, not component logic being debugged).
+- **Verification**: Analysis of `registrationQuestions.ts` confirms missing data. Test failure confirms component behavior based on missing data.
+- **Related Issues**: [MB Log 2025-04-23 13:03:11], [MB Log 2025-04-23 13:05:57]
+
+
 ### Issue: INT-FORM-ENTER-001 - Interest form not submitting on Enter - [Status: Resolved (Cannot Reproduce)] - [2025-04-21 19:54:12]
 - **Reported**: 2025-04-21 07:44:55 (MB Log) / **Severity**: Medium / **Symptoms**: User reported Enter key press in `InterestFormPlaceholder` email field did not submit the form.
 - **Investigation**: 
