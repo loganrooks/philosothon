@@ -235,10 +235,17 @@ const RegistrationDialog: React.FC<DialogProps> = ({
                         // Handle error state?
                    }
                } else {
-                   addOutputLine("Email not confirmed yet. Please check your email or use 'resend'.");
+                   // Display specific error message
+                   addOutputLine("Email not confirmed yet. Please check your email or use 'resend'.", { type: 'error' });
+                   // Re-display the original confirmation prompt
+                   const confirmationPrompt = `Account created. Please check your email (${state.answers.email}) for a confirmation link. Enter 'continue' here once confirmed, or 'resend' to request a new link.`;
+                   addOutputLine(confirmationPrompt);
                }
            } catch (error) {
                 addOutputLine(`Error checking confirmation: ${error instanceof Error ? error.message : String(error)}`, { type: 'error' });
+                // Also re-display prompt on catch
+                const confirmationPrompt = `Account created. Please check your email (${state.answers.email}) for a confirmation link. Enter 'continue' here once confirmed, or 'resend' to request a new link.`;
+                addOutputLine(confirmationPrompt);
            }
        } else if (input.toLowerCase() === 'resend') {
            // TODO: Implement resend logic
