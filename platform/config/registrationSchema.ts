@@ -139,9 +139,24 @@ export const registrationSchema: QuestionDefinition[] = [
     dependsValue: 'Other',
   },
   {
+    id: 'universityInstitution',
+    section: 'Personal Information',
+    order: 8, // Insert here, pushing programOfStudy to 9
+    label: 'University / Institution',
+    type: 'text',
+    required: true,
+    hint: 'Please provide the full name of your current or most recent institution.',
+    description: 'Your university or institution name is used for demographic purposes and team balancing.',
+    validationRules: {
+      required: 'University/Institution is required.',
+      minLength: { value: 2, message: 'Please enter a valid institution name.' },
+    },
+    dbType: 'TEXT',
+  },
+  {
     id: 'programOfStudy', // Outline Q4
     section: 'Personal Information',
-    order: 8, // Correct order
+    order: 9, // Correct order
     label: 'Program/Major(s)',
     type: 'text',
     required: true,
@@ -158,7 +173,7 @@ export const registrationSchema: QuestionDefinition[] = [
   {
     id: 'philosophyCoursework', // Outline Q5
     section: 'Philosophy Background',
-    order: 9, // Correct order
+    order: 10, // Correct order
     label: 'Philosophy courses completed',
     type: 'textarea',
     required: true, // Changed to required based on hint
@@ -172,7 +187,7 @@ export const registrationSchema: QuestionDefinition[] = [
   {
     id: 'philosophyConfidenceDiscussion', // Outline Q6
     section: 'Philosophy Background',
-    order: 10, // Correct order
+    order: 11, // Correct order
     label: 'How would you rate your confidence in philosophical discussion?',
     type: 'scale',
     required: true,
@@ -189,7 +204,7 @@ export const registrationSchema: QuestionDefinition[] = [
   {
     id: 'philosophyConfidenceWriting', // Outline Q7
     section: 'Philosophy Background',
-    order: 11, // Correct order
+    order: 12, // Correct order
     label: 'How would you rate your confidence in philosophical writing?',
     type: 'scale',
     required: true,
@@ -206,7 +221,7 @@ export const registrationSchema: QuestionDefinition[] = [
   {
     id: 'philosophyTraditions', // Outline Q8
     section: 'Philosophy Background',
-    order: 12, // Correct order
+    order: 13, // Correct order
     label: 'Which philosophical traditions are you most familiar with?',
     type: 'multi-select-numbered',
     required: true,
@@ -232,7 +247,7 @@ export const registrationSchema: QuestionDefinition[] = [
   {
     id: 'philosophyTraditionsOther', // Implicit field for Q8 'Other'
     section: 'Philosophy Background',
-    order: 13, // Correct order
+    order: 14, // Correct order
     label: 'Other Philosophical Traditions',
     type: 'text',
     required: false,
@@ -248,7 +263,7 @@ export const registrationSchema: QuestionDefinition[] = [
   {
     id: 'philosophyInterests', // Outline Q9
     section: 'Philosophy Background',
-    order: 14, // Correct order
+    order: 15, // Correct order
     label: 'Areas of philosophical interest',
     type: 'multi-select-numbered',
     required: true,
@@ -271,7 +286,7 @@ export const registrationSchema: QuestionDefinition[] = [
   {
     id: 'philosophyInterestsOther', // Implicit field for Q9 'Other'
     section: 'Philosophy Background',
-    order: 15, // Correct order
+    order: 16, // Correct order
     label: 'Other Areas of Philosophical Interest',
     type: 'text',
     required: false,
@@ -287,7 +302,7 @@ export const registrationSchema: QuestionDefinition[] = [
   {
     id: 'philosophyInfluences', // Outline Q10
     section: 'Philosophy Background',
-    order: 16, // Correct order
+    order: 17, // Correct order
     label: 'Philosophical influences (Optional)',
     type: 'textarea',
     required: false,
@@ -301,7 +316,7 @@ export const registrationSchema: QuestionDefinition[] = [
   {
     id: 'workingStyle', // Outline Q11
     section: 'Working Style & Preferences',
-    order: 17, // Correct order
+    order: 18, // Correct order
     label: 'Working Style Preferences',
     type: 'multi-select-numbered',
     required: true,
@@ -324,7 +339,7 @@ export const registrationSchema: QuestionDefinition[] = [
   {
     id: 'workingStyleOther', // Implicit field for Q11 'Other'
     section: 'Working Style & Preferences',
-    order: 18, // Correct order
+    order: 19, // Correct order
     label: 'Other Working Style Preference',
     type: 'text',
     required: false,
@@ -340,7 +355,7 @@ export const registrationSchema: QuestionDefinition[] = [
   {
     id: 'communicationStyle', // Outline Q12
     section: 'Working Style & Preferences',
-    order: 19, // Correct order
+    order: 20, // Correct order
     label: 'Communication Style',
     type: 'single-select',
     required: true,
@@ -359,7 +374,7 @@ export const registrationSchema: QuestionDefinition[] = [
   {
     id: 'collaborationRole', // Outline Q13
     section: 'Working Style & Preferences',
-    order: 20, // Correct order
+    order: 21, // Correct order
     label: 'In collaborative philosophical work, I typically prefer to:',
     type: 'multi-select-numbered',
     required: true,
@@ -384,7 +399,7 @@ export const registrationSchema: QuestionDefinition[] = [
    {
     id: 'collaborationRoleOther', // Implicit field for Q13 'Other'
     section: 'Working Style & Preferences',
-    order: 21, // Correct order
+    order: 22, // Correct order
     label: 'Other Preferred Collaboration Role',
     type: 'text',
     required: false,
@@ -400,7 +415,7 @@ export const registrationSchema: QuestionDefinition[] = [
   {
     id: 'presentationComfort', // Outline Q14
     section: 'Working Style & Preferences',
-    order: 22, // Correct order
+    order: 23, // Correct order
     label: 'How comfortable are you with presenting philosophical ideas to a group?',
     type: 'scale',
     required: true,
@@ -417,7 +432,7 @@ export const registrationSchema: QuestionDefinition[] = [
   {
     id: 'previousCollaborationExperience', // Outline Q15
     section: 'Working Style & Preferences',
-    order: 23, // Correct order
+    order: 24, // Correct order
     label: 'Have you previously participated in collaborative philosophical discussions?',
     type: 'single-select',
     required: true,
@@ -438,7 +453,7 @@ export const registrationSchema: QuestionDefinition[] = [
   {
     id: 'previousCollaborationExperienceOther', // Implicit field for Q15 'Other'
     section: 'Working Style & Preferences',
-    order: 24, // Correct order
+    order: 25, // Correct order
     label: 'Other Collaboration Experience',
     type: 'text',
     required: false,
@@ -456,7 +471,7 @@ export const registrationSchema: QuestionDefinition[] = [
   {
     id: 'technicalFamiliarity', // Simplified from Outline Q16
     section: 'Technical Background',
-    order: 25, // Correct order
+    order: 26, // Correct order
     label: 'How familiar are you with technical concepts generally (e.g., programming, AI, digital culture)?',
     type: 'scale',
     required: true,
@@ -473,7 +488,7 @@ export const registrationSchema: QuestionDefinition[] = [
   {
     id: 'technicalInterests', // Outline Q17
     section: 'Technical Background',
-    order: 26, // Correct order
+    order: 27, // Correct order
     label: 'Technical Interests (Optional)',
     type: 'textarea',
     required: false,
@@ -487,7 +502,7 @@ export const registrationSchema: QuestionDefinition[] = [
   {
     id: 'themeRanking', // Outline Q18
     section: 'Theme Preferences',
-    order: 27, // Correct order
+    order: 28, // Correct order
     label: 'Please rank your top 3 preferred themes',
     type: 'ranking-numbered',
     required: true,
@@ -516,7 +531,7 @@ export const registrationSchema: QuestionDefinition[] = [
   {
     id: 'themeRankingOther', // Outline Q19
     section: 'Theme Preferences',
-    order: 28, // Correct order
+    order: 29, // Correct order
     label: 'If you ranked "Other" theme, please describe your idea',
     type: 'textarea',
     required: false, // Conditional
@@ -534,7 +549,7 @@ export const registrationSchema: QuestionDefinition[] = [
   {
     id: 'workshopRanking', // Outline Q20
     section: 'Workshop Preferences',
-    order: 29, // Correct order
+    order: 30, // Correct order
     label: 'Please rank your top 3 preferred workshops',
     type: 'ranking-numbered',
     required: true,
@@ -563,7 +578,7 @@ export const registrationSchema: QuestionDefinition[] = [
   {
     id: 'workshopRankingOther', // Outline Q21
     section: 'Workshop Preferences',
-    order: 30, // Correct order
+    order: 31, // Correct order
     label: 'If you ranked "Other" workshop, please describe your idea',
     type: 'textarea',
     required: false, // Conditional
@@ -581,7 +596,7 @@ export const registrationSchema: QuestionDefinition[] = [
   {
     id: 'teammateSimilarityPreference', // Outline Q22
     section: 'Team Formation Preferences',
-    order: 31, // Correct order
+    order: 32, // Correct order
     label: 'Teammate similarity preference',
     type: 'scale',
     required: true,
@@ -598,7 +613,7 @@ export const registrationSchema: QuestionDefinition[] = [
   {
     id: 'mentorshipPreference', // Outline Q23
     section: 'Team Formation Preferences',
-    order: 32, // Correct order
+    order: 33, // Correct order
     label: 'Experience level and mentorship preferences',
     type: 'single-select',
     required: true,
@@ -618,7 +633,7 @@ export const registrationSchema: QuestionDefinition[] = [
   {
     id: 'mentorComfortAreas', // Outline Q24
     section: 'Team Formation Preferences',
-    order: 33, // Correct order
+    order: 34, // Correct order
     label: 'If you selected that you\'d like to be a mentor, what aspects of philosophy are you comfortable mentoring in?',
     type: 'textarea',
     required: false, // Conditional
@@ -634,7 +649,7 @@ export const registrationSchema: QuestionDefinition[] = [
   {
     id: 'preferredTeammates', // Outline Q25
     section: 'Team Formation Preferences',
-    order: 34, // Correct order
+    order: 35, // Correct order
     label: 'Do you have any specific people you\'d like to have as teammates? (Optional)',
     type: 'textarea',
     required: false,
@@ -648,7 +663,7 @@ export const registrationSchema: QuestionDefinition[] = [
   {
     id: 'discordMember', // Outline Q26
     section: 'Communication & Community',
-    order: 35, // Correct order
+    order: 36, // Correct order
     label: 'Are you a member of the Philosophy of Technology Group Discord?',
     type: 'single-select',
     required: true,
@@ -668,7 +683,7 @@ export const registrationSchema: QuestionDefinition[] = [
   {
     id: 'learningGoals', // Outline Q27
     section: 'Learning Goals',
-    order: 36, // Correct order
+    order: 37, // Correct order
     label: 'What do you hope to gain from the Philosothon experience?',
     type: 'multi-select-numbered',
     required: true,
@@ -693,7 +708,7 @@ export const registrationSchema: QuestionDefinition[] = [
   {
     id: 'learningGoalsOther', // Implicit field for Q27 'Other'
     section: 'Learning Goals',
-    order: 37, // Correct order
+    order: 38, // Correct order
     label: 'Other Learning Goals',
     type: 'text',
     required: false,
@@ -711,7 +726,7 @@ export const registrationSchema: QuestionDefinition[] = [
   {
     id: 'availabilityConfirmation', // Outline Q28
     section: 'Availability and Scheduling',
-    order: 38, // Correct order
+    order: 39, // Correct order
     label: 'Please confirm your availability for the full duration of the event (April 26-27, 2025)',
     type: 'single-select', // Changed from boolean in old schema to match outline MC
     required: true,
@@ -729,7 +744,7 @@ export const registrationSchema: QuestionDefinition[] = [
   {
     id: 'availabilityDetails', // Outline Q29
     section: 'Availability and Scheduling',
-    order: 39, // Correct order
+    order: 40, // Correct order
     label: 'If you have partial availability, please specify the times you CAN attend',
     type: 'textarea',
     required: false, // Conditional
@@ -745,7 +760,7 @@ export const registrationSchema: QuestionDefinition[] = [
   {
     id: 'contingencyAvailability', // Outline Q30
     section: 'Availability and Scheduling',
-    order: 40, // Correct order
+    order: 41, // Correct order
     label: 'Contingency Planning: If we need to postpone the event, would you be available the following weekend (May 3-4, 2025)?',
     type: 'single-select',
     required: true,
@@ -764,7 +779,7 @@ export const registrationSchema: QuestionDefinition[] = [
   {
     id: 'contingencyAvailabilityDetails', // Outline Q31
     section: 'Availability and Scheduling',
-    order: 41, // Correct order
+    order: 42, // Correct order
     label: 'If you have partial availability for the contingency dates, please specify',
     type: 'textarea',
     required: false, // Conditional
@@ -782,7 +797,7 @@ export const registrationSchema: QuestionDefinition[] = [
   {
     id: 'dietaryRestrictions', // Outline Q32
     section: 'Logistics',
-    order: 42, // Correct order
+    order: 43, // Correct order
     label: 'Do you have any dietary restrictions or preferences?',
     type: 'textarea',
     required: false,
@@ -794,7 +809,7 @@ export const registrationSchema: QuestionDefinition[] = [
   {
     id: 'accessibilityNeeds', // Outline Q33
     section: 'Logistics',
-    order: 43, // Correct order
+    order: 44, // Correct order
     label: 'Do you require any accessibility accommodations?',
     type: 'textarea',
     required: false,
@@ -806,7 +821,7 @@ export const registrationSchema: QuestionDefinition[] = [
   {
     id: 'heardAboutSource', // Outline Q34
     section: 'Logistics',
-    order: 44, // Correct order
+    order: 45, // Correct order
     label: 'How did you hear about the Philosothon?',
     type: 'multi-select-numbered',
     required: true,
@@ -830,7 +845,7 @@ export const registrationSchema: QuestionDefinition[] = [
   {
     id: 'heardAboutSourceOther', // Implicit field for Q34 'Other'
     section: 'Logistics',
-    order: 45, // Correct order
+    order: 46, // Correct order
     label: 'Other Source',
     type: 'text',
     required: false,
@@ -848,7 +863,7 @@ export const registrationSchema: QuestionDefinition[] = [
    {
     id: 'additionalInfo', // Outline Q35
     section: 'Additional Information',
-    order: 46, // Correct order
+    order: 47, // Correct order
     label: 'Is there anything else you\'d like us to know? (Optional)',
     type: 'textarea',
     required: false,
@@ -862,7 +877,7 @@ export const registrationSchema: QuestionDefinition[] = [
   {
     id: 'finalConfirmationAgreement', // Outline Q36
     section: 'Consent & Agreement',
-    order: 47, // Correct order - This is the 36th question in the flow
+    order: 48, // Correct order - This is the 36th question in the flow
     label: 'By submitting this form, I confirm that I understand the time commitment required for the Philosothon (all day April 26 and morning of April 27) and will make arrangements to fully participate and provide feedback on my experience.',
     type: 'boolean', // Single checkbox
     required: true,
