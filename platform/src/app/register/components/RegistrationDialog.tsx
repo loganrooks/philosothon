@@ -232,7 +232,7 @@ const RegistrationDialog: React.FC<DialogProps> = ({
               // e.g., setDialogState('pendingUserId', result.userId);
               dispatch({ type: 'SET_MODE', payload: 'awaiting_confirmation' });
           } else {
-              addOutputLine(`Error creating account: ${result.message || result.error?.message || 'Unknown error'}`, { type: 'error' });
+              addOutputLine(result.message || result.error?.message || 'Unknown error', { type: 'error' });
               // Optionally reset to password prompt or allow retry? For now, just show error.
               // Re-prompt for confirm password as the last valid step before failure
                addOutputLine("Please confirm your password:");

@@ -380,7 +380,68 @@ describe('RegistrationDialog (V3.1)', () => {
         // Further tests will check the transition based on signUpUser result
     });
 
-    it.todo('should display an error message if signUpUser fails');
+    it('should display an error message if signUpUser fails', async () => {
+      // Mock signUpUser to return failure
+      vi.mocked(authActions.signUpUser).mockResolvedValue({
+        success: false,
+        message: 'Test signup error',
+        data: null,
+        error: { message: 'Test signup error', name: 'AuthApiError' } // Mock error object
+      });
+
+      const handleInput = vi.fn();
+      const { container } = render(<RegistrationDialog {...defaultProps} onInput={handleInput} />);
+
+      // Simulate getting to the confirm password prompt
+      const inputElement = container.querySelector('input');
+      expect(inputElement).not.toBeNull();
+      if (!inputElement) return;
+
+      const testData = {
+        firstName: 'Fail',
+        lastName: 'User',
+        email: 'fail@example.com',
+        password: 'password123',
+      };
+
+      // Enter First Name, Last Name, Email, Password
+      fireEvent.change(inputElement, { target: { value: testData.firstName } });
+      fireEvent.submit(inputElement.closest('form')!);
+      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.firstName); });
+      fireEvent.change(inputElement, { target: { value: testData.lastName } });
+      fireEvent.submit(inputElement.closest('form')!);
+      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.lastName); });
+      fireEvent.change(inputElement, { target: { value: testData.email } });
+      fireEvent.submit(inputElement.closest('form')!);
+      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.email); });
+      fireEvent.change(inputElement, { target: { value: testData.password } });
+      fireEvent.submit(inputElement.closest('form')!);
+      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.password); });
+
+      // Wait for Confirm Password prompt
+      await waitFor(() => {
+        expect(mockAddOutputLine).toHaveBeenCalledWith("Please confirm your password:");
+      });
+
+      // Enter matching password
+      fireEvent.change(inputElement, { target: { value: testData.password } });
+      fireEvent.submit(inputElement.closest('form')!);
+      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.password); });
+
+      // Check that signUpUser was called
+      await waitFor(() => {
+        expect(authActions.signUpUser).toHaveBeenCalledTimes(1);
+      });
+
+      // Check for error message output
+      await waitFor(() => {
+        expect(mockAddOutputLine).toHaveBeenCalledWith('Test signup error', { type: 'error' });
+      });
+
+      // Check that the confirm password prompt is displayed again (state didn't advance successfully)
+      // Or potentially the password prompt if it resets further back on error
+      expect(mockAddOutputLine).toHaveBeenLastCalledWith("Please confirm your password:");
+    });
     it.todo('should transition to "awaiting_confirmation" state after successful signUpUser');
     it.todo('should display confirmation instructions in "awaiting_confirmation" state');
     it.todo('should periodically call checkEmailConfirmation in "awaiting_confirmation" state');
