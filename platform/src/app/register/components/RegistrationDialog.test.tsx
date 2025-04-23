@@ -47,7 +47,7 @@ describe('RegistrationDialog (V3.1)', () => {
     vi.mocked(regActions.updateRegistration).mockResolvedValue({ success: true, message: null });
     vi.mocked(regActions.deleteRegistration).mockResolvedValue({ success: true, message: null });
     vi.mocked(regActions.checkEmailConfirmation).mockResolvedValue({ isConfirmed: false }); // Now exists as placeholder
-    vi.mocked(authActions.signUpUser).mockResolvedValue({ success: true, userId: 'mock-user-id', message: null, data: { user: { id: 'mock-user-id' } }, error: null }); // Added error: null
+    vi.mocked(authActions.signUpUser).mockResolvedValue({ success: true, userId: 'mock-user-id', message: null, data: { user: { id: 'mock-user-id', email: 'mock@example.com' } }, error: null }); // Ensure userId is top-level
     // Add mock for resendConfirmationEmail if needed by tests
     vi.mocked(authActions.resendConfirmationEmail).mockResolvedValue({ success: true, message: 'Resent (placeholder)', data: {}, error: null }); // Added error: null
   });
@@ -449,6 +449,7 @@ describe('RegistrationDialog (V3.1)', () => {
       const testEmail = 'success@example.com';
       vi.mocked(authActions.signUpUser).mockResolvedValue({
         success: true,
+        userId: 'mock-user-id', // Add userId here for the component check
         message: 'User signed up successfully',
         // Ensure the mock data structure matches what the component expects
         data: { user: { email: testEmail, id: 'mock-user-id' } },

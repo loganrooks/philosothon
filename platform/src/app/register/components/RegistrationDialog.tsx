@@ -17,6 +17,7 @@ interface DialogProps {
   userSession: any; // Replace 'any' with actual UserSession type
   dialogState: Record<string, any>;
   onInput: (input: string) => void; // Assuming TerminalShell provides this
+  changeMode: (mode: DialogMode) => void;
 }
 
 interface State {
@@ -81,6 +82,7 @@ const RegistrationDialog: React.FC<DialogProps> = ({
   userSession,
   dialogState,
   onInput, // Assuming this prop exists for handling input submission
+  changeMode,
 }) => {
   const [state, dispatch] = useReducer(reducer, initialState);
   const [currentInput, setCurrentInput] = useState(''); // Example input state
@@ -227,10 +229,13 @@ const RegistrationDialog: React.FC<DialogProps> = ({
           });
 
           if (result.success && result.userId) {
-              addOutputLine("Account created. Please check your email for confirmation.");
+              // Construct the confirmation message using the email from the state
+              const confirmationMessage = `Account created. Please check your email (${state.answers.email}) for a confirmation link. Enter 'continue' here once confirmed, or 'resend' to request a new link.`;
+              addOutputLine(confirmationMessage);
               // Store necessary info if needed before changing mode
               // e.g., setDialogState('pendingUserId', result.userId);
-              dispatch({ type: 'SET_MODE', payload: 'awaiting_confirmation' });
+              // Call changeMode prop instead of dispatching directly
+              changeMode('awaiting_confirmation');
           } else {
               addOutputLine(result.message || result.error?.message || 'Unknown error', { type: 'error' });
               // Optionally reset to password prompt or allow retry? For now, just show error.
