@@ -595,6 +595,74 @@ describe('RegistrationDialog (V3.1)', () => {
         expect(mockAddOutputLine).toHaveBeenCalledWith('First Name');
       });
     });
+    it('should display error and stay in awaiting_confirmation if email is not confirmed via "continue" command', async () => {
+      // Mock signUpUser to return success
+      const testEmail = 'unconfirmed@example.com';
+      vi.mocked(authActions.signUpUser).mockResolvedValue({
+        success: true,
+        userId: 'mock-unconfirmed-user-id',
+        message: 'User signed up successfully',
+        data: { user: { email: testEmail, id: 'mock-unconfirmed-user-id' } },
+        error: null
+      });
+      // Mock checkEmailConfirmation to return NOT confirmed
+      vi.mocked(regActions.checkEmailConfirmation).mockResolvedValue({ isConfirmed: false });
+
+      const handleInput = vi.fn();
+      const { container } = render(<RegistrationDialog {...defaultProps} dialogState={currentDialogState} onInput={handleInput} />);
+
+      // --- Simulate flow to awaiting_confirmation state ---
+      const inputElement = container.querySelector('input');
+      expect(inputElement).not.toBeNull();
+      if (!inputElement) return;
+
+      const testData = { firstName: 'Unconfirmed', lastName: 'User', email: testEmail, password: 'password123' };
+
+      fireEvent.change(inputElement, { target: { value: testData.firstName } });
+      fireEvent.submit(inputElement.closest('form')!);
+      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.firstName); });
+      fireEvent.change(inputElement, { target: { value: testData.lastName } });
+      fireEvent.submit(inputElement.closest('form')!);
+      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.lastName); });
+      fireEvent.change(inputElement, { target: { value: testData.email } });
+      fireEvent.submit(inputElement.closest('form')!);
+      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.email); });
+      fireEvent.change(inputElement, { target: { value: testData.password } });
+      fireEvent.submit(inputElement.closest('form')!);
+      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.password); });
+      await waitFor(() => { expect(mockAddOutputLine).toHaveBeenCalledWith(expect.stringContaining("Please confirm your password:")); });
+      fireEvent.change(inputElement, { target: { value: testData.password } });
+      fireEvent.submit(inputElement.closest('form')!);
+      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.password); });
+      await waitFor(() => { expect(authActions.signUpUser).toHaveBeenCalledTimes(1); });
+      await waitFor(() => { expect(mockSetDialogState).toHaveBeenCalledWith('pendingUserId', 'mock-unconfirmed-user-id'); });
+      const confirmationPrompt = `Account created. Please check your email (${testEmail}) for a confirmation link. Enter 'continue' here once confirmed, or 'resend' to request a new link.`;
+      await waitFor(() => { expect(mockAddOutputLine).toHaveBeenCalledWith(confirmationPrompt); });
+      // --- End simulation ---
+
+      // Simulate user entering 'continue'
+      fireEvent.change(inputElement, { target: { value: 'continue' } });
+      fireEvent.submit(inputElement.closest('form')!); // Use submit on form
+      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('continue'); });
+
+      // Assert checkEmailConfirmation was called
+      await waitFor(() => {
+        expect(regActions.checkEmailConfirmation).toHaveBeenCalledTimes(1);
+      });
+
+      // Assert mode did NOT change to questioning
+      expect(mockChangeMode).not.toHaveBeenCalledWith('questioning');
+
+      // Assert error message was shown
+      const expectedError = "Email not confirmed yet. Please check your email or use 'resend'.";
+      await waitFor(() => {
+        expect(mockAddOutputLine).toHaveBeenCalledWith(expectedError, { type: 'error' });
+      });
+
+      // Assert the confirmation prompt is shown again (indicating still in awaiting_confirmation)
+      // Use toHaveBeenLastCalledWith to be more precise
+      expect(mockAddOutputLine).toHaveBeenLastCalledWith(confirmationPrompt);
+    });
     it.todo('should handle existing users detected during signUpUser (needs clarification from spec/impl)');
   });
   describe('Question Flow', () => {
