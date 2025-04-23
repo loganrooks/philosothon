@@ -1,20 +1,20 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import useLocalStorage from '@/lib/hooks/useLocalStorage'; // Import for typed mock
+// import useLocalStorage from '@/lib/hooks/useLocalStorage'; // TODO: Verify path or existence
 import * as regActions from '@/app/register/actions'; // Import for typed mock
-import * as authActions from '@/lib/auth/actions'; // Import for typed mock
+import * as authActions from '@/lib/data/auth'; // Corrected path to DAL
 
 // Mock dependencies - These will need refinement as implementation progresses
-vi.mock('@/lib/hooks/useLocalStorage');
+// vi.mock('@/lib/hooks/useLocalStorage'); // TODO: Verify path or existence
 vi.mock('@/app/register/data/registrationQuestions', () => ({
   __esModule: true,
   default: [], // Start with empty questions, can mock specific data later
 }));
 
-// Mock Server Actions
+// Mock Server Actions & DAL
 vi.mock('@/app/register/actions');
-vi.mock('@/lib/auth/actions');
+vi.mock('@/lib/data/auth'); // Mock the DAL module
 
 
 // Mock TerminalShell context/props (adjust based on actual implementation)
@@ -23,8 +23,8 @@ const mockSendToShellMachine = vi.fn();
 const mockSetDialogState = vi.fn();
 const mockClearDialogState = vi.fn();
 
-// Placeholder for the actual component - This import will fail
-// import RegistrationDialog from './RegistrationDialog';
+// Import the actual component
+import RegistrationDialog from './RegistrationDialog';
 
 // Default props based on V2 Architecture doc
 const defaultProps = {
@@ -40,26 +40,346 @@ describe('RegistrationDialog (V3.1)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Reset mock implementations using imported modules
-    vi.mocked(useLocalStorage).mockReturnValue([null, vi.fn(), vi.fn()]);
-    vi.mocked(regActions.submitRegistration).mockResolvedValue({ success: true });
-    vi.mocked(regActions.updateRegistration).mockResolvedValue({ success: true });
-    vi.mocked(regActions.deleteRegistration).mockResolvedValue({ success: true });
-    vi.mocked(regActions.checkEmailConfirmation).mockResolvedValue({ isConfirmed: false });
-    vi.mocked(authActions.signUpUser).mockResolvedValue({ success: true, userId: 'mock-user-id' });
+    // vi.mocked(useLocalStorage).mockReturnValue([null, vi.fn(), vi.fn()]); // TODO: Verify path or existence
+    vi.mocked(regActions.submitRegistration).mockResolvedValue({ success: true, message: null });
+    vi.mocked(regActions.updateRegistration).mockResolvedValue({ success: true, message: null });
+    vi.mocked(regActions.deleteRegistration).mockResolvedValue({ success: true, message: null });
+    vi.mocked(regActions.checkEmailConfirmation).mockResolvedValue({ isConfirmed: false }); // Now exists as placeholder
+    vi.mocked(authActions.signUpUser).mockResolvedValue({ success: true, userId: 'mock-user-id', message: null, data: { user: { id: 'mock-user-id' } }, error: null }); // Added error: null
+    // Add mock for resendConfirmationEmail if needed by tests
+    vi.mocked(authActions.resendConfirmationEmail).mockResolvedValue({ success: true, message: 'Resent (placeholder)', data: {}, error: null }); // Added error: null
   });
 
-  it.todo('should render introductory text and the first prompt (First Name) on initial load');
+  it('should render introductory text and the first prompt (First Name) on initial load', async () => {
+    render(<RegistrationDialog {...defaultProps} onInput={vi.fn()} />);
+
+    // Wait for the initial useEffect to run and add output lines
+    await waitFor(() => {
+      expect(mockAddOutputLine).toHaveBeenCalledWith("Welcome to the Philosothon Registration!");
+    });
+    expect(mockAddOutputLine).toHaveBeenCalledWith("We need to collect some information to get you started.");
+    // TODO: Add assertion for full intro text if specified by tests/spec
+    expect(mockAddOutputLine).toHaveBeenCalledWith("Please enter your First Name:");
+  });
 
   describe('Early Authentication Flow', () => {
-    it.todo('should prompt for First Name');
-    it.todo('should prompt for Last Name after First Name is entered');
-    it.todo('should prompt for Email after Last Name is entered');
-    it.todo('should show validation error for invalid email format');
-    it.todo('should prompt for Password after valid Email is entered');
-    it.todo('should show validation error for short password (less than 8 chars)');
-    it.todo('should prompt for Confirm Password after Password is entered');
-    it.todo('should show validation error for non-matching passwords');
-    it.todo('should call signUpUser server action with correct details after passwords match');
+    // This is covered by the initial load test, skipping for now or can refine later
+    it.skip('should prompt for First Name', () => {});
+
+    it('should prompt for Last Name after First Name is entered', async () => {
+        const handleInput = vi.fn();
+        const { container } = render(<RegistrationDialog {...defaultProps} onInput={handleInput} />);
+
+        // Wait for initial prompt
+        await waitFor(() => {
+          expect(mockAddOutputLine).toHaveBeenCalledWith("Please enter your First Name:");
+        });
+
+        // Simulate entering first name
+        const inputElement = container.querySelector('input');
+        expect(inputElement).not.toBeNull();
+        if (!inputElement) return; // Type guard
+
+        fireEvent.change(inputElement, { target: { value: 'Test' } });
+        fireEvent.submit(inputElement.closest('form')!); // Assuming input is in a form
+
+        // Check that input was processed (mocked onInput called)
+        // Note: The component's internal handleSubmit calls onInput
+        await waitFor(() => {
+             expect(handleInput).toHaveBeenCalledWith('Test');
+        });
+
+        // Check for Last Name prompt
+        // Need to wait for the state update and subsequent useEffect to run
+        await waitFor(() => {
+            expect(mockAddOutputLine).toHaveBeenCalledWith("Please enter your Last Name:");
+        });
+    });
+
+    it('should prompt for Email after Last Name is entered', async () => {
+        const handleInput = vi.fn();
+        const { container } = render(<RegistrationDialog {...defaultProps} onInput={handleInput} />);
+
+        // Wait for initial prompt
+        await waitFor(() => {
+          expect(mockAddOutputLine).toHaveBeenCalledWith("Please enter your First Name:");
+        });
+
+        // Simulate entering first name
+        const inputElement = container.querySelector('input');
+        expect(inputElement).not.toBeNull();
+        if (!inputElement) return; // Type guard
+
+        fireEvent.change(inputElement, { target: { value: 'Test' } });
+        fireEvent.submit(inputElement.closest('form')!);
+        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('Test'); });
+
+        // Wait for last name prompt
+        await waitFor(() => {
+            expect(mockAddOutputLine).toHaveBeenCalledWith("Please enter your Last Name:");
+        });
+
+         // Simulate entering last name
+        fireEvent.change(inputElement, { target: { value: 'User' } });
+        fireEvent.submit(inputElement.closest('form')!);
+        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('User'); });
+
+        // Check for Email prompt
+        await waitFor(() => {
+            expect(mockAddOutputLine).toHaveBeenCalledWith("Please enter your University Email Address:");
+        });
+    });
+
+    it('should show validation error for invalid email format', async () => {
+        const handleInput = vi.fn();
+        const { container } = render(<RegistrationDialog {...defaultProps} onInput={handleInput} />);
+
+        // Simulate getting to the email prompt
+        const inputElement = container.querySelector('input');
+        expect(inputElement).not.toBeNull();
+        if (!inputElement) return;
+
+        // Enter First Name
+        fireEvent.change(inputElement, { target: { value: 'Test' } });
+        fireEvent.submit(inputElement.closest('form')!);
+        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('Test'); });
+
+        // Enter Last Name
+        fireEvent.change(inputElement, { target: { value: 'User' } });
+        fireEvent.submit(inputElement.closest('form')!);
+        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('User'); });
+
+        // Wait for Email prompt
+        await waitFor(() => {
+            expect(mockAddOutputLine).toHaveBeenCalledWith("Please enter your University Email Address:");
+        });
+
+        // Enter invalid email
+        fireEvent.change(inputElement, { target: { value: 'invalid-email' } });
+        fireEvent.submit(inputElement.closest('form')!);
+        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('invalid-email'); });
+
+        // Check for error message
+        await waitFor(() => {
+            expect(mockAddOutputLine).toHaveBeenCalledWith("Invalid email format.", { type: 'error' });
+        });
+
+        // Check that the email prompt is displayed again (state didn't advance)
+        expect(mockAddOutputLine).toHaveBeenLastCalledWith("Please enter your University Email Address:");
+
+        // Ensure NEXT_STEP was not dispatched (or state index didn't change)
+        // This might require inspecting mockSetDialogState or internal state if possible,
+        // or verifying that the *next* prompt (Password) is NOT shown.
+        // For now, checking the last call is a basic verification.
+    });
+
+    it('should prompt for Password after valid Email is entered', async () => {
+        const handleInput = vi.fn();
+        const { container } = render(<RegistrationDialog {...defaultProps} onInput={handleInput} />);
+
+        // Simulate getting to the email prompt
+        const inputElement = container.querySelector('input');
+        expect(inputElement).not.toBeNull();
+        if (!inputElement) return;
+
+        // Enter First Name
+        fireEvent.change(inputElement, { target: { value: 'Test' } });
+        fireEvent.submit(inputElement.closest('form')!);
+        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('Test'); });
+
+        // Enter Last Name
+        fireEvent.change(inputElement, { target: { value: 'User' } });
+        fireEvent.submit(inputElement.closest('form')!);
+        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('User'); });
+
+        // Wait for Email prompt
+        await waitFor(() => {
+            expect(mockAddOutputLine).toHaveBeenCalledWith("Please enter your University Email Address:");
+        });
+
+        // Enter valid email
+        fireEvent.change(inputElement, { target: { value: 'test@example.com' } });
+        fireEvent.submit(inputElement.closest('form')!);
+        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('test@example.com'); });
+
+        // Check for Password prompt
+        await waitFor(() => {
+            expect(mockAddOutputLine).toHaveBeenCalledWith("Please create a password (min. 8 characters):");
+        });
+    });
+
+    it('should show validation error for short password (less than 8 chars)', async () => {
+        const handleInput = vi.fn();
+        const { container } = render(<RegistrationDialog {...defaultProps} onInput={handleInput} />);
+
+        // Simulate getting to the password prompt
+        const inputElement = container.querySelector('input');
+        expect(inputElement).not.toBeNull();
+        if (!inputElement) return;
+
+        // Enter First Name, Last Name, Email
+        fireEvent.change(inputElement, { target: { value: 'Test' } });
+        fireEvent.submit(inputElement.closest('form')!);
+        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('Test'); });
+        fireEvent.change(inputElement, { target: { value: 'User' } });
+        fireEvent.submit(inputElement.closest('form')!);
+        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('User'); });
+        fireEvent.change(inputElement, { target: { value: 'test@example.com' } });
+        fireEvent.submit(inputElement.closest('form')!);
+        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('test@example.com'); });
+
+        // Wait for Password prompt
+        await waitFor(() => {
+            expect(mockAddOutputLine).toHaveBeenCalledWith("Please create a password (min. 8 characters):");
+        });
+
+        // Enter short password
+        fireEvent.change(inputElement, { target: { value: 'short' } });
+        fireEvent.submit(inputElement.closest('form')!);
+        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('short'); });
+
+        // Check for error message
+        await waitFor(() => {
+            expect(mockAddOutputLine).toHaveBeenCalledWith("Password must be at least 8 characters.", { type: 'error' });
+        });
+
+        // Check that the password prompt is displayed again
+        expect(mockAddOutputLine).toHaveBeenLastCalledWith("Please create a password (min. 8 characters):");
+    });
+
+    it('should prompt for Confirm Password after Password is entered', async () => {
+        const handleInput = vi.fn();
+        const { container } = render(<RegistrationDialog {...defaultProps} onInput={handleInput} />);
+
+        // Simulate getting to the password prompt
+        const inputElement = container.querySelector('input');
+        expect(inputElement).not.toBeNull();
+        if (!inputElement) return;
+
+        // Enter First Name, Last Name, Email
+        fireEvent.change(inputElement, { target: { value: 'Test' } });
+        fireEvent.submit(inputElement.closest('form')!);
+        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('Test'); });
+        fireEvent.change(inputElement, { target: { value: 'User' } });
+        fireEvent.submit(inputElement.closest('form')!);
+        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('User'); });
+        fireEvent.change(inputElement, { target: { value: 'test@example.com' } });
+        fireEvent.submit(inputElement.closest('form')!);
+        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('test@example.com'); });
+
+        // Wait for Password prompt
+        await waitFor(() => {
+            expect(mockAddOutputLine).toHaveBeenCalledWith("Please create a password (min. 8 characters):");
+        });
+
+        // Enter valid password
+        fireEvent.change(inputElement, { target: { value: 'password123' } });
+        fireEvent.submit(inputElement.closest('form')!);
+        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('password123'); });
+
+        // Check for Confirm Password prompt
+        await waitFor(() => {
+            expect(mockAddOutputLine).toHaveBeenCalledWith("Please confirm your password:");
+        });
+    });
+
+    it('should show validation error for non-matching passwords', async () => {
+        const handleInput = vi.fn();
+        const { container } = render(<RegistrationDialog {...defaultProps} onInput={handleInput} />);
+
+        // Simulate getting to the confirm password prompt
+        const inputElement = container.querySelector('input');
+        expect(inputElement).not.toBeNull();
+        if (!inputElement) return;
+
+        // Enter First Name, Last Name, Email, Password
+        fireEvent.change(inputElement, { target: { value: 'Test' } });
+        fireEvent.submit(inputElement.closest('form')!);
+        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('Test'); });
+        fireEvent.change(inputElement, { target: { value: 'User' } });
+        fireEvent.submit(inputElement.closest('form')!);
+        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('User'); });
+        fireEvent.change(inputElement, { target: { value: 'test@example.com' } });
+        fireEvent.submit(inputElement.closest('form')!);
+        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('test@example.com'); });
+        fireEvent.change(inputElement, { target: { value: 'password123' } });
+        fireEvent.submit(inputElement.closest('form')!);
+        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('password123'); });
+
+
+        // Wait for Confirm Password prompt
+        await waitFor(() => {
+            expect(mockAddOutputLine).toHaveBeenCalledWith("Please confirm your password:");
+        });
+
+        // Enter non-matching password
+        fireEvent.change(inputElement, { target: { value: 'password456' } });
+        fireEvent.submit(inputElement.closest('form')!);
+        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('password456'); });
+
+        // Check for error message
+        await waitFor(() => {
+            expect(mockAddOutputLine).toHaveBeenCalledWith("Passwords do not match.", { type: 'error' });
+        });
+
+        // Check that the confirm password prompt is displayed again
+        expect(mockAddOutputLine).toHaveBeenLastCalledWith("Please confirm your password:");
+    });
+
+    it('should call signUpUser server action with correct details after passwords match', async () => {
+        const handleInput = vi.fn();
+        const { container } = render(<RegistrationDialog {...defaultProps} onInput={handleInput} />);
+
+        // Simulate getting to the confirm password prompt
+        const inputElement = container.querySelector('input');
+        expect(inputElement).not.toBeNull();
+        if (!inputElement) return;
+
+        const testData = {
+            firstName: 'Test',
+            lastName: 'User',
+            email: 'test@example.com',
+            password: 'password123',
+        };
+
+        // Enter First Name, Last Name, Email, Password
+        fireEvent.change(inputElement, { target: { value: testData.firstName } });
+        fireEvent.submit(inputElement.closest('form')!);
+        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.firstName); });
+        fireEvent.change(inputElement, { target: { value: testData.lastName } });
+        fireEvent.submit(inputElement.closest('form')!);
+        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.lastName); });
+        fireEvent.change(inputElement, { target: { value: testData.email } });
+        fireEvent.submit(inputElement.closest('form')!);
+        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.email); });
+        fireEvent.change(inputElement, { target: { value: testData.password } });
+        fireEvent.submit(inputElement.closest('form')!);
+        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.password); });
+
+        // Wait for Confirm Password prompt
+        await waitFor(() => {
+            expect(mockAddOutputLine).toHaveBeenCalledWith("Please confirm your password:");
+        });
+
+        // Enter matching password
+        fireEvent.change(inputElement, { target: { value: testData.password } });
+        fireEvent.submit(inputElement.closest('form')!);
+        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.password); });
+
+        // Check that signUpUser was called with correct details
+        await waitFor(() => {
+            expect(authActions.signUpUser).toHaveBeenCalledTimes(1);
+            expect(authActions.signUpUser).toHaveBeenCalledWith(
+                testData.email,
+                testData.password,
+                // Check for metadata
+                expect.objectContaining({ data: { first_name: testData.firstName, last_name: testData.lastName } })
+            );
+        });
+
+        // Further tests will check the transition based on signUpUser result
+    });
+
     it.todo('should display an error message if signUpUser fails');
     it.todo('should transition to "awaiting_confirmation" state after successful signUpUser');
     it.todo('should display confirmation instructions in "awaiting_confirmation" state');
