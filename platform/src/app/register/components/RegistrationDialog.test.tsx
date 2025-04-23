@@ -7,25 +7,25 @@ import * as authActions from '@/lib/data/auth'; // Corrected path to DAL
 
 // Mock dependencies - These will need refinement as implementation progresses
 // vi.mock('@/lib/hooks/useLocalStorage'); // TODO: Verify path or existence
-vi.mock('@/app/register/data/registrationQuestions', () => ({
-  __esModule: true,
-  default: [], // Start with empty questions, can mock specific data later
-}));
 
-// Mock Server Actions & DAL
+// Remove vi.mock for registrationQuestions; manual mock in __mocks__ will be used.
+// const mockQuestions = [ ... ]; // No longer needed here
+
+
+// Mock Server Actions & DAL (These can remain hoisted)
 vi.mock('@/app/register/actions');
 vi.mock('@/lib/data/auth'); // Mock the DAL module
-
 
 // Mock TerminalShell context/props (adjust based on actual implementation)
 const mockAddOutputLine = vi.fn();
 const mockSendToShellMachine = vi.fn();
 const mockSetDialogState = vi.fn();
 const mockClearDialogState = vi.fn();
-
 const mockChangeMode = vi.fn();
-// Import the actual component
+
+// Import the actual component directly
 import RegistrationDialog from './RegistrationDialog';
+
 
 // Default props based on V2 Architecture doc
 const defaultProps = {
@@ -39,9 +39,19 @@ const defaultProps = {
 };
 
 describe('RegistrationDialog (V3.1)', () => {
+
+  // Variable to hold dialog state within test scope
+  let currentDialogState: Record<string, any> = {};
+
+  // beforeEach should be inside describe
   beforeEach(() => {
     vi.clearAllMocks();
-    // Reset mock implementations using imported modules
+    currentDialogState = {}; // Reset dialog state for each test
+    // Implement mock to update the local state variable
+    mockSetDialogState.mockImplementation((key, value) => {
+      currentDialogState[key] = value;
+    });
+    // Reset other mock implementations using imported modules
     // vi.mocked(useLocalStorage).mockReturnValue([null, vi.fn(), vi.fn()]); // TODO: Verify path or existence
     vi.mocked(regActions.submitRegistration).mockResolvedValue({ success: true, message: null });
     vi.mocked(regActions.updateRegistration).mockResolvedValue({ success: true, message: null });
@@ -507,12 +517,7 @@ describe('RegistrationDialog (V3.1)', () => {
         );
       });
 
-      // Check for mode change
-      await waitFor(() => {
-        expect(mockChangeMode).toHaveBeenCalledWith('awaiting_confirmation');
-      });
-
-      // Check for confirmation message output
+      // Check for confirmation message output (Mode change is internal via dispatch now)
       const expectedMessage = `Account created. Please check your email (${testEmail}) for a confirmation link. Enter 'continue' here once confirmed, or 'resend' to request a new link.`;
       await waitFor(() => {
         expect(mockAddOutputLine).toHaveBeenCalledWith(expectedMessage);
@@ -520,10 +525,78 @@ describe('RegistrationDialog (V3.1)', () => {
     });
     it.todo('should display confirmation instructions in "awaiting_confirmation" state');
     it.todo('should periodically call checkEmailConfirmation in "awaiting_confirmation" state');
-    it.todo('should transition to the first registration question after email is confirmed');
+    it('should transition to the questioning state and show first question after email is confirmed via "continue" command', async () => {
+      // Mock signUpUser to return success
+      const testEmail = 'confirmed@example.com';
+      vi.mocked(authActions.signUpUser).mockResolvedValue({
+        success: true,
+        userId: 'mock-confirmed-user-id',
+        message: 'User signed up successfully',
+        data: { user: { email: testEmail, id: 'mock-confirmed-user-id' } },
+        error: null
+      });
+      // Mock checkEmailConfirmation to return confirmed
+      vi.mocked(regActions.checkEmailConfirmation).mockResolvedValue({ isConfirmed: true });
+
+      const handleInput = vi.fn();
+      // Pass the mutable currentDialogState object as the prop
+      const { container } = render(<RegistrationDialog {...defaultProps} dialogState={currentDialogState} onInput={handleInput} />);
+
+      // --- Simulate flow to awaiting_confirmation state ---
+      const inputElement = container.querySelector('input');
+      expect(inputElement).not.toBeNull();
+      if (!inputElement) return;
+
+      const testData = { firstName: 'Confirmed', lastName: 'User', email: testEmail, password: 'password123' };
+
+      fireEvent.change(inputElement, { target: { value: testData.firstName } });
+      fireEvent.submit(inputElement.closest('form')!);
+      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.firstName); });
+      fireEvent.change(inputElement, { target: { value: testData.lastName } });
+      fireEvent.submit(inputElement.closest('form')!);
+      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.lastName); });
+      fireEvent.change(inputElement, { target: { value: testData.email } });
+      fireEvent.submit(inputElement.closest('form')!);
+      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.email); });
+      fireEvent.change(inputElement, { target: { value: testData.password } });
+      fireEvent.submit(inputElement.closest('form')!);
+      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.password); });
+      await waitFor(() => { expect(mockAddOutputLine).toHaveBeenCalledWith(expect.stringContaining("Please confirm your password:")); });
+      fireEvent.change(inputElement, { target: { value: testData.password } });
+      fireEvent.submit(inputElement.closest('form')!);
+      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.password); });
+      await waitFor(() => { expect(authActions.signUpUser).toHaveBeenCalledTimes(1); });
+      // Verify that setDialogState was called correctly after signup
+      await waitFor(() => {
+        expect(mockSetDialogState).toHaveBeenCalledWith('pendingUserId', 'mock-confirmed-user-id');
+      });
+      // No need to check mockChangeMode for 'awaiting_confirmation' as it's dispatched internally now
+      // await waitFor(() => { expect(mockChangeMode).toHaveBeenCalledWith('awaiting_confirmation'); });
+      // --- End simulation ---
+
+      // Simulate user entering 'continue'
+      fireEvent.change(inputElement, { target: { value: 'continue' } });
+      fireEvent.submit(inputElement.closest('form')!);
+      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('continue'); });
+
+      // Assert checkEmailConfirmation was called
+      await waitFor(() => {
+        expect(regActions.checkEmailConfirmation).toHaveBeenCalledTimes(1);
+      });
+
+      // Assert mode changed to questioning (This one IS called via prop in handleSubmit)
+      await waitFor(() => {
+        expect(mockChangeMode).toHaveBeenCalledWith('questioning');
+      });
+
+      // Assert first question prompt is shown
+      await waitFor(() => {
+        // Assert the expected string directly (without prefix)
+        expect(mockAddOutputLine).toHaveBeenCalledWith('First Name');
+      });
+    });
     it.todo('should handle existing users detected during signUpUser (needs clarification from spec/impl)');
   });
-
   describe('Question Flow', () => {
     it.todo('should display questions sequentially based on registrationQuestions data');
     it.todo('should display question hints');
