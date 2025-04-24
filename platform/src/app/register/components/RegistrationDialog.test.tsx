@@ -1475,7 +1475,90 @@ describe('RegistrationDialog (V3.1)', () => {
   describe('Local Storage Interaction', () => {
     it.todo('should load existing registration data from local storage on mount');
     it.todo('should prompt user to continue or restart if existing data is found');
-    it.todo('should call save function from useLocalStorage when "save" command is used');
+    it('should handle "save" command to persist state to localStorage', async () => {
+      const handleInput = vi.fn();
+      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem');
+
+      // Initial state mid-registration
+      const initialSaveState = {
+        mode: 'questioning',
+        currentQuestionIndex: 6, // programOfStudy
+        answers: {
+          firstName: 'Test',
+          lastName: 'User',
+          email: 'save@example.com',
+          academicYear: 'Second year',
+          academicYearOther: '',
+          universityInstitution: 'University of Test',
+        },
+        isSubmitting: false,
+        error: null,
+        userId: 'mock-save-user-id'
+      };
+
+      const { container, rerender } = render(
+        <RegistrationDialog
+          {...defaultProps}
+          dialogState={initialSaveState}
+          onInput={handleInput}
+        />
+      );
+
+      const inputElement = container.querySelector('input');
+      expect(inputElement).not.toBeNull();
+      if (!inputElement) return;
+
+      // Wait for the initial prompt for index 6
+      const programPrompt = `Program/Major(s)`;
+      await waitFor(() => {
+        expect(mockAddOutputLine).toHaveBeenCalledWith(programPrompt);
+      });
+
+      // Simulate entering 'save' command
+      await act(async () => {
+        fireEvent.change(inputElement, { target: { value: 'save' } });
+        fireEvent.submit(inputElement.closest('form')!);
+      });
+      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('save'); });
+
+      // Assert localStorage.setItem was called correctly
+      const expectedKey = 'philosothon-registration-v3.1';
+      const expectedStateToSave = {
+        answers: initialSaveState.answers,
+        currentQuestionIndex: initialSaveState.currentQuestionIndex,
+        mode: initialSaveState.mode,
+        // userId is intentionally excluded based on typical save patterns
+      };
+      const expectedJson = JSON.stringify(expectedStateToSave);
+      const expectedBase64 = btoa(expectedJson); // Use btoa for Base64 encoding
+
+      await waitFor(() => {
+        expect(setItemSpy).toHaveBeenCalledTimes(1);
+        expect(setItemSpy).toHaveBeenCalledWith(expectedKey, expectedBase64);
+      });
+
+      // Assert success message was shown
+      await waitFor(() => {
+        expect(mockAddOutputLine).toHaveBeenCalledWith("Progress saved.");
+      });
+
+      // Assert the prompt for the *same* question is shown again
+      // Assert the prompt for the *same* question is shown again after the save message
+      const calls = mockAddOutputLine.mock.calls;
+      const lastPromptCallIndex = calls.map(call => call[0]).lastIndexOf(programPrompt);
+      const saveSuccessCallIndex = calls.map(call => call[0]).lastIndexOf("Progress saved.");
+      expect(lastPromptCallIndex).toBeGreaterThan(saveSuccessCallIndex); // Prompt should be redisplayed after save message
+
+      // Assert state did not advance (no calls to change index or mode)
+      // Check if setDialogState was called for 'currentQuestionIndex' or 'mode' *after* the initial render setup
+      const setDialogStateCalls = mockSetDialogState.mock.calls;
+      // Filter out potential initial state setting calls if any (though unlikely with direct prop passing)
+      const relevantCalls = setDialogStateCalls.filter(call => call[0] === 'currentQuestionIndex' || call[0] === 'mode');
+      // This assertion might need adjustment if initial state setting uses setDialogState
+      expect(relevantCalls.length).toBe(0); // No calls to change index or mode
+
+      setItemSpy.mockRestore(); // Clean up spy
+    });
     it.todo('should call remove function from useLocalStorage on successful submission');
     it.todo('should call remove function from useLocalStorage when explicitly exiting/clearing');
   });
