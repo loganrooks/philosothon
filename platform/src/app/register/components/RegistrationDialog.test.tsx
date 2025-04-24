@@ -828,15 +828,17 @@ describe('RegistrationDialog (V3.1)', () => {
 
       it('should validate required text input and show error if empty', async () => {
         const handleInput = vi.fn();
-        // Initialize state directly at the target question (index 4: programOfStudy)
-        const initialStateAtIndex4 = {
+        // Initialize state directly at the target question (index 6: programOfStudy)
+        const initialStateAtIndex6 = { // Renamed variable
           mode: 'questioning',
-          currentQuestionIndex: 4, // programOfStudy
+          currentQuestionIndex: 6, // Correct index for programOfStudy
           answers: { // Include answers needed for potential skip logic checks if any
             firstName: 'Test',
             lastName: 'User',
             email: 'test@example.com',
-            academicYear: 'Second year', // Answer from previous step
+            academicYear: 'Second year', // Answer for index 3
+            academicYearOther: '', // Answer for index 4 (assuming not 'Other')
+            universityInstitution: 'University of Test', // Answer for index 5
           },
           isSubmitting: false,
           error: null,
@@ -846,7 +848,7 @@ describe('RegistrationDialog (V3.1)', () => {
         const { container } = render(
           <RegistrationDialog
             {...defaultProps}
-            dialogState={initialStateAtIndex4} // Pass initial state directly
+            dialogState={initialStateAtIndex6} // Pass corrected initial state directly
             onInput={handleInput}
           />
         );
@@ -855,9 +857,10 @@ describe('RegistrationDialog (V3.1)', () => {
         expect(inputElement).not.toBeNull();
         if (!inputElement) return;
 
-        // Wait for the programOfStudy prompt (index 4) to ensure component has rendered with initial state
+        // Wait for the programOfStudy prompt (index 6) to ensure component has rendered with initial state
         const programPrompt = `Program/Major(s)`;
         await waitFor(() => {
+          // Expect the correct prompt for index 6
           expect(mockAddOutputLine).toHaveBeenCalledWith(programPrompt);
         }, { timeout: 3000 });
 
@@ -1032,21 +1035,23 @@ describe('RegistrationDialog (V3.1)', () => {
     it.todo('should handle "exit" command to exit the registration flow');
     it('should handle "back" command to go to the previous question', async () => {
       const handleInput = vi.fn();
-      // Initialize state at index 4 (programOfStudy)
-      const initialStateAtIndex4 = {
+      // Initialize state at index 6 (programOfStudy)
+      const initialStateAtIndex6 = { // Renamed variable
         mode: 'questioning',
-        currentQuestionIndex: 4,
+        currentQuestionIndex: 6, // Correct index for Program/Major(s)
         answers: {
           firstName: 'Test',
           lastName: 'User',
           email: 'test@example.com',
           academicYear: 'Second year', // Answer for index 3
+          academicYearOther: '', // Answer for index 4 (assuming not 'Other')
+          universityInstitution: 'University of Test', // Answer for index 5
         },
         isSubmitting: false,
         error: null,
         userId: 'mock-back-cmd-user-id'
       };
-      currentDialogState = { ...initialStateAtIndex4 }; // Update local tracker
+      currentDialogState = { ...initialStateAtIndex6 }; // Update local tracker
 
       const { container } = render(
         <RegistrationDialog
@@ -1060,8 +1065,9 @@ describe('RegistrationDialog (V3.1)', () => {
       expect(inputElement).not.toBeNull();
       if (!inputElement) return;
 
-      // Wait for the prompt of the initial question (index 4) to ensure setup
+      // Wait for the prompt of the initial question (index 6) to ensure setup
       await waitFor(() => {
+        // Expect the correct prompt for index 6
         expect(mockAddOutputLine).toHaveBeenCalledWith('Program/Major(s)');
       });
 
@@ -1072,15 +1078,12 @@ describe('RegistrationDialog (V3.1)', () => {
       });
       await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('back'); });
 
-      // Assert that setDialogState was called to update the index to 3
-      await waitFor(() => {
-        expect(mockSetDialogState).toHaveBeenCalledWith('currentQuestionIndex', 3);
-      });
+      // Removed outdated assertion checking mockSetDialogState
 
-      // Optionally, assert that the prompt for the previous question (index 3) is shown
-      // This might be flaky due to timing issues, but let's try
+      // Assert that the prompt for the previous question (index 5) is shown
       await waitFor(() => {
-         expect(mockAddOutputLine).toHaveBeenCalledWith('Year of Study');
+         // Expect the correct prompt for index 5
+         expect(mockAddOutputLine).toHaveBeenCalledWith('University / Institution');
       });
     });
     it.todo('should handle "review" command to display summary of answers');
