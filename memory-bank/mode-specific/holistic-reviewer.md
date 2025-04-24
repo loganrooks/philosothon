@@ -4,6 +4,49 @@
 ## Delegated Tasks Log
 <!-- Append tasks delegated to other modes using the format below -->
 
+### Finding: Documentation - [2025-04-24 14:52:49]
+- **Category**: Documentation
+- **Location/File(s)**: `docs/project_specifications_v2.md`, `docs/architecture/terminal_component_v1.md`, `docs/specs/p0_registration_spec.md`, `docs/project_specifications.md`
+- **Observation**: These documents appear superseded by V3 specifications and architecture.
+- **Recommendation**: Archive these files to reduce clutter and potential confusion.
+- **Severity/Priority**: Low
+
+### Finding: Code Hygiene - [2025-04-24 14:52:49]
+- **Category**: Hygiene
+- **Location/File(s)**: `platform/src/app/register/data/registrationQuestions.ts`
+- **Observation**: The generated `FormDataStore` type uses `any` placeholders instead of specific types derived from the schema.
+- **Recommendation**: Update the generation script (`scripts/generate-registration.ts`) to infer and use more specific types (e.g., `string`, `number`, `boolean`, `string[]`, custom ranking type) in the generated `FormDataStore`.
+- **Severity/Priority**: Low
+
+### Finding: SPARC/TDD - [2025-04-24 14:52:49]
+- **Category**: SPARC/TDD
+- **Location/File(s)**: `platform/src/app/register/components/RegistrationDialog.test.tsx`
+- **Observation**: Test suite is excessively long (>2100 lines), contains significant repetition, relies on timing workarounds (`REG-TEST-TIMING-001`), and has a history of instability. Some assertions are commented out or potentially inaccurate.
+- **Recommendation**: Delegate refactoring to `tdd` or `optimizer` mode to improve clarity, reduce repetition, address fragility, investigate the 1 skipped test, and ensure assertions accurately reflect V3.1 requirements.
+- **Severity/Priority**: High
+
+### Finding: Integration - [2025-04-24 14:52:49]
+- **Category**: Integration
+- **Location/File(s)**: `platform/src/app/register/components/RegistrationDialog.tsx`
+- **Observation**: Component lacks implementation for handling the `ranked-choice-numbered` input type required by the schema/outline.
+- **Recommendation**: Implement the necessary logic in the component after the test suite is stabilized. Delegate to `code` or `tdd` mode.
+- **Severity/Priority**: High
+
+### Finding: Integration - [2025-04-24 14:52:49]
+- **Category**: Integration
+- **Location/File(s)**: `platform/src/app/register/components/RegistrationDialog.tsx`
+- **Observation**: Incomplete implementation of the email confirmation flow (`awaiting_confirmation` state). Relies on placeholder/missing logic for `checkConfirmationStatus` and `resend` command.
+- **Recommendation**: Implement the actual logic for checking confirmation status and handling the `resend` command. Delegate to `code` or `debug` mode.
+- **Severity/Priority**: Medium
+
+### Finding: Code Hygiene - [2025-04-24 14:52:49]
+- **Category**: Hygiene
+- **Location/File(s)**: `platform/src/app/register/components/RegistrationDialog.tsx`
+- **Observation**: Component exceeds the SPARC guideline of 500 lines (currently 643 lines).
+- **Recommendation**: Refactor the component into smaller, more focused hooks or sub-components after implementing missing features and stabilizing tests. Delegate to `optimizer` mode.
+- **Severity/Priority**: Medium
+
+
 ## Review Findings & Recommendations
 ### Finding: Integration/SPARC/TDD - [2025-04-24 11:57:11]
 - **Category**: Integration/SPARC/TDD
