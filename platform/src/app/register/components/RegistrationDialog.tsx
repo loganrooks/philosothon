@@ -352,7 +352,7 @@ const RegistrationDialog: React.FC<DialogProps> = ({
                  if (isNaN(choiceIndex) || choiceIndex < 1 || (currentQuestion.options && choiceIndex > currentQuestion.options.length)) {
                      // Basic number/range check for select/scale
                      isValid = false;
-                     errorMessage = `Please enter a valid number between 1 and ${currentQuestion.options?.length || 10}.`;
+                     errorMessage = "Invalid input. Please enter the number corresponding to your choice."; // Corrected error message
                 } else if (currentQuestion.options) {
                      processedAnswer = currentQuestion.options[choiceIndex - 1]; // Store the selected option text
                 } else {
