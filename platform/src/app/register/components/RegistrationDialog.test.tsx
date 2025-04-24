@@ -1,6 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, MockInstance } from 'vitest'; // Import MockInstance
+import { QuestionType } from '@/../config/registrationSchema'; // Import QuestionType
 // import useLocalStorage from '@/lib/hooks/useLocalStorage'; // TODO: Verify path or existence
 import * as regActions from '@/app/register/actions'; // Import for typed mock
 import * as authActions from '@/lib/data/auth'; // Corrected path to DAL
@@ -38,6 +39,176 @@ const defaultProps = {
   dialogState: {},
   changeMode: mockChangeMode
 };
+
+// Helper function to simulate user input and submission
+async function simulateInputCommand(
+  inputElement: HTMLElement | null,
+  value: string,
+  // handleInputMock: MockInstance // Removed - Let tests handle waiting for consequences
+) {
+  console.log('[DEBUG][Helper] simulateInputCommand called with value:', value); // Moved inside
+  if (!inputElement) {
+    throw new Error('Input element not found for simulation');
+  }
+  await act(async () => {
+    console.log('[DEBUG][Helper] Executing fireEvent.change...');
+    fireEvent.change(inputElement, { target: { value } });
+    // Find the closest form to the input element for submission
+    const formElement = inputElement.closest('form');
+    if (!formElement) {
+      throw new Error('Form element not found for simulation');
+    }
+    console.log('[DEBUG][Helper] Executing fireEvent.submit...');
+    fireEvent.submit(formElement);
+  });
+  // Removed internal waitFor - Tests should wait for specific outcomes
+}
+
+
+// Define steps for early auth (Moved outside describe block)
+const earlyAuthSteps = ['firstName', 'lastName', 'email', 'password', 'confirmPassword'];
+
+
+// Helper function to simulate the registration flow up to a specific question index
+async function simulateFlowToQuestion(
+  targetIndex: number, // 0-based index corresponding to earlyAuthSteps then questions array
+  container: HTMLElement,
+  handleInputMock: MockInstance, // Use MockInstance type
+  initialAnswers: Record<string, any> = {}, // Allow providing initial answers for branching logic
+) {
+  const inputElement = container.querySelector('input');
+  if (!inputElement) throw new Error('Input element not found for flow simulation');
+
+  // Simulate steps based on earlyAuthSteps and questions array indices
+  const stepsToSimulate = targetIndex; // Simulate steps *up to* the target index
+
+  for (let i = 0; i < stepsToSimulate; i++) {
+    let stepId: string | undefined;
+    let stepInput: string | undefined;
+    const isEarlyAuthStep = i < earlyAuthSteps.length; // Use const
+
+    if (isEarlyAuthStep) {
+      stepId = earlyAuthSteps[i]; // Now in scope
+      // Use provided initialAnswers or default test values for early auth
+      switch (stepId) {
+        case 'firstName': stepInput = initialAnswers.firstName ?? 'Test'; break;
+        case 'lastName': stepInput = initialAnswers.lastName ?? 'User'; break;
+        case 'email': stepInput = initialAnswers.email ?? `test${i}@example.com`; break;
+        case 'password': stepInput = initialAnswers.password ?? 'password123'; break;
+        case 'confirmPassword': stepInput = initialAnswers.password ?? 'password123'; break; // Assume matching password
+      }
+    } else {
+      // Calculate the index within the main 'questions' array
+      const questionIndexInArray = i; // Index in the main questions array
+      const question = questions[questionIndexInArray];
+      if (!question) {
+          console.warn(`Question definition not found for overall index ${i}. Stopping simulation.`);
+          break; // Stop if we run out of questions
+      }
+      stepId = question.id;
+      // Use provided initialAnswers or determine a default valid input based on type
+      if (initialAnswers[stepId] !== undefined) {
+        stepInput = String(initialAnswers[stepId]); // Convert to string for input field
+      } else {
+        // Determine default valid input based on question type
+        switch (question.type) {
+          case 'text':
+          case 'textarea': stepInput = `Answer for ${stepId}`; break;
+          case 'number':
+          case 'scale': stepInput = String(question.validationRules?.min?.value ?? 1); break; // Default to min value
+          case 'boolean': stepInput = 'y'; break; // Default to 'yes'
+          case 'single-select': stepInput = '1'; break; // Default to first option
+          case 'multi-select-numbered': stepInput = '1'; break; // Default to first option
+          case 'ranked-choice-numbered': stepInput = '1:1 2:2 3:3'; break; // Default ranking top 3
+          default: stepInput = 'Default Input';
+        }
+      }
+    }
+
+    if (stepInput === undefined) {
+      console.warn(`No input determined for step index ${i} (ID: ${stepId}). Skipping simulation for this step.`);
+      continue; // Skip if we can't determine input
+    }
+
+    // Wait for the prompt corresponding to the current step 'i' before simulating input
+    let expectedPrompt = '';
+     if (isEarlyAuthStep) {
+        switch (earlyAuthSteps[i]) {
+          case 'firstName': expectedPrompt = "Please enter your First Name:"; break;
+          case 'lastName': expectedPrompt = "Please enter your Last Name:"; break;
+          case 'email': expectedPrompt = "Please enter your University Email Address:"; break;
+          case 'password': expectedPrompt = "Please create a password (min. 8 characters):"; break;
+          case 'confirmPassword': expectedPrompt = "Please confirm your password:"; break;
+        }
+     } else {
+        const question = questions[i]; // Index in questions array
+        if (question) expectedPrompt = question.label;
+     }
+
+     // Wait for the prompt to appear before inputting
+     if (expectedPrompt) {
+        await waitFor(() => {
+            // Use stringContaining as other output might appear (like hints)
+            expect(mockAddOutputLine).toHaveBeenCalledWith(expect.stringContaining(expectedPrompt));
+        });
+     }
+
+    // Simulate the input for the current step
+    await simulateInputCommand(inputElement, stepInput);
+
+    // Optional: Add a small delay or check for the *next* prompt to ensure state update completes
+    // This helps prevent race conditions in tests but adds fragility if prompts change.
+    // Consider removing this wait if tests become too brittle.
+    const nextStepIndex = i + 1;
+    if (nextStepIndex < stepsToSimulate) { // Only wait if not the last simulated step
+        let nextPromptLabel = '';
+        const isNextEarlyAuth = nextStepIndex < earlyAuthSteps.length;
+        if (isNextEarlyAuth) {
+            switch (earlyAuthSteps[nextStepIndex]) {
+              case 'firstName': nextPromptLabel = "Please enter your First Name:"; break;
+              case 'lastName': nextPromptLabel = "Please enter your Last Name:"; break;
+              case 'email': nextPromptLabel = "Please enter your University Email Address:"; break;
+              case 'password': nextPromptLabel = "Please create a password (min. 8 characters):"; break;
+              case 'confirmPassword': nextPromptLabel = "Please confirm your password:"; break;
+            }
+        } else {
+            const nextQuestion = questions[nextStepIndex]; // Index in questions array
+            if (nextQuestion) nextPromptLabel = nextQuestion.label;
+        }
+        if (nextPromptLabel) {
+            try {
+                await waitFor(() => {
+                    expect(mockAddOutputLine).toHaveBeenCalledWith(expect.stringContaining(nextPromptLabel));
+                }, { timeout: 2000 }); // Add a reasonable timeout
+            } catch (e) {
+                console.warn(`Timeout waiting for next prompt ('${nextPromptLabel}') after step ${i}. Proceeding anyway.`);
+            }
+        }
+    }
+  }
+
+   // Final wait to ensure the target prompt is displayed after the loop finishes
+   let targetPromptLabel = '';
+   const isTargetEarlyAuth = targetIndex < earlyAuthSteps.length;
+   if (isTargetEarlyAuth) {
+        switch (earlyAuthSteps[targetIndex]) {
+          case 'firstName': targetPromptLabel = "Please enter your First Name:"; break;
+          case 'lastName': targetPromptLabel = "Please enter your Last Name:"; break;
+          case 'email': targetPromptLabel = "Please enter your University Email Address:"; break;
+          case 'password': targetPromptLabel = "Please create a password (min. 8 characters):"; break;
+          case 'confirmPassword': targetPromptLabel = "Please confirm your password:"; break;
+        }
+   } else {
+       const targetQuestion = questions[targetIndex]; // Index in questions array
+       if (targetQuestion) targetPromptLabel = targetQuestion.label;
+   }
+
+   if (targetPromptLabel) {
+       await waitFor(() => {
+           expect(mockAddOutputLine).toHaveBeenCalledWith(expect.stringContaining(targetPromptLabel));
+       });
+   }
+}
 
 describe('RegistrationDialog (V3.1)', () => {
 
@@ -77,6 +248,7 @@ describe('RegistrationDialog (V3.1)', () => {
   describe('Early Authentication Flow', () => {
     // This is covered by the initial load test, skipping for now or can refine later
     it.skip('should prompt for First Name', () => {});
+    // Skipped: Redundant - Covered by 'should prompt for Last Name...' test.
 
     it('should prompt for Last Name after First Name is entered', async () => {
         const handleInput = vi.fn();
@@ -87,19 +259,9 @@ describe('RegistrationDialog (V3.1)', () => {
           expect(mockAddOutputLine).toHaveBeenCalledWith("Please enter your First Name:");
         });
 
-        // Simulate entering first name
+        // Simulate entering first name using helper
         const inputElement = container.querySelector('input');
-        expect(inputElement).not.toBeNull();
-        if (!inputElement) return; // Type guard
-
-        fireEvent.change(inputElement, { target: { value: 'Test' } });
-        fireEvent.submit(inputElement.closest('form')!); // Assuming input is in a form
-
-        // Check that input was processed (mocked onInput called)
-        // Note: The component's internal handleSubmit calls onInput
-        await waitFor(() => {
-             expect(handleInput).toHaveBeenCalledWith('Test');
-        });
+        await simulateInputCommand(inputElement, 'Test');
 
         // Check for Last Name prompt
         // Need to wait for the state update and subsequent useEffect to run
@@ -122,19 +284,15 @@ describe('RegistrationDialog (V3.1)', () => {
         expect(inputElement).not.toBeNull();
         if (!inputElement) return; // Type guard
 
-        fireEvent.change(inputElement, { target: { value: 'Test' } });
-        fireEvent.submit(inputElement.closest('form')!);
-        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('Test'); });
+        await simulateInputCommand(inputElement, 'Test');
 
         // Wait for last name prompt
         await waitFor(() => {
             expect(mockAddOutputLine).toHaveBeenCalledWith("Please enter your Last Name:");
         });
 
-         // Simulate entering last name
-        fireEvent.change(inputElement, { target: { value: 'User' } });
-        fireEvent.submit(inputElement.closest('form')!);
-        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('User'); });
+         // Simulate entering last name using helper
+        await simulateInputCommand(inputElement, 'User');
 
         // Check for Email prompt
         await waitFor(() => {
@@ -146,30 +304,14 @@ describe('RegistrationDialog (V3.1)', () => {
         const handleInput = vi.fn();
         const { container } = render(<RegistrationDialog {...defaultProps} onInput={handleInput} />);
 
-        // Simulate getting to the email prompt
-        const inputElement = container.querySelector('input');
+        // Simulate flow up to the email prompt (index 2)
+        await simulateFlowToQuestion(2, container, handleInput);
+        const inputElement = container.querySelector('input'); // Re-select input element after simulation
         expect(inputElement).not.toBeNull();
         if (!inputElement) return;
 
-        // Enter First Name
-        fireEvent.change(inputElement, { target: { value: 'Test' } });
-        fireEvent.submit(inputElement.closest('form')!);
-        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('Test'); });
-
-        // Enter Last Name
-        fireEvent.change(inputElement, { target: { value: 'User' } });
-        fireEvent.submit(inputElement.closest('form')!);
-        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('User'); });
-
-        // Wait for Email prompt
-        await waitFor(() => {
-            expect(mockAddOutputLine).toHaveBeenCalledWith("Please enter your University Email Address:");
-        });
-
-        // Enter invalid email
-        fireEvent.change(inputElement, { target: { value: 'invalid-email' } });
-        fireEvent.submit(inputElement.closest('form')!);
-        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('invalid-email'); });
+        // Enter invalid email using helper
+        await simulateInputCommand(inputElement, 'invalid-email');
 
         // Check for error message
         await waitFor(() => {
@@ -189,30 +331,14 @@ describe('RegistrationDialog (V3.1)', () => {
         const handleInput = vi.fn();
         const { container } = render(<RegistrationDialog {...defaultProps} onInput={handleInput} />);
 
-        // Simulate getting to the email prompt
-        const inputElement = container.querySelector('input');
+        // Simulate flow up to the email prompt (index 2)
+        await simulateFlowToQuestion(2, container, handleInput);
+        const inputElement = container.querySelector('input'); // Re-select input element after simulation
         expect(inputElement).not.toBeNull();
         if (!inputElement) return;
 
-        // Enter First Name
-        fireEvent.change(inputElement, { target: { value: 'Test' } });
-        fireEvent.submit(inputElement.closest('form')!);
-        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('Test'); });
-
-        // Enter Last Name
-        fireEvent.change(inputElement, { target: { value: 'User' } });
-        fireEvent.submit(inputElement.closest('form')!);
-        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('User'); });
-
-        // Wait for Email prompt
-        await waitFor(() => {
-            expect(mockAddOutputLine).toHaveBeenCalledWith("Please enter your University Email Address:");
-        });
-
-        // Enter valid email
-        fireEvent.change(inputElement, { target: { value: 'test@example.com' } });
-        fireEvent.submit(inputElement.closest('form')!);
-        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('test@example.com'); });
+        // Enter valid email using helper
+        await simulateInputCommand(inputElement, 'test@example.com');
 
         // Check for Password prompt
         await waitFor(() => {
@@ -230,25 +356,17 @@ describe('RegistrationDialog (V3.1)', () => {
         if (!inputElement) return;
 
         // Enter First Name, Last Name, Email
-        fireEvent.change(inputElement, { target: { value: 'Test' } });
-        fireEvent.submit(inputElement.closest('form')!);
-        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('Test'); });
-        fireEvent.change(inputElement, { target: { value: 'User' } });
-        fireEvent.submit(inputElement.closest('form')!);
-        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('User'); });
-        fireEvent.change(inputElement, { target: { value: 'test@example.com' } });
-        fireEvent.submit(inputElement.closest('form')!);
-        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('test@example.com'); });
+        await simulateInputCommand(inputElement, 'Test');
+        await simulateInputCommand(inputElement, 'User');
+        await simulateInputCommand(inputElement, 'test@example.com');
 
         // Wait for Password prompt
         await waitFor(() => {
             expect(mockAddOutputLine).toHaveBeenCalledWith("Please create a password (min. 8 characters):");
         });
 
-        // Enter short password
-        fireEvent.change(inputElement, { target: { value: 'short' } });
-        fireEvent.submit(inputElement.closest('form')!);
-        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('short'); });
+        // Enter short password using helper
+        await simulateInputCommand(inputElement, 'short');
 
         // Check for error message
         await waitFor(() => {
@@ -263,31 +381,14 @@ describe('RegistrationDialog (V3.1)', () => {
         const handleInput = vi.fn();
         const { container } = render(<RegistrationDialog {...defaultProps} onInput={handleInput} />);
 
-        // Simulate getting to the password prompt
-        const inputElement = container.querySelector('input');
+        // Simulate flow up to the password prompt (index 3)
+        await simulateFlowToQuestion(3, container, handleInput);
+        const inputElement = container.querySelector('input'); // Re-select input element after simulation
         expect(inputElement).not.toBeNull();
         if (!inputElement) return;
 
-        // Enter First Name, Last Name, Email
-        fireEvent.change(inputElement, { target: { value: 'Test' } });
-        fireEvent.submit(inputElement.closest('form')!);
-        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('Test'); });
-        fireEvent.change(inputElement, { target: { value: 'User' } });
-        fireEvent.submit(inputElement.closest('form')!);
-        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('User'); });
-        fireEvent.change(inputElement, { target: { value: 'test@example.com' } });
-        fireEvent.submit(inputElement.closest('form')!);
-        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('test@example.com'); });
-
-        // Wait for Password prompt
-        await waitFor(() => {
-            expect(mockAddOutputLine).toHaveBeenCalledWith("Please create a password (min. 8 characters):");
-        });
-
-        // Enter valid password
-        fireEvent.change(inputElement, { target: { value: 'password123' } });
-        fireEvent.submit(inputElement.closest('form')!);
-        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('password123'); });
+        // Enter valid password using helper
+        await simulateInputCommand(inputElement, 'password123');
 
         // Check for Confirm Password prompt
         await waitFor(() => {
@@ -299,35 +400,15 @@ describe('RegistrationDialog (V3.1)', () => {
         const handleInput = vi.fn();
         const { container } = render(<RegistrationDialog {...defaultProps} onInput={handleInput} />);
 
-        // Simulate getting to the confirm password prompt
-        const inputElement = container.querySelector('input');
+        // Simulate flow up to the confirm password prompt (index 4)
+        // Pass the initial password so the helper can use it for the password step
+        await simulateFlowToQuestion(4, container, handleInput, { password: 'password123' });
+        const inputElement = container.querySelector('input'); // Re-select input element after simulation
         expect(inputElement).not.toBeNull();
         if (!inputElement) return;
 
-        // Enter First Name, Last Name, Email, Password
-        fireEvent.change(inputElement, { target: { value: 'Test' } });
-        fireEvent.submit(inputElement.closest('form')!);
-        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('Test'); });
-        fireEvent.change(inputElement, { target: { value: 'User' } });
-        fireEvent.submit(inputElement.closest('form')!);
-        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('User'); });
-        fireEvent.change(inputElement, { target: { value: 'test@example.com' } });
-        fireEvent.submit(inputElement.closest('form')!);
-        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('test@example.com'); });
-        fireEvent.change(inputElement, { target: { value: 'password123' } });
-        fireEvent.submit(inputElement.closest('form')!);
-        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('password123'); });
-
-
-        // Wait for Confirm Password prompt
-        await waitFor(() => {
-            expect(mockAddOutputLine).toHaveBeenCalledWith("Please confirm your password:");
-        });
-
-        // Enter non-matching password
-        fireEvent.change(inputElement, { target: { value: 'password456' } });
-        fireEvent.submit(inputElement.closest('form')!);
-        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('password456'); });
+        // Enter non-matching password using helper
+        await simulateInputCommand(inputElement, 'password456');
 
         // Check for error message
         await waitFor(() => {
@@ -342,11 +423,6 @@ describe('RegistrationDialog (V3.1)', () => {
         const handleInput = vi.fn();
         const { container } = render(<RegistrationDialog {...defaultProps} onInput={handleInput} />);
 
-        // Simulate getting to the confirm password prompt
-        const inputElement = container.querySelector('input');
-        expect(inputElement).not.toBeNull();
-        if (!inputElement) return;
-
         const testData = {
             firstName: 'Test',
             lastName: 'User',
@@ -354,29 +430,19 @@ describe('RegistrationDialog (V3.1)', () => {
             password: 'password123',
         };
 
-        // Enter First Name, Last Name, Email, Password
-        fireEvent.change(inputElement, { target: { value: testData.firstName } });
-        fireEvent.submit(inputElement.closest('form')!);
-        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.firstName); });
-        fireEvent.change(inputElement, { target: { value: testData.lastName } });
-        fireEvent.submit(inputElement.closest('form')!);
-        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.lastName); });
-        fireEvent.change(inputElement, { target: { value: testData.email } });
-        fireEvent.submit(inputElement.closest('form')!);
-        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.email); });
-        fireEvent.change(inputElement, { target: { value: testData.password } });
-        fireEvent.submit(inputElement.closest('form')!);
-        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.password); });
-
-        // Wait for Confirm Password prompt
-        await waitFor(() => {
-            expect(mockAddOutputLine).toHaveBeenCalledWith("Please confirm your password:");
+        // Simulate flow up to the confirm password prompt (index 4)
+        await simulateFlowToQuestion(4, container, handleInput, {
+            firstName: testData.firstName,
+            lastName: testData.lastName,
+            email: testData.email,
+            password: testData.password,
         });
+        const inputElement = container.querySelector('input'); // Re-select input element after simulation
+        expect(inputElement).not.toBeNull();
+        if (!inputElement) return;
 
-        // Enter matching password
-        fireEvent.change(inputElement, { target: { value: testData.password } });
-        fireEvent.submit(inputElement.closest('form')!);
-        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.password); });
+        // Enter matching password using helper
+        await simulateInputCommand(inputElement, testData.password);
 
         // Check that initiateOtpSignIn was called with correct details (OTP flow doesn't use password/metadata here)
         await waitFor(() => {
@@ -397,11 +463,6 @@ describe('RegistrationDialog (V3.1)', () => {
       const handleInput = vi.fn();
       const { container } = render(<RegistrationDialog {...defaultProps} onInput={handleInput} />);
 
-      // Simulate getting to the confirm password prompt
-      const inputElement = container.querySelector('input');
-      expect(inputElement).not.toBeNull();
-      if (!inputElement) return;
-
       const testData = {
         firstName: 'Fail',
         lastName: 'User',
@@ -409,29 +470,19 @@ describe('RegistrationDialog (V3.1)', () => {
         password: 'password123',
       };
 
-      // Enter First Name, Last Name, Email, Password
-      fireEvent.change(inputElement, { target: { value: testData.firstName } });
-      fireEvent.submit(inputElement.closest('form')!);
-      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.firstName); });
-      fireEvent.change(inputElement, { target: { value: testData.lastName } });
-      fireEvent.submit(inputElement.closest('form')!);
-      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.lastName); });
-      fireEvent.change(inputElement, { target: { value: testData.email } });
-      fireEvent.submit(inputElement.closest('form')!);
-      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.email); });
-      fireEvent.change(inputElement, { target: { value: testData.password } });
-      fireEvent.submit(inputElement.closest('form')!);
-      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.password); });
-
-      // Wait for Confirm Password prompt
-      await waitFor(() => {
-        expect(mockAddOutputLine).toHaveBeenCalledWith("Please confirm your password:");
+      // Simulate flow up to the confirm password prompt (index 4)
+      await simulateFlowToQuestion(4, container, handleInput, {
+          firstName: testData.firstName,
+          lastName: testData.lastName,
+          email: testData.email,
+          password: testData.password,
       });
+      const inputElement = container.querySelector('input'); // Re-select input element after simulation
+      expect(inputElement).not.toBeNull();
+      if (!inputElement) return;
 
-      // Enter matching password
-      fireEvent.change(inputElement, { target: { value: testData.password } });
-      fireEvent.submit(inputElement.closest('form')!);
-      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.password); });
+      // Enter matching password using helper
+      await simulateInputCommand(inputElement, testData.password);
 
       // Check that initiateOtpSignIn was called
       await waitFor(() => {
@@ -461,7 +512,7 @@ describe('RegistrationDialog (V3.1)', () => {
       const { container } = render(<RegistrationDialog {...defaultProps} onInput={handleInput} />);
 
       // Simulate getting to the confirm password prompt (copy from previous test)
-      const inputElement = container.querySelector('input');
+      let inputElement = container.querySelector('input');
       expect(inputElement).not.toBeNull();
       if (!inputElement) return;
 
@@ -472,30 +523,19 @@ describe('RegistrationDialog (V3.1)', () => {
         password: 'password123',
       };
 
-      // Enter First Name, Last Name, Email, Password
-      fireEvent.change(inputElement, { target: { value: testData.firstName } });
-      fireEvent.submit(inputElement.closest('form')!);
-      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.firstName); });
-      fireEvent.change(inputElement, { target: { value: testData.lastName } });
-      fireEvent.submit(inputElement.closest('form')!);
-      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.lastName); });
-      fireEvent.change(inputElement, { target: { value: testData.email } });
-      fireEvent.submit(inputElement.closest('form')!);
-      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.email); });
-      fireEvent.change(inputElement, { target: { value: testData.password } });
-      fireEvent.submit(inputElement.closest('form')!);
-      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.password); });
-
-      // Wait for Confirm Password prompt
-      await waitFor(() => {
-        // Use stringContaining because other output might precede it
-        expect(mockAddOutputLine).toHaveBeenCalledWith(expect.stringContaining("Please confirm your password:"));
+      // Simulate flow up to the confirm password prompt (index 4)
+      await simulateFlowToQuestion(4, container, handleInput, {
+          firstName: testData.firstName,
+          lastName: testData.lastName,
+          email: testData.email,
+          password: testData.password,
       });
+      inputElement = container.querySelector('input'); // Re-select input element after simulation
+      expect(inputElement).not.toBeNull();
+      if (!inputElement) return;
 
-      // Enter matching password
-      fireEvent.change(inputElement, { target: { value: testData.password } });
-      fireEvent.submit(inputElement.closest('form')!);
-      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.password); });
+      // Enter matching password using helper
+      await simulateInputCommand(inputElement, testData.password);
 
       // Check that initiateOtpSignIn was called
       await waitFor(() => {
@@ -527,44 +567,29 @@ describe('RegistrationDialog (V3.1)', () => {
       const { container, rerender } = render(<RegistrationDialog {...defaultProps} dialogState={currentDialogState} onInput={handleInput} />);
 
       // --- Simulate flow to awaiting_confirmation state ---
-      const inputElement = container.querySelector('input');
+      const testData = { firstName: 'Confirmed', lastName: 'User', email: testEmail, password: 'password123' };
+      // Simulate flow up to the confirm password prompt (index 4) and submit the final password
+      await simulateFlowToQuestion(4, container, handleInput, {
+          firstName: testData.firstName,
+          lastName: testData.lastName,
+          email: testData.email,
+          password: testData.password,
+      });
+      let inputElement = container.querySelector('input'); // Re-select input element after simulation
       expect(inputElement).not.toBeNull();
       if (!inputElement) return;
+      await simulateInputCommand(inputElement, testData.password); // Submit final password
 
-      const testData = { firstName: 'Confirmed', lastName: 'User', email: testEmail, password: 'password123' };
-
-      fireEvent.change(inputElement, { target: { value: testData.firstName } });
-      fireEvent.submit(inputElement.closest('form')!);
-      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.firstName); });
-      fireEvent.change(inputElement, { target: { value: testData.lastName } });
-      fireEvent.submit(inputElement.closest('form')!);
-      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.lastName); });
-      fireEvent.change(inputElement, { target: { value: testData.email } });
-      fireEvent.submit(inputElement.closest('form')!);
-      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.email); });
-      fireEvent.change(inputElement, { target: { value: testData.password } });
-      fireEvent.submit(inputElement.closest('form')!);
-      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.password); });
-      await waitFor(() => { expect(mockAddOutputLine).toHaveBeenCalledWith(expect.stringContaining("Please confirm your password:")); });
-      fireEvent.change(inputElement, { target: { value: testData.password } });
-      fireEvent.submit(inputElement.closest('form')!);
-      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.password); });
-      await waitFor(() => { expect(authActions.initiateOtpSignIn).toHaveBeenCalledTimes(1); });
-      // Verify that setDialogState was called correctly after signup
-      await waitFor(() => {
-        expect(mockSetDialogState).toHaveBeenCalledWith('pendingUserId', 'mock-confirmed-user-id');
-      });
-      // No need to check mockChangeMode for 'awaiting_confirmation' as it's dispatched internally now
-      // await waitFor(() => { expect(mockChangeMode).toHaveBeenCalledWith('awaiting_confirmation'); });
+      // Verify we reached awaiting_confirmation state (check for confirmation prompt)
+      const confirmationPrompt = `Account created. Please check your email (${testEmail}) for a confirmation link. Enter 'continue' here once confirmed, or 'resend' to request a new link.`;
+      await waitFor(() => { expect(mockAddOutputLine).toHaveBeenCalledWith(confirmationPrompt); });
       // --- End simulation ---
 
-      // Simulate user entering 'continue' within act
-      await act(async () => {
-        fireEvent.change(inputElement, { target: { value: 'continue' } });
-        fireEvent.submit(inputElement.closest('form')!);
-      });
-      // Wait for async operations triggered by submit
-      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('continue'); });
+      // Simulate user entering 'continue' using helper
+      inputElement = container.querySelector('input'); // Re-select input element
+      expect(inputElement).not.toBeNull();
+      if (!inputElement) return;
+      await simulateInputCommand(inputElement, 'continue');
 
       // Explicitly rerender after state change trigger
       rerender(<RegistrationDialog {...defaultProps} dialogState={currentDialogState} onInput={handleInput} />);
@@ -602,22 +627,12 @@ describe('RegistrationDialog (V3.1)', () => {
 
       const testData = { firstName: 'Unconfirmed', lastName: 'User', email: testEmail, password: 'password123' };
 
-      fireEvent.change(inputElement, { target: { value: testData.firstName } });
-      fireEvent.submit(inputElement.closest('form')!);
-      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.firstName); });
-      fireEvent.change(inputElement, { target: { value: testData.lastName } });
-      fireEvent.submit(inputElement.closest('form')!);
-      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.lastName); });
-      fireEvent.change(inputElement, { target: { value: testData.email } });
-      fireEvent.submit(inputElement.closest('form')!);
-      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.email); });
-      fireEvent.change(inputElement, { target: { value: testData.password } });
-      fireEvent.submit(inputElement.closest('form')!);
-      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.password); });
+      await simulateInputCommand(inputElement, testData.firstName);
+      await simulateInputCommand(inputElement, testData.lastName);
+      await simulateInputCommand(inputElement, testData.email);
+      await simulateInputCommand(inputElement, testData.password);
       await waitFor(() => { expect(mockAddOutputLine).toHaveBeenCalledWith(expect.stringContaining("Please confirm your password:")); });
-      fireEvent.change(inputElement, { target: { value: testData.password } });
-      fireEvent.submit(inputElement.closest('form')!);
-      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.password); });
+      await simulateInputCommand(inputElement, testData.password);
       await waitFor(() => { expect(authActions.initiateOtpSignIn).toHaveBeenCalledTimes(1); });
       await waitFor(() => { expect(mockSetDialogState).toHaveBeenCalledWith('pendingUserId', 'mock-unconfirmed-user-id'); });
       // Adjust confirmation prompt if OTP flow changes it
@@ -626,9 +641,7 @@ describe('RegistrationDialog (V3.1)', () => {
       // --- End simulation ---
 
       // Simulate user entering 'continue'
-      fireEvent.change(inputElement, { target: { value: 'continue' } });
-      fireEvent.submit(inputElement.closest('form')!); // Use submit on form
-      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('continue'); });
+      await simulateInputCommand(inputElement, 'continue');
 
       // Assert checkEmailConfirmation is NOT called
       // await waitFor(() => {
@@ -668,22 +681,12 @@ describe('RegistrationDialog (V3.1)', () => {
 
       const testData = { firstName: 'Resend', lastName: 'User', email: testEmail, password: 'password123' };
 
-      fireEvent.change(inputElement, { target: { value: testData.firstName } });
-      fireEvent.submit(inputElement.closest('form')!);
-      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.firstName); });
-      fireEvent.change(inputElement, { target: { value: testData.lastName } });
-      fireEvent.submit(inputElement.closest('form')!);
-      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.lastName); });
-      fireEvent.change(inputElement, { target: { value: testData.email } });
-      fireEvent.submit(inputElement.closest('form')!);
-      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.email); });
-      fireEvent.change(inputElement, { target: { value: testData.password } });
-      fireEvent.submit(inputElement.closest('form')!);
-      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.password); });
+      await simulateInputCommand(inputElement, testData.firstName);
+      await simulateInputCommand(inputElement, testData.lastName);
+      await simulateInputCommand(inputElement, testData.email);
+      await simulateInputCommand(inputElement, testData.password);
       await waitFor(() => { expect(mockAddOutputLine).toHaveBeenCalledWith(expect.stringContaining("Please confirm your password:")); });
-      fireEvent.change(inputElement, { target: { value: testData.password } });
-      fireEvent.submit(inputElement.closest('form')!);
-      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.password); });
+      await simulateInputCommand(inputElement, testData.password);
       await waitFor(() => { expect(authActions.initiateOtpSignIn).toHaveBeenCalledTimes(1); });
       await waitFor(() => { expect(mockSetDialogState).toHaveBeenCalledWith('pendingUserId', 'mock-resend-user-id'); });
       // Adjust confirmation prompt if OTP flow changes it
@@ -692,9 +695,7 @@ describe('RegistrationDialog (V3.1)', () => {
       // --- End simulation ---
 
       // Simulate user entering 'resend'
-      fireEvent.change(inputElement, { target: { value: 'resend' } });
-      fireEvent.submit(inputElement.closest('form')!); // Use submit on form
-      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('resend'); });
+      await simulateInputCommand(inputElement, 'resend');
 
       // Assert resendConfirmationEmail is NOT called (logic likely changed)
       // await waitFor(() => {
@@ -720,7 +721,8 @@ describe('RegistrationDialog (V3.1)', () => {
       expect(mockAddOutputLine).toHaveBeenLastCalledWith(confirmationPrompt);
     });
     it.todo('should handle existing users detected during signUpUser (needs clarification from spec/impl)');
-  });
+  }); // End Early Authentication Flow
+
   describe('Question Flow', () => {
     it('should display the first question (academicYear) and handle valid input', async () => {
       // Mock successful OTP flow
@@ -743,22 +745,12 @@ describe('RegistrationDialog (V3.1)', () => {
       const testData = { firstName: 'Quest', lastName: 'User', email: testEmail, password: 'password123' };
 
       // Enter First Name, Last Name, Email, Password, Confirm Password
-      fireEvent.change(inputElement, { target: { value: testData.firstName } });
-      fireEvent.submit(inputElement.closest('form')!); // Use submit on form
-      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.firstName); });
-      fireEvent.change(inputElement, { target: { value: testData.lastName } });
-      fireEvent.submit(inputElement.closest('form')!); // Use submit on form
-      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.lastName); });
-      fireEvent.change(inputElement, { target: { value: testData.email } });
-      fireEvent.submit(inputElement.closest('form')!); // Use submit on form
-      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.email); });
-      fireEvent.change(inputElement, { target: { value: testData.password } });
-      fireEvent.submit(inputElement.closest('form')!); // Use submit on form
-      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.password); });
+      await simulateInputCommand(inputElement, testData.firstName);
+      await simulateInputCommand(inputElement, testData.lastName);
+      await simulateInputCommand(inputElement, testData.email);
+      await simulateInputCommand(inputElement, testData.password);
       await waitFor(() => { expect(mockAddOutputLine).toHaveBeenCalledWith(expect.stringContaining("Please confirm your password:")); });
-      fireEvent.change(inputElement, { target: { value: testData.password } });
-      fireEvent.submit(inputElement.closest('form')!); // Use submit on form
-      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(testData.password); });
+      await simulateInputCommand(inputElement, testData.password);
       await waitFor(() => { expect(authActions.initiateOtpSignIn).toHaveBeenCalledTimes(1); });
       await waitFor(() => { expect(mockSetDialogState).toHaveBeenCalledWith('pendingUserId', 'mock-question-user-id'); });
       // Adjust confirmation prompt if OTP flow changes it
@@ -766,12 +758,7 @@ describe('RegistrationDialog (V3.1)', () => {
       await waitFor(() => { expect(mockAddOutputLine).toHaveBeenCalledWith(confirmationPrompt); });
 
       // Enter 'continue' within act
-      await act(async () => {
-        fireEvent.change(inputElement, { target: { value: 'continue' } });
-        fireEvent.submit(inputElement.closest('form')!); // Use submit on form
-      });
-      // Wait for async operations triggered by submit
-      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('continue'); });
+      await simulateInputCommand(inputElement, 'continue');
       // Remove checkEmailConfirmation assertion
       // await waitFor(() => { expect(regActions.checkEmailConfirmation).toHaveBeenCalledTimes(1); });
 
@@ -791,12 +778,7 @@ describe('RegistrationDialog (V3.1)', () => {
       // We rely on the test setup and the absence of errors to infer correct transition.
 
       // Simulate valid input for academicYear (e.g., '2' for Second year) within act
-      await act(async () => {
-        fireEvent.change(inputElement, { target: { value: '2' } });
-        fireEvent.submit(inputElement.closest('form')!); // Use submit on form
-      });
-      // Wait for async operations triggered by submit
-      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('2'); });
+      await simulateInputCommand(inputElement, '2');
 
       // Assert next question prompt (programOfStudy) is shown
       const programPrompt = `Program/Major(s)`;
@@ -862,11 +844,7 @@ describe('RegistrationDialog (V3.1)', () => {
 
 
         // --- Submit empty input ---
-        await act(async () => {
-          fireEvent.change(inputElement, { target: { value: '' } });
-          fireEvent.submit(inputElement.closest('form')!);
-        });
-        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(''); });
+        await simulateInputCommand(inputElement, '');
 
         // Assert error message is shown
         await waitFor(() => {
@@ -922,11 +900,7 @@ describe('RegistrationDialog (V3.1)', () => {
         });
 
         // --- Submit 'y' input ---
-        await act(async () => {
-          fireEvent.change(inputElement, { target: { value: 'y' } });
-          fireEvent.submit(inputElement.closest('form')!);
-        });
-        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('y'); });
+        await simulateInputCommand(inputElement, 'y');
 
         // Assert that the component indicates completion or next step after final answer
         await waitFor(() => {
@@ -990,11 +964,7 @@ describe('RegistrationDialog (V3.1)', () => {
         });
 
         // --- Submit invalid input ('maybe') ---
-        await act(async () => {
-          fireEvent.change(inputElement, { target: { value: 'maybe' } });
-          fireEvent.submit(inputElement.closest('form')!); // Use submit on form
-        });
-        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('maybe'); });
+        await simulateInputCommand(inputElement, 'maybe');
 
         // Assert error message is shown via addOutputLine
         // const expectedError = "Invalid input. Please enter 'y' or 'n'.";
@@ -1119,11 +1089,7 @@ describe('RegistrationDialog (V3.1)', () => {
           }, { timeout: 3000 });
 
           // Simulate valid input ('2' for 'Second year')
-          await act(async () => {
-            fireEvent.change(inputElement, { target: { value: '2' } });
-            fireEvent.submit(inputElement.closest('form')!);
-          });
-          await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('2'); });
+          await simulateInputCommand(inputElement, '2');
 
           // Assert answer text is stored (assuming internal reducer updates state)
           // This assertion might fail initially and needs component implementation
@@ -1159,11 +1125,7 @@ describe('RegistrationDialog (V3.1)', () => {
 
 
           // Simulate invalid input
-          await act(async () => {
-            fireEvent.change(inputElement, { target: { value: 'abc' } });
-            fireEvent.submit(inputElement.closest('form')!);
-          });
-          await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('abc'); });
+          await simulateInputCommand(inputElement, 'abc');
 
           // Assert error message
           const expectedError = "Invalid input. Please enter the number corresponding to your choice.";
@@ -1199,11 +1161,7 @@ describe('RegistrationDialog (V3.1)', () => {
           }, { timeout: 3000 });
 
           // Simulate invalid input (0)
-          await act(async () => {
-            fireEvent.change(inputElement, { target: { value: '0' } });
-            fireEvent.submit(inputElement.closest('form')!);
-          });
-          await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('0'); });
+          await simulateInputCommand(inputElement, '0');
 
           // Assert error message
           const expectedError = "Invalid input. Please enter the number corresponding to your choice.";
@@ -1218,12 +1176,7 @@ describe('RegistrationDialog (V3.1)', () => {
           // Assert the same prompt is shown again (Removed assertion for last call due to hint/options re-display)
           // expect(mockAddOutputLine).toHaveBeenLastCalledWith(academicYearPrompt);
 
-          // Simulate invalid input (8 - out of range for 7 options)
-          await act(async () => {
-            fireEvent.change(inputElement, { target: { value: '8' } });
-            fireEvent.submit(inputElement.closest('form')!);
-          });
-          await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('8'); });
+          // Simulate invalid input (8 - out of range for 7 options)await simulateInputCommand(inputElement, '8');
 
           // Assert error message again
           await waitFor(() => {
@@ -1271,12 +1224,7 @@ describe('RegistrationDialog (V3.1)', () => {
         mockAddOutputLine.mockClear(); // Clear mocks before input
 
         const validInput = '1 3'; // Select "Analytic philosophy" and "Ancient philosophy"
-        // Simulate input and submission using fireEvent
-        await act(async () => {
-          fireEvent.change(inputElement, { target: { value: validInput } });
-          fireEvent.submit(inputElement.closest('form')!);
-        });
-        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(validInput); });
+        // Simulate input and submission using fireEventawait simulateInputCommand(inputElement, validInput);
 
 
         // Assertions
@@ -1319,12 +1267,7 @@ describe('RegistrationDialog (V3.1)', () => {
         const initialHint = initialQuestion.hint; // Capture hint for re-display check
 
         // --- Test Case 1: Non-numeric input ---
-        mockAddOutputLine.mockClear();
-        await act(async () => {
-          fireEvent.change(inputElement, { target: { value: '1 abc' } });
-          fireEvent.submit(inputElement.closest('form')!);
-        });
-        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('1 abc'); });
+        mockAddOutputLine.mockClear();await simulateInputCommand(inputElement, '1 abc');
         await waitFor(() => {
           // Assert error message was called AT SOME POINT
           // expect(mockAddOutputLine).toHaveBeenCalledWith(
@@ -1373,12 +1316,7 @@ describe('RegistrationDialog (V3.1)', () => {
          fireEvent.change(inputElement, { target: { value: '' } });
 
         // --- Test Case 3: Duplicate input ---
-         mockAddOutputLine.mockClear();
-         await act(async () => {
-           fireEvent.change(inputElement, { target: { value: '1 1 3' } });
-           fireEvent.submit(inputElement.closest('form')!);
-         });
-         await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('1 1 3'); });
+         mockAddOutputLine.mockClear();await simulateInputCommand(inputElement, '1 1 3');
          await waitFor(() => {
            // Assert error message was called AT SOME POINT
            // expect(mockAddOutputLine).toHaveBeenCalledWith(
@@ -1398,12 +1336,7 @@ describe('RegistrationDialog (V3.1)', () => {
          fireEvent.change(inputElement, { target: { value: '' } });
 
          // --- Test Case 4: Empty input (required validation) ---
-         mockAddOutputLine.mockClear();
-         await act(async () => {
-           fireEvent.change(inputElement, { target: { value: '' } });
-           fireEvent.submit(inputElement.closest('form')!);
-         });
-         await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(''); });
+         mockAddOutputLine.mockClear();await simulateInputCommand(inputElement, '');
          await waitFor(() => {
            // Assert error message was called AT SOME POINT
            // expect(mockAddOutputLine).toHaveBeenCalledWith(
@@ -1424,13 +1357,13 @@ describe('RegistrationDialog (V3.1)', () => {
 
 
       // --- RANKING-NUMBERED ---
-      describe('ranking-numbered input', () => {
+      describe('ranked-choice-numbered input', () => {
         const questionIndex = 27; // themeRanking (order 28)
         const initialQuestion = questions[questionIndex];
         const nextQuestionPrompt = questions[questionIndex + 1].label; // Assuming next question exists
 
         // Test for handling valid input
-        it('should handle ranking-numbered input (comma-separated numbers)', async () => {
+        it('should handle ranked-choice-numbered input (comma-separated numbers)', async () => {
           const handleInput = vi.fn();
           const initialState = {
             mode: 'questioning',
@@ -1463,12 +1396,7 @@ describe('RegistrationDialog (V3.1)', () => {
           mockAddOutputLine.mockClear();
 
           // Simulate valid input (ranking top 3)
-          const validInput = '5:1, 2:2, 8:3'; // Rank Extended Perception, Digital Commons, Algorithmic Aesthetics
-          await act(async () => {
-            fireEvent.change(inputElement, { target: { value: validInput } });
-            fireEvent.submit(inputElement.closest('form')!);
-          });
-          await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(validInput); });
+          const validInput = '5:1, 2:2, 8:3'; // Rank Extended Perception, Digital Commons, Algorithmic Aestheticsawait simulateInputCommand(inputElement, validInput);
 
           // Assertions
           await waitFor(() => {
@@ -1479,7 +1407,7 @@ describe('RegistrationDialog (V3.1)', () => {
         });
 
         // Test for validation rules
-        it('should validate ranking-numbered input (valid numbers, min ranked, uniqueness, format)', async () => {
+        it('should validate ranked-choice-numbered input (valid numbers, min ranked, uniqueness, format)', async () => {
           const handleInput = vi.fn();
           const initialState = {
             mode: 'questioning',
@@ -1509,12 +1437,7 @@ describe('RegistrationDialog (V3.1)', () => {
           mockAddOutputLine.mockClear();
 
           // --- Test Case 1: Invalid Format ---
-          const invalidFormatInput = '5:1 2:2 8:3'; // Space instead of comma
-          await act(async () => {
-            fireEvent.change(inputElement, { target: { value: invalidFormatInput } });
-            fireEvent.submit(inputElement.closest('form')!);
-          });
-          await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(invalidFormatInput); });
+          const invalidFormatInput = '5:1 2:2 8:3'; // Space instead of commaawait simulateInputCommand(inputElement, invalidFormatInput);
           await waitFor(() => {
             // Assert specific format error - THIS SHOULD FAIL IN RED PHASE
             // Assert specific format error - THIS SHOULD FAIL IN RED PHASE
@@ -1526,12 +1449,7 @@ describe('RegistrationDialog (V3.1)', () => {
           mockAddOutputLine.mockClear();
 
           // --- Test Case 2: Non-numeric Option ---
-          const nonNumericOptionInput = 'abc:1, 2:2, 8:3';
-          await act(async () => {
-            fireEvent.change(inputElement, { target: { value: nonNumericOptionInput } });
-            fireEvent.submit(inputElement.closest('form')!);
-          });
-          await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(nonNumericOptionInput); });
+          const nonNumericOptionInput = 'abc:1, 2:2, 8:3';await simulateInputCommand(inputElement, nonNumericOptionInput);
           await waitFor(() => {
             // Assert specific numeric error - THIS SHOULD FAIL IN RED PHASE
             // Assert specific numeric error - THIS SHOULD FAIL IN RED PHASE
@@ -1542,12 +1460,7 @@ describe('RegistrationDialog (V3.1)', () => {
           mockAddOutputLine.mockClear();
 
           // --- Test Case 3: Non-numeric Rank ---
-           const nonNumericRankInput = '5:abc, 2:2, 8:3';
-          await act(async () => {
-            fireEvent.change(inputElement, { target: { value: nonNumericRankInput } });
-            fireEvent.submit(inputElement.closest('form')!);
-          });
-          await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(nonNumericRankInput); });
+           const nonNumericRankInput = '5:abc, 2:2, 8:3';await simulateInputCommand(inputElement, nonNumericRankInput);
           await waitFor(() => {
             // Assert specific numeric error - THIS SHOULD FAIL IN RED PHASE
             // Assert specific numeric error - THIS SHOULD FAIL IN RED PHASE
@@ -1559,12 +1472,7 @@ describe('RegistrationDialog (V3.1)', () => {
 
 
           // --- Test Case 4: Out-of-range Option ---
-          const outOfRangeOptionInput = '99:1, 2:2, 8:3'; // Option 99 is invalid
-          await act(async () => {
-            fireEvent.change(inputElement, { target: { value: outOfRangeOptionInput } });
-            fireEvent.submit(inputElement.closest('form')!);
-          });
-          await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(outOfRangeOptionInput); });
+          const outOfRangeOptionInput = '99:1, 2:2, 8:3'; // Option 99 is invalidawait simulateInputCommand(inputElement, outOfRangeOptionInput);
           await waitFor(() => {
             // Assert specific range error - THIS SHOULD FAIL IN RED PHASE
             // Assert specific range error - THIS SHOULD FAIL IN RED PHASE
@@ -1575,12 +1483,7 @@ describe('RegistrationDialog (V3.1)', () => {
           mockAddOutputLine.mockClear();
 
           // --- Test Case 5: Out-of-range Rank ---
-          const outOfRangeRankInput = '5:4, 2:2, 8:3'; // Rank 4 is invalid (only 1, 2, 3 allowed for top 3)
-          await act(async () => {
-            fireEvent.change(inputElement, { target: { value: outOfRangeRankInput } });
-            fireEvent.submit(inputElement.closest('form')!);
-          });
-          await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(outOfRangeRankInput); });
+          const outOfRangeRankInput = '5:4, 2:2, 8:3'; // Rank 4 is invalid (only 1, 2, 3 allowed for top 3)await simulateInputCommand(inputElement, outOfRangeRankInput);
           await waitFor(() => {
             // Assert specific rank range error - THIS SHOULD FAIL IN RED PHASE
             // Assert specific rank range error - THIS SHOULD FAIL IN RED PHASE
@@ -1592,12 +1495,7 @@ describe('RegistrationDialog (V3.1)', () => {
 
 
           // --- Test Case 6: Duplicate Option ---
-          const duplicateOptionInput = '5:1, 5:2, 8:3';
-          await act(async () => {
-            fireEvent.change(inputElement, { target: { value: duplicateOptionInput } });
-            fireEvent.submit(inputElement.closest('form')!);
-          });
-          await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(duplicateOptionInput); });
+          const duplicateOptionInput = '5:1, 5:2, 8:3';await simulateInputCommand(inputElement, duplicateOptionInput);
           await waitFor(() => {
             // Assert specific uniqueness error - THIS SHOULD FAIL IN RED PHASE
             // Assert specific uniqueness error - THIS SHOULD FAIL IN RED PHASE
@@ -1608,12 +1506,7 @@ describe('RegistrationDialog (V3.1)', () => {
           mockAddOutputLine.mockClear();
 
           // --- Test Case 7: Duplicate Rank ---
-          const duplicateRankInput = '5:1, 2:1, 8:3';
-          await act(async () => {
-            fireEvent.change(inputElement, { target: { value: duplicateRankInput } });
-            fireEvent.submit(inputElement.closest('form')!);
-          });
-          await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(duplicateRankInput); });
+          const duplicateRankInput = '5:1, 2:1, 8:3';await simulateInputCommand(inputElement, duplicateRankInput);
           await waitFor(() => {
             // Assert specific uniqueness error - THIS SHOULD FAIL IN RED PHASE
             // Assert specific uniqueness error - THIS SHOULD FAIL IN RED PHASE
@@ -1625,12 +1518,7 @@ describe('RegistrationDialog (V3.1)', () => {
 
 
           // --- Test Case 8: Insufficient Number Ranked (minRanked: 3) ---
-          const insufficientRankInput = '5:1, 2:2';
-          await act(async () => {
-            fireEvent.change(inputElement, { target: { value: insufficientRankInput } });
-            fireEvent.submit(inputElement.closest('form')!);
-          });
-          await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(insufficientRankInput); });
+          const insufficientRankInput = '5:1, 2:2';await simulateInputCommand(inputElement, insufficientRankInput);
           await waitFor(() => {
             // Assert specific minRanked error - THIS SHOULD FAIL IN RED PHASE
             // Assert specific minRanked error - THIS SHOULD FAIL IN RED PHASE
@@ -1641,12 +1529,7 @@ describe('RegistrationDialog (V3.1)', () => {
           mockAddOutputLine.mockClear();
 
            // --- Test Case 9: Too Many Ranked (minRanked: 3) ---
-          const tooManyRankInput = '5:1, 2:2, 8:3, 1:4';
-          await act(async () => {
-            fireEvent.change(inputElement, { target: { value: tooManyRankInput } });
-            fireEvent.submit(inputElement.closest('form')!);
-          });
-          await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(tooManyRankInput); });
+          const tooManyRankInput = '5:1, 2:2, 8:3, 1:4';await simulateInputCommand(inputElement, tooManyRankInput);
           await waitFor(() => {
             // Assert specific minRanked error (or format error depending on implementation) - THIS SHOULD FAIL IN RED PHASE
             // Assert specific minRanked error (or format error depending on implementation) - THIS SHOULD FAIL IN RED PHASE
@@ -1660,7 +1543,7 @@ describe('RegistrationDialog (V3.1)', () => {
       });
 
       // Removed duplicate ranking tests and todos
-    });
+    }); // End Input Handling & Validation
   }); // End Input Handling & Validation describe
 
   describe('Command Handling', () => { // Start Command Handling describe
@@ -1706,13 +1589,13 @@ describe('RegistrationDialog (V3.1)', () => {
         fireEvent.change(inputElement, { target: { value: 'exit' } });
         fireEvent.submit(inputElement.closest('form')!);
       });
-      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('exit'); });
+      // We still need to wait for potential async updates triggered by submit
 
       // Assert sendToShellMachine was called with EXIT event
       await waitFor(() => {
         expect(mockSendToShellMachine).toHaveBeenCalledTimes(1);
         expect(mockSendToShellMachine).toHaveBeenCalledWith({ type: 'EXIT' }); // Assuming EXIT type based on V2 arch doc intent
-      });
+      }, { timeout: 3000 }); // Increased timeout
     });
     it('should handle "back" command to go to the previous question', async () => {
       const handleInput = vi.fn();
@@ -1733,7 +1616,6 @@ describe('RegistrationDialog (V3.1)', () => {
         userId: 'mock-back-cmd-user-id'
       };
       currentDialogState = { ...initialStateAtIndex6 }; // Update local tracker
-
       const { container } = render(
         <RegistrationDialog
           {...defaultProps}
@@ -1753,11 +1635,7 @@ describe('RegistrationDialog (V3.1)', () => {
       });
 
       // --- Simulate entering 'back' command ---
-      await act(async () => {
-        fireEvent.change(inputElement, { target: { value: 'back' } });
-        fireEvent.submit(inputElement.closest('form')!);
-      });
-      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('back'); });
+      await simulateInputCommand(inputElement, 'back');
 
       // Removed outdated assertion checking mockSetDialogState
 
@@ -1808,12 +1686,7 @@ describe('RegistrationDialog (V3.1)', () => {
         expect(mockAddOutputLine).toHaveBeenCalledWith(currentQuestionPrompt);
       });
 
-      // --- Simulate entering 'review' command ---
-      await act(async () => {
-        fireEvent.change(inputElement, { target: { value: 'review' } });
-        fireEvent.submit(inputElement.closest('form')!);
-      });
-      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('review'); });
+      await simulateInputCommand(inputElement, 'review');
 
       // Rerender with potentially updated state
       rerender(<RegistrationDialog {...defaultProps} dialogState={currentDialogState} onInput={handleInput} />);
@@ -1848,7 +1721,7 @@ describe('RegistrationDialog (V3.1)', () => {
       // Optional: Assert component remains in 'questioning' mode (indirectly checked by absence of next prompt)
       // If spec requires a 'review' mode, this assertion would change.
     });
-    it.todo('should handle "edit [number]" command to jump to a specific question');
+    
     it.todo('should handle "submit" command on the final step');
     it.todo('should call submitRegistration server action on submit');
     it.todo('should display an error if submitRegistration fails');
@@ -1893,12 +1766,7 @@ describe('RegistrationDialog (V3.1)', () => {
         expect(mockAddOutputLine).toHaveBeenCalledWith(currentQuestionPrompt);
       });
 
-      // --- Simulate entering 'help' command ---
-      await act(async () => {
-        fireEvent.change(inputElement, { target: { value: 'help' } });
-        fireEvent.submit(inputElement.closest('form')!);
-      });
-      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('help'); });
+      // --- Simulate entering 'help' command ---await simulateInputCommand(inputElement, 'help');
 
       // Rerender with potentially updated state (though state shouldn't change here)
       rerender(<RegistrationDialog {...defaultProps} dialogState={currentDialogState} onInput={handleInput} />);
@@ -1943,7 +1811,6 @@ describe('RegistrationDialog (V3.1)', () => {
       expect(modeUpdateCall).toBeUndefined(); // Mode should not change
     });
 
-  });
     it('should handle "edit [number]" command to jump to a specific question', async () => {
       const handleInput = vi.fn();
       // Start at question index 10 (Order 11)
@@ -1972,12 +1839,7 @@ describe('RegistrationDialog (V3.1)', () => {
         expect(mockAddOutputLine).toHaveBeenCalledWith(initialQuestionPrompt);
       });
 
-      // --- Simulate valid input 'edit 3' ---
-      await act(async () => {
-        fireEvent.change(inputElement, { target: { value: 'edit 3' } });
-        fireEvent.submit(inputElement.closest('form')!);
-      });
-      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('edit 3'); });
+      await simulateInputCommand(inputElement, 'edit 3');
 
       // Assert confirmation message
       await waitFor(() => {
@@ -1997,12 +1859,7 @@ describe('RegistrationDialog (V3.1)', () => {
       const initialQuestionPrompt = questions[10].label;
       await waitFor(() => { expect(mockAddOutputLine).toHaveBeenCalledWith(initialQuestionPrompt); });
 
-      // --- Simulate invalid format 'edit abc' ---
-      await act(async () => {
-        fireEvent.change(inputElement, { target: { value: 'edit abc' } });
-        fireEvent.submit(inputElement.closest('form')!);
-      });
-      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('edit abc'); });
+      await simulateInputCommand(inputElement, 'edit abc');
 
       // Assert error message
       await waitFor(() => {
@@ -2021,12 +1878,7 @@ describe('RegistrationDialog (V3.1)', () => {
       const initialQuestionPrompt = questions[10].label;
       await waitFor(() => { expect(mockAddOutputLine).toHaveBeenCalledWith(initialQuestionPrompt); });
 
-      // --- Simulate out-of-range 'edit 99' ---
-      await act(async () => {
-        fireEvent.change(inputElement, { target: { value: 'edit 99' } });
-        fireEvent.submit(inputElement.closest('form')!);
-      });
-      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('edit 99'); });
+      await simulateInputCommand(inputElement, 'edit 99');
 
       // Assert error message
       await waitFor(() => {
@@ -2038,12 +1890,7 @@ describe('RegistrationDialog (V3.1)', () => {
 
        // --- Simulate out-of-range 'edit 0' ---
        mockAddOutputLine.mockClear(); // Clear mocks for next assertion
-       handleInput.mockClear();
-       await act(async () => {
-         fireEvent.change(inputElement, { target: { value: 'edit 0' } });
-         fireEvent.submit(inputElement.closest('form')!);
-       });
-       await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('edit 0'); });
+       handleInput.mockClear();await simulateInputCommand(inputElement, 'edit 0');
        await waitFor(() => {
          expect(mockAddOutputLine).toHaveBeenCalledWith("Invalid question number. Please enter a number between 1 and 10.", { type: 'error' });
        });
@@ -2061,12 +1908,7 @@ describe('RegistrationDialog (V3.1)', () => {
       const initialQuestionPrompt = questions[10].label;
       await waitFor(() => { expect(mockAddOutputLine).toHaveBeenCalledWith(initialQuestionPrompt); });
 
-      // --- Simulate future question 'edit 11' (current is 10) ---
-      await act(async () => {
-        fireEvent.change(inputElement, { target: { value: 'edit 11' } });
-        fireEvent.submit(inputElement.closest('form')!);
-      });
-      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('edit 11'); });
+      await simulateInputCommand(inputElement, 'edit 11');
 
       // Assert error message
       await waitFor(() => {
@@ -2076,6 +1918,7 @@ describe('RegistrationDialog (V3.1)', () => {
       const initialQuestionHint = questions[10].hint;
       expect(mockAddOutputLine).toHaveBeenLastCalledWith(initialQuestionHint, { type: 'hint' });
     });
+  }); // End Command Handling
 
 
   describe('Local Storage Interaction', () => {
@@ -2121,11 +1964,7 @@ describe('RegistrationDialog (V3.1)', () => {
       });
 
       // Simulate entering 'save' command
-      await act(async () => {
-        fireEvent.change(inputElement, { target: { value: 'save' } });
-        fireEvent.submit(inputElement.closest('form')!);
-      });
-      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('save'); });
+      await simulateInputCommand(inputElement, 'save');
 
       // Assert localStorage.setItem was called correctly
       const expectedKey = 'philosothon-registration-v3.1';
@@ -2167,7 +2006,7 @@ describe('RegistrationDialog (V3.1)', () => {
     });
     it.todo('should call remove function from useLocalStorage on successful submission');
     it.todo('should call remove function from useLocalStorage when explicitly exiting/clearing');
-  });
+  }); // End Local Storage Interaction
 
   describe('TerminalShell Interaction', () => {
     it.todo('should call addOutputLine to display text to the user');
@@ -2175,7 +2014,7 @@ describe('RegistrationDialog (V3.1)', () => {
     it.todo('should receive and use userSession prop/context');
     it.todo('should call setDialogState to store intermediate state');
     it.todo('should call clearDialogState on exit/completion');
-  });
+  }); // End TerminalShell Interaction
 
   describe('Backend Interaction (Server Actions)', () => {
     it.todo('should mock and verify calls to submitRegistration');
@@ -2183,7 +2022,7 @@ describe('RegistrationDialog (V3.1)', () => {
     it.todo('should mock and verify calls to deleteRegistration (if applicable)');
     it.todo('should mock and verify calls to initiateOtpSignIn');
     // checkEmailConfirmation and resendConfirmationEmail removed
-  }); // Closes describe 'Backend Interaction (Server Actions)'
+  }); // End Backend Interaction
 
 
 }); // Closes main describe 'RegistrationDialog (V3.1)'

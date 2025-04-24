@@ -243,6 +243,7 @@ const RegistrationDialog: React.FC<DialogProps> = ({
 
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => { // Make async
+    console.log('[DEBUG][Component] handleSubmit invoked');
     event.preventDefault();
     const input = currentInput.trim();
     addOutputLine(`> ${input}`, { type: 'input' }); // Echo input
@@ -384,7 +385,9 @@ const RegistrationDialog: React.FC<DialogProps> = ({
               const optionsText = currentQuestion.options.map((opt, index) => `${index + 1}: ${opt}`).join('\n');
               addOutputLine(optionsText);
             }
+            console.log('[DEBUG] Checking for back command...');
           }
+            console.log('[DEBUG] Back command matched. Dispatching PREV_STEP...');
         } else if (input.toLowerCase() === 'back') {
             dispatch({ type: 'PREV_STEP' });
         } else if (input.toLowerCase() === 'help') {
@@ -431,8 +434,10 @@ const RegistrationDialog: React.FC<DialogProps> = ({
                 addOutputLine(optionsText);
               }
             }
+            console.log('[DEBUG] Checking for exit command...');
         } else if (input.toLowerCase() === 'exit') {
             // Send exit event to the shell machine
+            console.log('[DEBUG] Exit command matched. Calling sendToShellMachine...');
             sendToShellMachine({ type: 'EXIT' });
             // Optionally clear local storage or dialog state here if needed
             // clearDialogState(); // Example
@@ -564,7 +569,7 @@ const RegistrationDialog: React.FC<DialogProps> = ({
                         processedAnswer = selectedOptions; // Store as an array of strings
                     }
                 }
-            // TODO: Add validation for other types like 'ranking-numbered'
+            // TODO: Add validation for other types like 'ranked-choice-numbered'
             } else {
               // Default case for text input or unhandled types
               // If specific validation for text is needed, add it here.
