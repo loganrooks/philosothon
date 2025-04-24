@@ -388,6 +388,60 @@ const RegistrationDialog: React.FC<DialogProps> = ({
             sendToShellMachine({ type: 'EXIT' });
             // Optionally clear local storage or dialog state here if needed
             // clearDialogState(); // Example
+        } else if (input.toLowerCase().startsWith('edit ')) {
+          const parts = input.split(' ');
+          if (parts.length !== 2) {
+            addOutputLine("Invalid command format. Use 'edit [number]'.", { type: 'error' });
+            // Re-display current prompt (label and hint only)
+            if (currentQuestion) {
+              addOutputLine(currentQuestion.label);
+              if (currentQuestion.hint) addOutputLine(currentQuestion.hint, { type: 'hint' });
+            }
+            return;
+          }
+          const numberStr = parts[1];
+          const targetQuestionNumber = parseInt(numberStr, 10); // 1-based number from user
+
+          if (isNaN(targetQuestionNumber)) {
+            addOutputLine("Invalid command format. Use 'edit [number]'.", { type: 'error' });
+            // Re-display current prompt (label and hint only)
+            if (currentQuestion) {
+              addOutputLine(currentQuestion.label);
+              if (currentQuestion.hint) addOutputLine(currentQuestion.hint, { type: 'hint' });
+            }
+            return;
+          }
+
+          // Validate range (1 to currentQuestionIndex)
+          // Note: currentQuestionIndex is 0-based, targetQuestionNumber is 1-based
+          const maxValidQuestionNumber = state.currentQuestionIndex; // Can only edit *previous* questions
+          if (targetQuestionNumber < 1) {
+            // Handle numbers less than 1
+            const rangeMessage = `Invalid question number. Please enter a number between 1 and ${maxValidQuestionNumber}.`;
+            addOutputLine(rangeMessage, { type: 'error' });
+            // Re-display current prompt (label and hint only)
+            if (currentQuestion) {
+              addOutputLine(currentQuestion.label);
+              if (currentQuestion.hint) addOutputLine(currentQuestion.hint, { type: 'hint' });
+            }
+            return;
+          } else if (targetQuestionNumber > maxValidQuestionNumber) {
+            // Handle numbers greater than current index (future questions)
+            const futureMessage = `Cannot edit questions you haven't answered yet. Please enter a number between 1 and ${maxValidQuestionNumber}.`;
+            addOutputLine(futureMessage, { type: 'error' });
+            // Re-display current prompt (label and hint only)
+            if (currentQuestion) {
+              addOutputLine(currentQuestion.label);
+              if (currentQuestion.hint) addOutputLine(currentQuestion.hint, { type: 'hint' });
+            }
+            return;
+          }
+
+          // Valid number, proceed to jump
+          const targetIndex = targetQuestionNumber - 1; // Convert to 0-based index
+          addOutputLine(`Jumping back to question ${targetQuestionNumber}...`);
+          dispatch({ type: 'SET_INDEX', payload: targetIndex });
+
         } else {
             // Handle answer input and validation
             if (!currentQuestion) {
