@@ -1030,7 +1030,59 @@ describe('RegistrationDialog (V3.1)', () => {
     it.todo('should handle "save" command to save progress to local storage');
     it.todo('should display a confirmation message after saving');
     it.todo('should handle "exit" command to exit the registration flow');
-    it.todo('should handle "back" command (potentially alias for "prev" or specific context)');
+    it('should handle "back" command to go to the previous question', async () => {
+      const handleInput = vi.fn();
+      // Initialize state at index 4 (programOfStudy)
+      const initialStateAtIndex4 = {
+        mode: 'questioning',
+        currentQuestionIndex: 4,
+        answers: {
+          firstName: 'Test',
+          lastName: 'User',
+          email: 'test@example.com',
+          academicYear: 'Second year', // Answer for index 3
+        },
+        isSubmitting: false,
+        error: null,
+        userId: 'mock-back-cmd-user-id'
+      };
+      currentDialogState = { ...initialStateAtIndex4 }; // Update local tracker
+
+      const { container } = render(
+        <RegistrationDialog
+          {...defaultProps}
+          dialogState={currentDialogState} // Use local tracker
+          onInput={handleInput}
+        />
+      );
+
+      const inputElement = container.querySelector('input');
+      expect(inputElement).not.toBeNull();
+      if (!inputElement) return;
+
+      // Wait for the prompt of the initial question (index 4) to ensure setup
+      await waitFor(() => {
+        expect(mockAddOutputLine).toHaveBeenCalledWith('Program/Major(s)');
+      });
+
+      // --- Simulate entering 'back' command ---
+      await act(async () => {
+        fireEvent.change(inputElement, { target: { value: 'back' } });
+        fireEvent.submit(inputElement.closest('form')!);
+      });
+      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('back'); });
+
+      // Assert that setDialogState was called to update the index to 3
+      await waitFor(() => {
+        expect(mockSetDialogState).toHaveBeenCalledWith('currentQuestionIndex', 3);
+      });
+
+      // Optionally, assert that the prompt for the previous question (index 3) is shown
+      // This might be flaky due to timing issues, but let's try
+      await waitFor(() => {
+         expect(mockAddOutputLine).toHaveBeenCalledWith('Year of Study');
+      });
+    });
     it.todo('should handle "review" command to display summary of answers');
     it.todo('should handle "edit [number]" command to jump to a specific question');
     it.todo('should handle "submit" command on the final step');

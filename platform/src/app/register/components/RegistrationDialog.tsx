@@ -314,81 +314,86 @@ const RegistrationDialog: React.FC<DialogProps> = ({
            addOutputLine(`Unknown command: ${input}. Please enter 'continue' or 'resend'.`);
        }
     } else if (state.mode === 'questioning') {
-        const currentQuestion = questions[state.currentQuestionIndex];
-        if (!currentQuestion) {
-            addOutputLine("Error: No current question found.", { type: 'error' });
-            return; // Should not happen in normal flow
-        }
-
-        // Basic validation (specifics depend on question type)
-        let isValid = true;
-        let errorMessage = "Invalid input.";
-        let processedAnswer: any = input; // Default to raw input, allow any type
-
-        // Check for required first
-        if (currentQuestion.required && !input) {
-            isValid = false;
-            errorMessage = "Input cannot be empty."; // Use specific message from test
-        }
-        // Add other validation checks based on type *only if input is not empty or not required*
-        else if (currentQuestion.type === 'boolean') {
-            const lowerInput = input.toLowerCase();
-            if (lowerInput === 'y' || lowerInput === 'yes') {
-                processedAnswer = true;
-            } else if (lowerInput === 'n' || lowerInput === 'no') {
-                processedAnswer = false;
-            } else {
-                // This is the specific validation logic for the failing test
-                isValid = false;
-                errorMessage = "Invalid input. Please enter 'y' or 'n'.";
-            }
-        }
-        else if (currentQuestion.type === 'single-select' || currentQuestion.type === 'scale') {
-             const choiceIndex = parseInt(input, 10);
-             if (isNaN(choiceIndex) || choiceIndex < 1 || (currentQuestion.options && choiceIndex > currentQuestion.options.length)) {
-                 // Basic number/range check for select/scale
-                 isValid = false;
-                 errorMessage = `Please enter a valid number between 1 and ${currentQuestion.options?.length || 10}.`;
-            } else if (currentQuestion.options) {
-                 processedAnswer = currentQuestion.options[choiceIndex - 1]; // Store the selected option text
-            } else {
-                 processedAnswer = String(choiceIndex); // Store the scale number as string
-            }
-        }
-        // TODO: Add validation for other types (text, email, multi-select, ranking, etc.) based on currentQuestion.validationRules
-
-        if (isValid) {
-            dispatch({ type: 'SET_ANSWER', payload: { stepId: currentQuestion.id, answer: processedAnswer } });
-            if (state.currentQuestionIndex === questions.length - 1) {
-                // Last question answered
-                addOutputLine("Registration complete. Thank you!"); // Assuming this message passes the test
-                dispatch({ type: 'SET_MODE', payload: 'success' });
-                return; // Prevent advancing index
-            }
-
-
-
-            // Check if the next question should be skipped
-            const nextQuestionIndex = state.currentQuestionIndex + 1;
-            const nextQuestion = questions[nextQuestionIndex];
-            let skipNext = false;
-            if (nextQuestion?.dependsOn === currentQuestion.id && nextQuestion.dependsValue !== processedAnswer) {
-                skipNext = true;
-            }
-
-            dispatch({ type: 'NEXT_STEP' }); // Always advance at least one step
-            if (skipNext) {
-                dispatch({ type: 'NEXT_STEP' }); // Advance again to skip
-            }
+        if (input.toLowerCase() === 'back') {
+            dispatch({ type: 'PREV_STEP' });
         } else {
-            addOutputLine(errorMessage, { type: 'error' });
-            // Re-display current question prompt (will happen via useEffect)
-             addOutputLine(currentQuestion.label);
-             if (currentQuestion.hint) addOutputLine(currentQuestion.hint, { type: 'hint' });
-             if (currentQuestion.options) {
-               const optionsText = currentQuestion.options.map((opt, index) => `${index + 1}: ${opt}`).join('\n');
-               addOutputLine(optionsText);
-             }
+            // Existing logic for handling answers and validation
+            const currentQuestion = questions[state.currentQuestionIndex];
+            if (!currentQuestion) {
+                addOutputLine("Error: No current question found.", { type: 'error' });
+                return; // Should not happen in normal flow
+            }
+
+            // Basic validation (specifics depend on question type)
+            let isValid = true;
+            let errorMessage = "Invalid input.";
+            let processedAnswer: any = input; // Default to raw input, allow any type
+
+            // Check for required first
+            if (currentQuestion.required && !input) {
+                isValid = false;
+                errorMessage = "Input cannot be empty."; // Use specific message from test
+            }
+            // Add other validation checks based on type *only if input is not empty or not required*
+            else if (currentQuestion.type === 'boolean') {
+                const lowerInput = input.toLowerCase();
+                if (lowerInput === 'y' || lowerInput === 'yes') {
+                    processedAnswer = true;
+                } else if (lowerInput === 'n' || lowerInput === 'no') {
+                    processedAnswer = false;
+                } else {
+                    // This is the specific validation logic for the failing test
+                    isValid = false;
+                    errorMessage = "Invalid input. Please enter 'y' or 'n'.";
+                }
+            }
+            else if (currentQuestion.type === 'single-select' || currentQuestion.type === 'scale') {
+                 const choiceIndex = parseInt(input, 10);
+                 if (isNaN(choiceIndex) || choiceIndex < 1 || (currentQuestion.options && choiceIndex > currentQuestion.options.length)) {
+                     // Basic number/range check for select/scale
+                     isValid = false;
+                     errorMessage = `Please enter a valid number between 1 and ${currentQuestion.options?.length || 10}.`;
+                } else if (currentQuestion.options) {
+                     processedAnswer = currentQuestion.options[choiceIndex - 1]; // Store the selected option text
+                } else {
+                     processedAnswer = String(choiceIndex); // Store the scale number as string
+                }
+            }
+            // TODO: Add validation for other types (text, email, multi-select, ranking, etc.) based on currentQuestion.validationRules
+
+            if (isValid) {
+                dispatch({ type: 'SET_ANSWER', payload: { stepId: currentQuestion.id, answer: processedAnswer } });
+                if (state.currentQuestionIndex === questions.length - 1) {
+                    // Last question answered
+                    addOutputLine("Registration complete. Thank you!"); // Assuming this message passes the test
+                    dispatch({ type: 'SET_MODE', payload: 'success' });
+                    return; // Prevent advancing index
+                }
+
+
+
+                // Check if the next question should be skipped
+                const nextQuestionIndex = state.currentQuestionIndex + 1;
+                const nextQuestion = questions[nextQuestionIndex];
+                let skipNext = false;
+                if (nextQuestion?.dependsOn === currentQuestion.id && nextQuestion.dependsValue !== processedAnswer) {
+                    skipNext = true;
+                }
+
+                dispatch({ type: 'NEXT_STEP' }); // Always advance at least one step
+                if (skipNext) {
+                    dispatch({ type: 'NEXT_STEP' }); // Advance again to skip
+                }
+            } else {
+                addOutputLine(errorMessage, { type: 'error' });
+                // Re-display current question prompt (will happen via useEffect)
+                 addOutputLine(currentQuestion.label);
+                 if (currentQuestion.hint) addOutputLine(currentQuestion.hint, { type: 'hint' });
+                 if (currentQuestion.options) {
+                   const optionsText = currentQuestion.options.map((opt, index) => `${index + 1}: ${opt}`).join('\n');
+                   addOutputLine(optionsText);
+                 }
+            }
         }
     }
     // Add logic for other modes (review, commands) here
