@@ -5,7 +5,7 @@
 
 ## 1. Introduction
 
-This document outlines the revised specifications for the Philosothon Event Platform, building upon v2.1 (`docs/project_specifications_v2.md`). This version incorporates a significantly expanded feature set, particularly focusing on the **Terminal UI** as a central interaction hub, based on user feedback and recent planning. Features are organized by implementation priority: P0 (highest) to P4 (lowest).
+This document outlines the revised specifications for the Philosothon Event Platform, building upon previous versions. This version incorporates a significantly expanded feature set, particularly focusing on the **Terminal UI** as a central interaction hub, based on user feedback and recent planning. Features are organized by implementation priority: P0 (highest) to P4 (lowest).
 
 **Lessons Learned Incorporated:**
 *   **RLS Criticality (P0):** Robust Row-Level Security (RLS) in Supabase is paramount and must be implemented early for all relevant tables to ensure data privacy and integrity. Recent fixes highlight this need.
@@ -48,7 +48,7 @@ This document outlines the revised specifications for the Philosothon Event Plat
 *   **Requirement 3.3.4 (Philosophical Texts Management):** Define a strategy for managing the philosophical texts required for the Document Library and Gamification AI.
     *   *Options:* Markdown files in repo, Supabase table with text content.
     *   *Consideration:* How will texts be processed/chunked/embedded for the Vector DB?
-    *   *Decision:* TBD - Requires investigation based on Vector DB choice and processing pipeline. Initial assumption: Markdown files in `docs/philosophy/` processed by an external script/MCP server.
+    *   *Decision:* TBD - Strategy requires investigation based on Vector DB choice and processing pipeline (See Holistic Review 20250424). Initial assumption: Markdown files in `docs/philosophy/` processed by an external script/MCP server.
 
 ### 3.4 Team Management (P1)
 
@@ -86,6 +86,7 @@ This document outlines the revised specifications for the Philosothon Event Plat
 *   **Requirement 3.8.1 (Participant Submission via Terminal):** Implement submission functionality within the **Terminal UI**.
     *   Commands like `submit list`, `submit upload [file_path]`, `submit status`.
     *   Requires integration with file system access (if uploading local files) or a mechanism to specify file source. *Needs further definition - how does a terminal UI handle file uploads securely? Perhaps initiates a standard browser upload dialog?*
+    *   *Note:* The mechanism for handling file uploads via the terminal (Req 3.8.1) requires further definition (See Holistic Review 20250424).
     *   Alternatively, the terminal could link to a standard web form for upload, but display status.
 *   **Requirement 3.8.2 (Storage & Metadata):** Use Supabase Storage for files, `submissions` table for metadata (team_id, user_id, file_path, timestamp). Enforce RLS.
 *   **Requirement 3.8.3 (Permissions):** Any team member can submit. RLS restricts access.
@@ -108,7 +109,7 @@ This document outlines the revised specifications for the Philosothon Event Plat
 
 *   **Requirement 3.11.1 (Modular Architecture):** Implement the `TerminalShell` / `ActiveDialog` architecture as defined in `docs/architecture/terminal_component_v2.md` (pending review/update).
 *   **Requirement 3.11.2 (State Management):** Use `useReducer` + Context initially, but design with potential migration to XState in mind, especially for Gamification/Chat modes.
-*   **Requirement 3.11.3 (Styling):** Implement the minimalist hacker aesthetic (monospace font, black/green/orange colors) consistently.
+*   **Requirement 3.11.3 (Styling):** Implement the minimalist hacker aesthetic (monospace font, black/green/orange colors) consistently, following the [Style Guide](docs/style_guide.md).
 *   **Requirement 3.11.4 (Core Commands):** Implement global commands (`help`, `clear`, `exit`, `about`) and mode switching logic.
 *   **Requirement 3.11.5 (Dialogs):** Implement necessary dialog components (`MainMenuDialog`, `AuthDialog`, `RegistrationDialog`, `InterestFormPlaceholder` (if still needed?), `SubmissionDialog`, `LibraryDialog`, `ChatDialog`, `GamificationDialog`).
 
@@ -138,23 +139,16 @@ This document outlines the revised specifications for the Philosothon Event Plat
 ## 5. Technical Considerations (Updated)
 
 *   **Terminal Architecture V2:** The modular terminal architecture needs careful implementation, especially state management and communication for real-time features (Chat/Gamification). See `docs/architecture/terminal_component_v2.md`.
-*   **State Management:** Evaluate if `useReducer` is sufficient long-term for the terminal; XState might be necessary.
+*   **State Management:** Evaluate if `useReducer` is sufficient long-term for the terminal; XState might be necessary (See Arch V2 Recommendation).
 *   **SSOT Expansion:** Consider expanding SSOT strategy beyond registration (e.g., for content types, gamification stages).
 *   **Vector DB & AI Agent:** Requires significant setup and integration effort (MCP Server, DB choice, embedding pipeline, prompt engineering).
-*   **Testing:** Adapt testing strategies to handle complex terminal UI state and potential JSDOM limitations. Prioritize integration testing for key flows.
+*   **Testing:** Adapt testing strategies to handle complex terminal UI state and potential JSDOM limitations. Prioritize integration testing for key flows, acknowledging challenges with JSDOM/async logic (e.g., REG-TEST-TIMING-001).
 *   **Terminal File Upload:** Define a secure and user-friendly mechanism for handling file uploads initiated from the terminal UI.
 
 ## 6. Appendices
 
-*   Appendix A: Reference to v2.1 specification (`docs/project_specifications_v2.md`)
+*   Appendix A: Reference to v2.1 specification (`docs/archive/project_specifications_v2.md`)
 *   Appendix B: V3.1 Registration Spec (`docs/specs/p0_registration_terminal_ui_spec_v2.md`)
-*   Appendix C: Terminal Architecture V1 (`docs/architecture/terminal_component_v1.md`)
-*   Appendix D: Registration Sync Strategy (`docs/specs/registration_sync_strategy.md`)
-*   Appendix E: Style Guide (`docs/style_guide.md`)
-## 6. Appendices
-
-*   Appendix A: Reference to v2.1 specification (`docs/project_specifications_v2.md`)
-*   Appendix B: V3.1 Registration Spec (`docs/specs/p0_registration_terminal_ui_spec_v2.md`)
-*   Appendix C: Terminal Architecture V1 (`docs/architecture/terminal_component_v1.md`)
+*   Appendix C: Terminal Architecture V1 (`docs/archive/terminal_component_v1.md`)
 *   Appendix D: Registration Sync Strategy (`docs/specs/registration_sync_strategy.md`)
 *   Appendix E: Style Guide (`docs/style_guide.md`)
