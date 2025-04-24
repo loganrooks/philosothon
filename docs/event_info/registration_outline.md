@@ -120,8 +120,8 @@ b) **Last Name** (Short answer)
 
 ## Theme Preferences
 
-18. **Please rank your top 3 preferred themes (enter numbers 1-3)** (Numbered ranking)
-    *Enter 1 for your first choice, 2 for second, 3 for third*
+18. **Please rank at least your top 3 preferred themes (enter numbers 1-3)** (Numbered ranking)
+    *Enter 1 for your first choice, 2 for second, 3 for third, continue for anything further*
     - ___ Minds and Machines: Consciousness Beyond the Human
     - ___ Digital Commons: Rethinking Property in Information Space
     - ___ Algorithmic Governance: Authority Without Autonomy?
@@ -137,8 +137,8 @@ b) **Last Name** (Short answer)
 
 ## Workshop Preferences
 
-20. **Please rank your top 3 preferred workshops (enter numbers 1-3)** (Numbered ranking)
-    *Enter 1 for your first choice, 2 for second, 3 for third*
+20. **Please rank at least your top 3 preferred workshops (enter numbers 1-3)** (Numbered ranking)
+    *Enter 1 for your first choice, 2 for second, 3 for third, continue for anything further*
     - ___ Language Models as Philosophical Objects
     - ___ Generative AI Art: Creativity, Authorship, and Aesthetics
     - ___ Reinforcement Learning: The Technical Foundations of AGI
