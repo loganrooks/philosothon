@@ -1230,6 +1230,148 @@ describe('RegistrationDialog (V3.1)', () => {
           // expect(mockAddOutputLine).toHaveBeenLastCalledWith(academicYearPrompt);
         });
       });
+      it('should handle multi-select-numbered input (space-separated numbers)', async () => {
+        const questionIndex = 9; // philosophyTraditions (multi-select-numbered)
+        const initialQuestion = questions[questionIndex];
+        const handleInput = vi.fn();
+        const initialState = {
+          mode: 'questioning',
+          currentQuestionIndex: questionIndex,
+          answers: {}, // Start with empty answers
+          isSubmitting: false,
+          error: null,
+          userId: 'mock-multi-select-user-id'
+        };
+
+        const { container } = render(
+          <RegistrationDialog
+            {...defaultProps}
+            dialogState={initialState}
+            onInput={handleInput}
+          />
+        );
+        const inputElement = container.querySelector('input');
+        expect(inputElement).not.toBeNull();
+        if (!inputElement) throw new Error("Input element not found");
+
+
+        // Initial render verification
+        await waitFor(() => {
+          expect(mockAddOutputLine).toHaveBeenCalledWith(initialQuestion.label);
+          // Check options display (adjust if formatting changes)
+          expect(mockAddOutputLine).toHaveBeenCalledWith(expect.stringContaining('1: Analytic philosophy'), { type: 'output' });
+        });
+        mockAddOutputLine.mockClear(); // Clear mocks before input
+
+        const validInput = '1 3'; // Select "Analytic philosophy" and "Ancient philosophy"
+        // Simulate input and submission using fireEvent
+        await act(async () => {
+          fireEvent.change(inputElement, { target: { value: validInput } });
+          fireEvent.submit(inputElement.closest('form')!);
+        });
+        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(validInput); });
+
+
+        // Assertions
+        await waitFor(() => {
+          // Check that NO error message was shown (REG-TEST-TIMING-001 workaround)
+          expect(mockAddOutputLine).not.toHaveBeenCalledWith(expect.stringContaining('Invalid input'), expect.objectContaining({ type: 'error' }));
+          // Assert next question prompt is shown (index 10: philosophyInterests)
+          expect(mockAddOutputLine).toHaveBeenCalledWith(questions[10].label);
+        });
+        // We cannot easily assert the internal dispatch calls (SET_ANSWER, NEXT_STEP) without more complex setup/spying on the reducer itself.
+        // Relying on the side effect (next question prompt) is the current pattern.
+      });
+
+      it('should validate multi-select-numbered input (valid numbers)', async () => {
+        const questionIndex = 9; // philosophyTraditions (multi-select-numbered)
+        const initialQuestion = questions[questionIndex];
+        const handleInput = vi.fn();
+        const initialState = {
+          mode: 'questioning',
+          currentQuestionIndex: questionIndex,
+          answers: {},
+          isSubmitting: false,
+          error: null,
+          userId: 'mock-multi-select-valid-user-id'
+        };
+
+        const { container } = render(
+          <RegistrationDialog
+            {...defaultProps}
+            dialogState={initialState}
+            onInput={handleInput}
+          />
+        );
+        const inputElement = container.querySelector('input');
+        expect(inputElement).not.toBeNull();
+        if (!inputElement) throw new Error("Input element not found");
+
+        // Initial render verification
+        await waitFor(() => {
+          expect(mockAddOutputLine).toHaveBeenCalledWith(initialQuestion.label);
+        });
+        const initialHint = initialQuestion.hint; // Capture hint for re-display check
+
+        // --- Test Case 1: Non-numeric input ---
+        mockAddOutputLine.mockClear();
+        await act(async () => {
+          fireEvent.change(inputElement, { target: { value: '1 abc' } });
+          fireEvent.submit(inputElement.closest('form')!);
+        });
+        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('1 abc'); });
+        await waitFor(() => {
+          expect(mockAddOutputLine).toHaveBeenCalledWith(expect.stringContaining('Invalid input. Please enter only numbers separated by spaces.'), { type: 'error' });
+          // Check prompt re-display
+          expect(mockAddOutputLine).toHaveBeenCalledWith(initialHint, { type: 'hint' });
+        });
+        // Check state did not advance
+        expect(mockAddOutputLine).not.toHaveBeenCalledWith(questions[10].label);
+        fireEvent.change(inputElement, { target: { value: '' } }); // Clear input
+
+        // --- Test Case 2: Out-of-range input ---
+         mockAddOutputLine.mockClear();
+         await act(async () => {
+           fireEvent.change(inputElement, { target: { value: '1 9' } }); // Option 9 is out of range (1-8)
+           fireEvent.submit(inputElement.closest('form')!);
+         });
+         await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('1 9'); });
+         await waitFor(() => {
+           expect(mockAddOutputLine).toHaveBeenCalledWith(expect.stringContaining('Invalid selection. Please enter numbers between 1 and 8.'), { type: 'error' });
+           expect(mockAddOutputLine).toHaveBeenCalledWith(initialHint, { type: 'hint' });
+         });
+         expect(mockAddOutputLine).not.toHaveBeenCalledWith(questions[10].label);
+         fireEvent.change(inputElement, { target: { value: '' } });
+
+        // --- Test Case 3: Duplicate input ---
+         mockAddOutputLine.mockClear();
+         await act(async () => {
+           fireEvent.change(inputElement, { target: { value: '1 1 3' } });
+           fireEvent.submit(inputElement.closest('form')!);
+         });
+         await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('1 1 3'); });
+         await waitFor(() => {
+           expect(mockAddOutputLine).toHaveBeenCalledWith(expect.stringContaining('Invalid input. Duplicate selections are not allowed.'), { type: 'error' });
+           expect(mockAddOutputLine).toHaveBeenCalledWith(initialHint, { type: 'hint' });
+         });
+         expect(mockAddOutputLine).not.toHaveBeenCalledWith(questions[10].label);
+         fireEvent.change(inputElement, { target: { value: '' } });
+
+         // --- Test Case 4: Empty input (required validation) ---
+         mockAddOutputLine.mockClear();
+         await act(async () => {
+           fireEvent.change(inputElement, { target: { value: '' } });
+           fireEvent.submit(inputElement.closest('form')!);
+         });
+         await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(''); });
+         await waitFor(() => {
+           // Check for the specific required message from the schema
+           expect(mockAddOutputLine).toHaveBeenCalledWith(expect.stringContaining('Please select at least one option.'), expect.objectContaining({ type: 'error' }));
+           expect(mockAddOutputLine).toHaveBeenCalledWith(initialHint, { type: 'hint' });
+         });
+         expect(mockAddOutputLine).not.toHaveBeenCalledWith(questions[10].label);
+      });
+
       it.todo('should validate select input (valid number)');
       it.todo('should handle multi-select-numbered input (space-separated numbers)');
       it.todo('should validate multi-select-numbered input (valid numbers)');
