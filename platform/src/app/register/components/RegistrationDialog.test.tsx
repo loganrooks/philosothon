@@ -1244,7 +1244,52 @@ describe('RegistrationDialog (V3.1)', () => {
     it.todo('should handle "prev" command to move to the previous question');
     it.todo('should handle "save" command to save progress to local storage');
     it.todo('should display a confirmation message after saving');
-    it.todo('should handle "exit" command to exit the registration flow');
+    it('should handle "exit" command to exit the registration flow', async () => {
+      const handleInput = vi.fn();
+      // Initialize state directly in 'questioning' mode at index 3 (Year of Study)
+      const initialState = {
+        mode: 'questioning',
+        currentQuestionIndex: 3, // Index for 'Year of Study'
+        answers: {
+          firstName: 'Exit',
+          lastName: 'User',
+          email: 'exit-test@example.com',
+        },
+        isSubmitting: false,
+        error: null,
+        userId: 'mock-exit-user-id' // Assume user ID is available
+      };
+
+      const { container } = render(
+        <RegistrationDialog
+          {...defaultProps}
+          dialogState={initialState} // Pass initial state directly
+          onInput={handleInput}
+        />
+      );
+
+      const inputElement = container.querySelector('input');
+      expect(inputElement).not.toBeNull();
+      if (!inputElement) return;
+
+      // Wait for the initial prompt (Year of Study) to ensure component rendered correctly
+      await waitFor(() => {
+        expect(mockAddOutputLine).toHaveBeenCalledWith('Year of Study');
+      });
+
+      // Simulate user entering 'exit'
+      await act(async () => {
+        fireEvent.change(inputElement, { target: { value: 'exit' } });
+        fireEvent.submit(inputElement.closest('form')!);
+      });
+      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('exit'); });
+
+      // Assert sendToShellMachine was called with EXIT event
+      await waitFor(() => {
+        expect(mockSendToShellMachine).toHaveBeenCalledTimes(1);
+        expect(mockSendToShellMachine).toHaveBeenCalledWith({ type: 'EXIT' }); // Assuming EXIT type based on V2 arch doc intent
+      });
+    });
     it('should handle "back" command to go to the previous question', async () => {
       const handleInput = vi.fn();
       // Initialize state at index 6 (programOfStudy)
