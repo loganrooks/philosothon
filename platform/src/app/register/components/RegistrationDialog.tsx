@@ -338,8 +338,9 @@ const RegistrationDialog: React.FC<DialogProps> = ({
             } else if (lowerInput === 'n' || lowerInput === 'no') {
                 processedAnswer = false;
             } else {
+                // This is the specific validation logic for the failing test
                 isValid = false;
-                errorMessage = "Please enter 'y' or 'n'.";
+                errorMessage = "Invalid input. Please enter 'y' or 'n'.";
             }
         }
         else if (currentQuestion.type === 'single-select' || currentQuestion.type === 'scale') {
