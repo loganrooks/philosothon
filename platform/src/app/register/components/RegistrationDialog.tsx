@@ -365,6 +365,31 @@ const RegistrationDialog: React.FC<DialogProps> = ({
             }
           }
 
+          } else if (input.toLowerCase() === 'save') {
+            try {
+              const stateToSave = {
+                answers: state.answers,
+                currentQuestionIndex: state.currentQuestionIndex,
+                mode: state.mode,
+              };
+              const jsonState = JSON.stringify(stateToSave);
+              const encodedState = btoa(jsonState); // Base64 encode
+              localStorage.setItem('philosothon-registration-v3.1', encodedState);
+              addOutputLine("Progress saved.");
+            } catch (error) {
+              addOutputLine(`Error saving progress: ${error instanceof Error ? error.message : String(error)}`, { type: 'error' });
+            }
+            // Re-display current prompt after saving (or error)
+            const currentQuestion = questions[state.currentQuestionIndex];
+            if (currentQuestion) {
+              addOutputLine(currentQuestion.label);
+              if (currentQuestion.hint) addOutputLine(currentQuestion.hint, { type: 'hint' });
+              if (currentQuestion.options) {
+                const optionsText = currentQuestion.options.map((opt, index) => `${index + 1}: ${opt}`).join('\n');
+                addOutputLine(optionsText);
+              }
+            }
+
         } else {
             // Existing logic for handling answers and validation
             const currentQuestion = questions[state.currentQuestionIndex];
