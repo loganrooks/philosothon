@@ -1,6 +1,27 @@
 # Debug Specific Memory
 
 ## Issue History
+### Issue: REG-TEST-STATE-INIT-001 - RegistrationDialog test state initialization fails - [Status: Resolved (Test Setup Issue)] - [2025-04-23 23:50:10]
+- **Reported**: 2025-04-23 20:45:43 (TDD MB Log), Rekindled 2025-04-23 23:40:46 (TDD MB Log) / **Severity**: High / **Symptoms**: Tests attempting to initialize `RegistrationDialog` with a specific `currentQuestionIndex` fail, component renders prompt for incorrect index.
+- **Investigation (Attempt 2)**:
+    1. Verified branch `feature/registration-v3.1-impl` and git status (clean except MB). (2025-04-23 23:44:02)
+    2. Reviewed 'back' command test setup: Confirmed it initializes state via `dialogState` prop with `currentQuestionIndex: 4`. (2025-04-23 23:44:14)
+    3. Ran 'back' command test: Failed, expecting prompt 'Program/Major(s)' (assumed index 4) but received 'Other Year of Study'. (2025-04-23 23:45:24)
+    4. Read `registrationQuestions.ts`: Confirmed index 4 is 'Other Year of Study', index 6 is 'Program/Major(s)'. (2025-04-23 23:45:38)
+    5. **Root Cause Identified**: Test setup assumes incorrect index mapping. Component correctly renders the question for the provided index (4), but the test expects a different question at that index. Issue is test setup, not component initialization logic.
+    6. Applied Fix 1: Corrected 'back' command test initial state to `currentQuestionIndex: 6` and updated assertions. (2025-04-23 23:46:05)
+    7. Applied Fix 2: Removed outdated assertion checking `mockSetDialogState` (component uses reducer). (2025-04-23 23:47:23)
+    8. Verified Fix 2: 'back' command test passed. (2025-04-23 23:47:41)
+    9. Verified Regression: Ran 'boolean input' test - skipped by filter. Ran full suite. (2025-04-23 23:48:09 - 23:48:51)
+    10. Analyzed Full Suite: 'back' & 'boolean' tests passed. 'required text input' failed due to same index issue (init at 4, expected index 6). 2 other failures due to expected placeholder logic.
+    11. Applied Fix 3: Corrected 'required text input' test initial state to `currentQuestionIndex: 6`. (2025-04-23 23:49:19)
+    12. Verified Fix 3: Ran full suite. 'back', 'boolean', 'required text' tests passed. 2 placeholder failures remain. (2025-04-23 23:49:53)
+- **Root Cause**: Incorrect index assumptions in test setups (`should handle "back" command...`, `should validate required text input...`). Component initialization logic appears functional, but tests provided the wrong starting index for their intended scenarios.
+- **Fix Applied**: Corrected `currentQuestionIndex` in initial state objects for affected tests in `RegistrationDialog.test.tsx`. Removed outdated assertion checking `mockSetDialogState` in 'back' command test. Commit `ada149a`.
+- **Verification**: Affected tests ('back', 'required text input') now pass. Regression check ('boolean input') passes. Remaining 2 failures in suite are unrelated (placeholder logic).
+- **Related Issues**: TDD MB Log [2025-04-23 23:40:46], Previous Debug MB Log [2025-04-23 22:19:40]
+
+
 ### Issue: REG-TEST-STATE-INIT-001 - RegistrationDialog test state initialization fails - [Status: Analysis Complete - Test Issue] - [2025-04-23 22:19:40]
 - **Reported**: 2025-04-23 20:45:43 (TDD MB Log) / **Severity**: High / **Symptoms**: Tests attempting to initialize `RegistrationDialog` with a specific `currentQuestionIndex` (e.g., 45) via `dialogState` prop fail, component renders prompt for incorrect index (e.g., 44).
 - **Investigation**:

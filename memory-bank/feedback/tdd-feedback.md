@@ -1,3 +1,10 @@
+### Feedback Log - 2025-04-23 23:40:46
+- **Source**: TDD Mode - Early Return Clause Invoked
+- **Issue**: TDD cycle for `RegistrationDialog` 'back' command blocked. Test `should handle "back" command...` fails due to incorrect initial state rendering (REG-TEST-STATE-INIT-001), preventing verification of the implemented 'back' command logic (Green phase).
+- **Analysis**: The persistent state initialization issue (REG-TEST-STATE-INIT-001) prevents reliable testing of component logic that depends on starting at specific question indices other than the default.
+- **Action**: Invoking Early Return Clause. Recommend delegating the investigation and resolution of REG-TEST-STATE-INIT-001 to `debug` mode before proceeding with further TDD cycles for `RegistrationDialog`.
+
+
 ### Feedback Log - 2025-04-23 18:14:53
 - **Source**: User Feedback on `attempt_completion`
 - **Issue**: Previous report lacked sufficient detail on the specific test failures, potential causes, and possible fixes.
