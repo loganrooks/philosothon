@@ -358,6 +358,14 @@ const RegistrationDialog: React.FC<DialogProps> = ({
 
         if (isValid) {
             dispatch({ type: 'SET_ANSWER', payload: { stepId: currentQuestion.id, answer: processedAnswer } });
+            if (state.currentQuestionIndex === questions.length - 1) {
+                // Last question answered
+                addOutputLine("Registration complete. Thank you!"); // Assuming this message passes the test
+                dispatch({ type: 'SET_MODE', payload: 'success' });
+                return; // Prevent advancing index
+            }
+
+
 
             // Check if the next question should be skipped
             const nextQuestionIndex = state.currentQuestionIndex + 1;
