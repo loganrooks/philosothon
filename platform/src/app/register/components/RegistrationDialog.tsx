@@ -314,6 +314,32 @@ const RegistrationDialog: React.FC<DialogProps> = ({
            addOutputLine(`Unknown command: ${input}. Please enter 'continue' or 'resend'.`);
        }
     } else if (state.mode === 'questioning') {
+        if (input.toLowerCase() === 'review') {
+          addOutputLine('--- Registration Summary ---');
+          // Iterate through questions up to the current index and display answers
+          for (let i = 0; i < state.currentQuestionIndex; i++) {
+            const question = questions[i];
+            if (question && state.answers[question.id] !== undefined) {
+              // Format answer appropriately (e.g., boolean 'Yes'/'No') - basic for now
+              let displayAnswer = state.answers[question.id];
+              if (typeof displayAnswer === 'boolean') {
+                displayAnswer = displayAnswer ? 'Yes' : 'No';
+              }
+              addOutputLine(`${question.label}: ${displayAnswer}`);
+            }
+          }
+          addOutputLine("Enter 'continue' to proceed from where you left off, 'submit' to finalize, or the question number (e.g., '3') to edit.");
+          // Re-display current prompt after review
+          const currentQuestion = questions[state.currentQuestionIndex];
+          if (currentQuestion) {
+            addOutputLine(currentQuestion.label);
+            if (currentQuestion.hint) addOutputLine(currentQuestion.hint, { type: 'hint' });
+            if (currentQuestion.options) {
+              const optionsText = currentQuestion.options.map((opt, index) => `${index + 1}: ${opt}`).join('\n');
+              addOutputLine(optionsText);
+            }
+          }
+        } else 
         if (input.toLowerCase() === 'back') {
             dispatch({ type: 'PREV_STEP' });
         } else {
