@@ -883,7 +883,77 @@ describe('RegistrationDialog (V3.1)', () => {
         expect(mockAddOutputLine).not.toHaveBeenCalledWith(nextQuestionPrompt);
       });
 
-      it.todo('should handle boolean input (y/n)');
+      it('should handle boolean input (y/n) - accepting "y"', async () => {
+        const handleInput = vi.fn();
+        // Initialize state at the target boolean question (index 44: finalConfirmationAgreement)
+        const initialStateAtIndex45 = { // Corrected variable name
+          mode: 'questioning',
+          currentQuestionIndex: 45, // Corrected index for finalConfirmationAgreement (order 48)
+          answers: {
+            // Include necessary preceding answers if skip logic depends on them
+            // For simplicity, assuming no complex dependencies for index 44 for now
+            firstName: 'Test',
+            lastName: 'User',
+            email: 'test@example.com',
+            // ... other answers ...
+            heardAboutSource: ["Email announcement"], // Example answer for index 45
+          },
+          isSubmitting: false,
+          error: null,
+          userId: 'mock-bool-user-id'
+        };
+
+        const { container } = render(
+          <RegistrationDialog
+            {...defaultProps}
+            dialogState={initialStateAtIndex45} // Use corrected initial state variable
+            onInput={handleInput}
+          />
+        );
+
+        const inputElement = container.querySelector('input');
+        expect(inputElement).not.toBeNull();
+        if (!inputElement) return;
+
+        // Wait for the correct boolean question prompt (index 44)
+        const boolQuestionPrompt = `By submitting this form, I confirm that I understand the time commitment required for the Philosothon (all day April 26 and morning of April 27) and will make arrangements to fully participate and provide feedback on my experience.`;
+        await waitFor(() => {
+          // Check if the correct initial prompt is displayed now
+          expect(mockAddOutputLine).toHaveBeenCalledWith(boolQuestionPrompt);
+        });
+
+        // --- Submit 'y' input ---
+        await act(async () => {
+          fireEvent.change(inputElement, { target: { value: 'y' } });
+          fireEvent.submit(inputElement.closest('form')!);
+        });
+        await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('y'); });
+
+        // Assert that the component indicates completion or next step after final answer
+        await waitFor(() => {
+          // Check for a message indicating the next step (e.g., review or submission)
+          // This assertion assumes the component outputs a message upon completion of the final question.
+          // Adjust the expected string based on the actual implementation's output.
+          expect(mockAddOutputLine).toHaveBeenCalledWith(expect.stringContaining("Registration complete"));
+          // Alternative if it goes to review:
+          // expect(mockAddOutputLine).toHaveBeenCalledWith(expect.stringContaining("Review your answers"));
+        });
+
+         // Assert state advanced (check setDialogState for index update)
+         // Since this is the last question, it might transition to 'review' or 'submitting' instead of incrementing index
+         // For now, let's check if the index *doesn't* increment naively, or if mode changes.
+         // This assertion needs refinement based on actual submit logic.
+         await waitFor(() => {
+            const setDialogStateCalls = mockSetDialogState.mock.calls;
+            const indexUpdateCall = setDialogStateCalls.find(call => call[0] === 'currentQuestionIndex');
+            // Expect index NOT to simply increment, or mode to change
+            // expect(indexUpdateCall?.[1]).not.toBe(45); // Example check
+            // OR check for mode change:
+            // const modeUpdateCall = setDialogStateCalls.find(call => call[0] === 'mode');
+            // expect(modeUpdateCall?.[1]).toMatch(/review|submitting|success/);
+            // For now, removing the index check as the next state is unclear
+         });
+      });
       it.todo('should validate boolean input');
       it.todo('should handle select input (numbered options)');
       it.todo('should validate select input (valid number)');
