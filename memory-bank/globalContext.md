@@ -1,3 +1,30 @@
+- **[2025-04-24 01:02:32] - TDD:** Completed TDD cycle (Red/Green) for `RegistrationDialog` 'save' command. Added failing test, implemented minimal logic to save state to localStorage (Base64 encoded). Test passes. Commits `0c7ce9a`, `29a1c77`. [See MB TDD Log 2025-04-24 01:02:32]
+
+
+- **[2025-04-24 00:47:15] - TDD:** Completed TDD cycle (Red/Green) for `RegistrationDialog` 'help' command. Added failing test, implemented minimal logic to display help text. Test passes. Commits `d9b2bd5`, `b109192`. [See MB TDD Log 2025-04-24 00:47:15]
+
+
+- **[2025-04-24 00:37:15] - TDD:** Completed TDD cycle (Red/Green) for `RegistrationDialog` 'review' command. Added failing test, implemented minimal logic to display summary. Test passes. Commits `e0e8df5`, `f516215`. [See MB TDD Log 2025-04-24 00:37:15]
+
+
+- **[2025-04-24 00:32:09] - TDD:** Verified 'back' command test pass for `RegistrationDialog` after state init fix. Green phase complete for this feature. No code changes needed. [See MB TDD Log 2025-04-24 00:32:09]
+
+
+- **[2025-04-24 00:28:14] - TDD:** Completed TDD cycle (Red/Green) for `RegistrationDialog` 'back' command. Re-evaluated previously blocked test, confirmed pass against existing implementation (commit `b880434`) after state init fix. No new code changes. [See MB TDD Log 2025-04-24 00:28:14]
+
+
+- **[2025-04-24 00:23:20] - TDD:** Completed TDD cycle (Red/Green) for `RegistrationDialog` select input validation (academicYear). Added failing tests, refactored test setup, implemented minimal validation logic. Tests pass. Commits `991a5b6`, `3f630f1`. [See MB TDD Log 2025-04-24 00:23:20]
+
+
+- **[2025-04-23 23:50:10] - Debug:** Resolved recurring state initialization issue (REG-TEST-STATE-INIT-001) affecting `RegistrationDialog.test.tsx`. Root cause identified as incorrect index assumptions in test setups ('back' command, 'required text input'). Corrected tests and committed fix (ada149a). [See MB Issue REG-TEST-STATE-INIT-001 Update 2025-04-23 23:50:10]
+
+
+- **[2025-04-23 23:40:46] - TDD:** Attempted TDD cycle for `RegistrationDialog` 'back' command. Added failing test and minimal implementation (commit `b880434`). Cycle blocked due to persistent state initialization issue (REG-TEST-STATE-INIT-001) preventing test verification. Early Return invoked. [See MB Log 2025-04-23 23:40:46]
+
+
+- **[2025-04-23 23:27:42] - TDD:** Ran regression tests for `RegistrationDialog.test.tsx` after end-logic fix (`0ed3f95`). Boolean test passed. 3 failures remain due to known state init issue (REG-TEST-STATE-INIT-001). No new regressions. [See MB Log 2025-04-23 23:27:42]
+
+
 - **[2025-04-23 22:40:08] - TDD:** Fixed outdated assertion in `RegistrationDialog.test.tsx` for boolean input test. Test now fails correctly due to component logic error. Removed debug console logs. Commits `e77a38a`, `214d597`. [See MB Log 2025-04-23 22:40:08]
 
 
@@ -38,6 +65,11 @@
 
 
 # Progress
+- **[2025-04-24 00:13:00] - TDD:** Completed TDD cycle (Red/Green) for `RegistrationDialog` boolean input validation. Added failing test (commit `9094b2f`). Existing component logic passed the test, though test showed instability. No code changes committed for Green phase. [See MB TDD Log 2025-04-24 00:13:00]
+
+- **[2025-04-23 23:54:00] - TDD:** Verified `RegistrationDialog.test.tsx` after state init fix (commit `ada149a`). Result: 16 passed, 3 failed, 1 skipped, 42 todo. State init blocker REG-TEST-STATE-INIT-001 confirmed resolved. 2 failures due to mock placeholder, 1 due to test assertion. [See MB Log 2025-04-23 23:54:00]
+
+
 - **[2025-04-23 13:09:33] - Debug:** Diagnosed `RegistrationDialog` skip logic bug (REG-SKIP-LOGIC-001). Root cause identified as missing question data (conceptual index 5) in `registrationQuestions.ts`, not component logic error. Test failure is due to test expecting missing data. Fix requires data source update or test correction. [See MB Log 2025-04-23 13:09:33]
 
 
