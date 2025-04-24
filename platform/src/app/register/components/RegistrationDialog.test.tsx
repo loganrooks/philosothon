@@ -1516,6 +1516,141 @@ describe('RegistrationDialog (V3.1)', () => {
     });
 
   });
+    it('should handle "edit [number]" command to jump to a specific question', async () => {
+      const handleInput = vi.fn();
+      // Start at question index 10 (Order 11)
+      const initialState = {
+        mode: 'questioning',
+        currentQuestionIndex: 10,
+        answers: {
+          firstName: 'Test', lastName: 'User', email: 'edit@example.com',
+          academicYear: 'Second year', academicYearOther: '', universityInstitution: 'UofT',
+          programOfStudy: 'Philosophy', philosophyCoursework: 'Yes', relevantCoursework: 'Intro Logic',
+          interestReason: 'Curiosity', // Answers up to index 9
+        },
+        isSubmitting: false, error: null, userId: 'mock-edit-user-id'
+      };
+
+      const { container, rerender } = render(
+        <RegistrationDialog {...defaultProps} dialogState={initialState} onInput={handleInput} />
+      );
+      const inputElement = container.querySelector('input');
+      expect(inputElement).not.toBeNull();
+      if (!inputElement) return;
+
+      // Wait for the prompt of the initial question (index 10)
+      const initialQuestionPrompt = questions[10].label;
+      await waitFor(() => {
+        expect(mockAddOutputLine).toHaveBeenCalledWith(initialQuestionPrompt);
+      });
+
+      // --- Simulate valid input 'edit 3' ---
+      await act(async () => {
+        fireEvent.change(inputElement, { target: { value: 'edit 3' } });
+        fireEvent.submit(inputElement.closest('form')!);
+      });
+      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('edit 3'); });
+
+      // Assert confirmation message
+      await waitFor(() => {
+        expect(mockAddOutputLine).toHaveBeenCalledWith('Jumping back to question 3...');
+      });
+
+      // Assert prompt for the target question (index 2, which is question 3)
+      const targetQuestionPrompt = questions[2].label; // Question 3 is at index 2
+      const targetQuestionHint = questions[2].hint;
+      await waitFor(() => {
+        expect(mockAddOutputLine).toHaveBeenCalledWith(targetQuestionPrompt);
+        expect(mockAddOutputLine).toHaveBeenCalledWith(targetQuestionHint, { type: 'hint' });
+        // Add options check if applicable
+      });
+    });
+
+    it('should show error for invalid "edit" command format', async () => {
+      const handleInput = vi.fn();
+      const initialState = { mode: 'questioning', currentQuestionIndex: 10, answers: { /*...*/ }, userId: 'mock-edit-user-id' };
+      const { container } = render(<RegistrationDialog {...defaultProps} dialogState={initialState} onInput={handleInput} />);
+      const inputElement = container.querySelector('input');
+      if (!inputElement) return;
+      const initialQuestionPrompt = questions[10].label;
+      await waitFor(() => { expect(mockAddOutputLine).toHaveBeenCalledWith(initialQuestionPrompt); });
+
+      // --- Simulate invalid format 'edit abc' ---
+      await act(async () => {
+        fireEvent.change(inputElement, { target: { value: 'edit abc' } });
+        fireEvent.submit(inputElement.closest('form')!);
+      });
+      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('edit abc'); });
+
+      // Assert error message
+      await waitFor(() => {
+        expect(mockAddOutputLine).toHaveBeenCalledWith("Invalid command format. Use 'edit [number]'.", { type: 'error' });
+      });
+      // Assert prompt for the *same* question is shown again
+      expect(mockAddOutputLine).toHaveBeenLastCalledWith(initialQuestionPrompt);
+    });
+
+    it('should show error for "edit [number]" with out-of-range number', async () => {
+      const handleInput = vi.fn();
+      const initialState = { mode: 'questioning', currentQuestionIndex: 10, answers: { /*...*/ }, userId: 'mock-edit-user-id' };
+      const { container } = render(<RegistrationDialog {...defaultProps} dialogState={initialState} onInput={handleInput} />);
+      const inputElement = container.querySelector('input');
+      if (!inputElement) return;
+      const initialQuestionPrompt = questions[10].label;
+      await waitFor(() => { expect(mockAddOutputLine).toHaveBeenCalledWith(initialQuestionPrompt); });
+
+      // --- Simulate out-of-range 'edit 99' ---
+      await act(async () => {
+        fireEvent.change(inputElement, { target: { value: 'edit 99' } });
+        fireEvent.submit(inputElement.closest('form')!);
+      });
+      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('edit 99'); });
+
+      // Assert error message
+      await waitFor(() => {
+        expect(mockAddOutputLine).toHaveBeenCalledWith("Invalid question number. Please enter a number between 1 and 10.", { type: 'error' });
+      });
+      // Assert prompt for the *same* question is shown again
+      expect(mockAddOutputLine).toHaveBeenLastCalledWith(initialQuestionPrompt);
+
+       // --- Simulate out-of-range 'edit 0' ---
+       mockAddOutputLine.mockClear(); // Clear mocks for next assertion
+       handleInput.mockClear();
+       await act(async () => {
+         fireEvent.change(inputElement, { target: { value: 'edit 0' } });
+         fireEvent.submit(inputElement.closest('form')!);
+       });
+       await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('edit 0'); });
+       await waitFor(() => {
+         expect(mockAddOutputLine).toHaveBeenCalledWith("Invalid question number. Please enter a number between 1 and 10.", { type: 'error' });
+       });
+       expect(mockAddOutputLine).toHaveBeenLastCalledWith(initialQuestionPrompt);
+    });
+
+     it('should show error for "edit [number]" attempting to edit future questions', async () => {
+      const handleInput = vi.fn();
+      const initialState = { mode: 'questioning', currentQuestionIndex: 10, answers: { /*...*/ }, userId: 'mock-edit-user-id' };
+      const { container } = render(<RegistrationDialog {...defaultProps} dialogState={initialState} onInput={handleInput} />);
+      const inputElement = container.querySelector('input');
+      if (!inputElement) return;
+      const initialQuestionPrompt = questions[10].label;
+      await waitFor(() => { expect(mockAddOutputLine).toHaveBeenCalledWith(initialQuestionPrompt); });
+
+      // --- Simulate future question 'edit 11' (current is 10) ---
+      await act(async () => {
+        fireEvent.change(inputElement, { target: { value: 'edit 11' } });
+        fireEvent.submit(inputElement.closest('form')!);
+      });
+      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('edit 11'); });
+
+      // Assert error message
+      await waitFor(() => {
+        expect(mockAddOutputLine).toHaveBeenCalledWith("Cannot edit questions you haven't answered yet. Please enter a number between 1 and 10.", { type: 'error' });
+      });
+      // Assert prompt for the *same* question is shown again
+      expect(mockAddOutputLine).toHaveBeenLastCalledWith(initialQuestionPrompt);
+    });
+
 
   describe('Local Storage Interaction', () => {
     it.todo('should load existing registration data from local storage on mount');
