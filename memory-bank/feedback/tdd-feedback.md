@@ -1,3 +1,37 @@
+### Feedback Log - [2025-04-24 18:46:15]
+- **Source**: TDD Mode - Early Return Clause Invoked (Debugging Refactor Failures)
+- **Issue**: Task to debug test failures after refactoring `RegistrationDialog.test.tsx` input simulations is blocked. Initial refactoring caused 7 command handling tests to fail. Debugging revealed inconsistent behavior: modifying the `simulateInputCommand` helper (removing internal `waitFor`) fixed the 'exit' command test, but the 'back' command test still failed. Console logs confirmed `handleSubmit` was not invoked for the 'back' test, despite being invoked for the 'exit' test using the same modified helper.
+- **Analysis**: The root cause appears to be an inconsistent failure of `fireEvent.submit` to trigger the component's `onSubmit` handler in the test environment after the refactoring. This occurs for some command tests ('back') but not others ('exit'), even with the same helper function. This suggests complex interactions between the test setup, component state, event handling, and the test environment (Vitest/JSDOM) that are difficult to pinpoint with current methods.
+- **Action**: Invoking Early Return Clause due to inconsistent and intractable test failures preventing further progress on debugging the refactoring. Context at 33%.
+- **Recommendation**: Delegate further investigation to `debug` mode to analyze component state (`useReducer`, `useEffect`) and event handling more deeply, potentially using interactive debugging. Alternatively, revert the refactoring changes (`search_and_replace` and subsequent helper modifications) before proceeding with other tasks on this file.
+
+
+
+### Feedback Log - [2025-04-24 18:35:36]
+- **Source**: TDD Mode - Early Return Clause Invoked
+- **Issue**: Task 'Complete Input Simulation Replacement in RegistrationDialog.test.tsx using Batch Replace' failed. While `search_and_replace` successfully replaced manual input simulations with the `simulateInputCommand` helper, subsequent test execution (`npm test -- src/app/register/components/RegistrationDialog.test.tsx`) revealed 7 new failures in command handling tests (`exit`, `back`, `review`, `edit`).
+- **Analysis**: The failures indicate the refactoring introduced regressions, likely due to subtle timing changes or interactions with the component's internal `handleSubmit` logic that were not present with the original manual simulation code blocks. The component appears to re-display the current prompt instead of processing the commands correctly in the test environment after the refactoring. Given the known fragility of this test suite (see Holistic Review `docs/reviews/holistic_review_20250424.md` Sec 4 & previous feedback logs), debugging these regressions is deemed unproductive without first addressing the fundamental test structure issues.
+- **Action**: Invoking Early Return Clause. The `search_and_replace` changes were applied but resulted in test failures.
+- **Recommendation**: Prioritize the test suite refactoring recommended in the holistic review (reducing repetition, improving assertions, addressing timing issues) before re-attempting the replacement of input simulation blocks. Reverting the changes made by `search_and_replace` might be necessary before proceeding with other tasks on this file.
+
+
+
+### Feedback Log - [2025-04-24 18:18:00]
+- **Source**: TDD Mode - Early Return Clause Invoked
+- **Issue**: Task 'Refactor RegistrationDialog.test.tsx (Attempt 2)' requires replacing numerous (~30+) repetitive input simulation blocks (`fireEvent.change`/`fireEvent.submit`) with the `simulateInputCommand` helper. Performing this incrementally with `apply_diff` is proving inefficient and error-prone due to shifting line numbers causing diff failures. Context window size (46%) is also a concern.
+- **Analysis**: While `apply_diff` worked for initial replacements, the high number of remaining instances makes it unsuitable for completing the refactoring efficiently and reliably within context limits.
+- **Action**: Invoking Early Return Clause. Helper function `simulateInputCommand` has been added and several initial instances replaced.
+- **Recommendation**: Delegate the remaining replacements to a new task instance, potentially using `search_and_replace` for a more robust batch operation, or continue the refactoring focusing on other recommendations first.
+
+
+### Feedback Log - [2025-04-24 17:45:12]
+- **Source**: User Intervention / TDD Mode - Early Return Clause Invoked
+- **Issue**: Repeated `apply_diff` failures while attempting to refactor `RegistrationDialog.test.tsx` using helper functions. Failures likely due to inconsistent file state after partial applications and incorrect line number targeting. Persistent TypeScript errors (import alias resolution for `@/config/registrationSchema`, type comparison for `ranked-choice-numbered`) also hindered progress, although attempts were made to ignore them. Failed to proactively invoke Early Return Clause despite repeated tool errors and potential context window issues (reached 49% before intervention).
+- **Analysis**: Over-reliance on `apply_diff` despite repeated failures. Insufficient verification of file state between diff applications using partial reads. Failure to recognize the pattern of errors and context growth as triggers for Early Return.
+- **Action**: Task halted per user intervention invoking Early Return Clause.
+- **Learning**: Prioritize verifying file state with partial reads before applying diffs, especially after failures. Recognize repeated tool errors as a signal to stop and re-evaluate or invoke Early Return. Be more proactive about context window limitations.
+
+
 ### Feedback Log - [2025-04-24 13:01:39]
 - **Source**: User Intervention / TDD Mode - Early Return Clause Invoked
 - **Issue**: Became stuck in a loop attempting to fix `RegistrationDialog.test.tsx`. Repeatedly failed to apply diffs correctly due to misinterpreting `apply_diff` errors ("identical content") and potential file state inconsistencies after partial applications. Also failed to properly diagnose and fix TypeScript scope errors, leading to further failed diff attempts. Over-relied on `read_file` without ensuring complete reads or using line ranges effectively, exacerbating the issue.
