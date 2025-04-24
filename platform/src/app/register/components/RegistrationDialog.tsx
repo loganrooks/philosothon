@@ -51,10 +51,16 @@ const initialState: State = {
 const earlyAuthSteps = ['firstName', 'lastName', 'email', 'password', 'confirmPassword']; // Keep adding steps as needed
 
 function reducer(state: State, action: Action): State {
+
   switch (action.type) {
     case 'SET_MODE':
-      // Start actual questions at index 3 ('academicYear')
-      const startIndex = action.payload === 'questioning' ? 3 : 0;
+      // Only reset index if mode is changing *to* questioning from something else,
+      // or if changing to a non-questioning mode.
+      // Preserve index if already in questioning mode (e.g., set by initReducer).
+      const shouldResetIndex = state.mode !== action.payload;
+      const startIndex = (action.payload === 'questioning' && shouldResetIndex) ? 3 : (action.payload !== 'questioning' ? 0 : state.currentQuestionIndex);
+      const newState_SET_MODE = { ...state, mode: action.payload, currentQuestionIndex: startIndex };
+
       return { ...state, mode: action.payload, currentQuestionIndex: startIndex };
     case 'NEXT_STEP':
       // TODO: Add logic for end of questions
@@ -62,6 +68,8 @@ function reducer(state: State, action: Action): State {
     case 'PREV_STEP':
       return { ...state, currentQuestionIndex: Math.max(0, state.currentQuestionIndex - 1) };
     case 'SET_INDEX':
+       const newState_SET_INDEX = { ...state, currentQuestionIndex: action.payload };
+
        return { ...state, currentQuestionIndex: action.payload };
     case 'SET_ANSWER':
       return {
@@ -71,6 +79,12 @@ function reducer(state: State, action: Action): State {
           [action.payload.stepId]: action.payload.answer,
         },
       };
+    case 'LOAD_STATE':
+        // Merge the payload into the current state
+        // Be careful not to overwrite essential parts if payload is incomplete
+         const newState_LOAD_STATE = { ...state, ...action.payload };
+
+        return { ...state, ...action.payload };
     // Add other action handlers as needed by tests
     case 'SUBMIT_START':
       return { ...state, isSubmitting: true };
@@ -83,7 +97,6 @@ function reducer(state: State, action: Action): State {
 
 // Placeholder function - Replace with actual confirmation logic
 async function checkConfirmationStatus(userId: string): Promise<boolean> {
-  console.warn('Using placeholder checkConfirmationStatus - returning false for testing');
   // In a real scenario, this would check the user's session or call a backend endpoint
   return false; // Assume NOT confirmed for testing the error path
 }
@@ -99,12 +112,17 @@ const RegistrationDialog: React.FC<DialogProps> = ({
   onInput, // Assuming this prop exists for handling input submission
   changeMode,
 }) => {
-  const [state, dispatch] = useReducer(reducer, initialState);
+  // Initialize state by merging initialState with the dialogState prop
+  const [state, dispatch] = useReducer(reducer, { ...initialState, ...dialogState });
+
   const [currentInput, setCurrentInput] = useState(''); // Example input state
   const [isSubmitting, setIsSubmitting] = useState(false); // Prevent double submission
 
   // Determine current step ID based on state
   const currentStepId = state.mode === 'early_auth' ? earlyAuthSteps[state.currentQuestionIndex] : null;
+
+  // Removed useEffect for dialogState synchronization as it's handled during initialization now.
+
 
   // Effect for initial intro text
   useEffect(() => {
@@ -117,6 +135,7 @@ const RegistrationDialog: React.FC<DialogProps> = ({
 
   // Effect to display current prompt based on state.mode and currentStepId
   useEffect(() => {
+
     if (state.mode === 'early_auth') {
        const currentStepId = earlyAuthSteps[state.currentQuestionIndex]; // Get step ID for early auth
        if (currentStepId) { // Check if step ID is valid
@@ -304,7 +323,7 @@ const RegistrationDialog: React.FC<DialogProps> = ({
         // Basic validation (specifics depend on question type)
         let isValid = true;
         let errorMessage = "Invalid input.";
-        let processedAnswer = input; // Default to raw input
+        let processedAnswer: any = input; // Default to raw input, allow any type
 
         // Check for required first
         if (currentQuestion.required && !input) {
@@ -312,6 +331,17 @@ const RegistrationDialog: React.FC<DialogProps> = ({
             errorMessage = "Input cannot be empty."; // Use specific message from test
         }
         // Add other validation checks based on type *only if input is not empty or not required*
+        else if (currentQuestion.type === 'boolean') {
+            const lowerInput = input.toLowerCase();
+            if (lowerInput === 'y' || lowerInput === 'yes') {
+                processedAnswer = true;
+            } else if (lowerInput === 'n' || lowerInput === 'no') {
+                processedAnswer = false;
+            } else {
+                isValid = false;
+                errorMessage = "Please enter 'y' or 'n'.";
+            }
+        }
         else if (currentQuestion.type === 'single-select' || currentQuestion.type === 'scale') {
              const choiceIndex = parseInt(input, 10);
              if (isNaN(choiceIndex) || choiceIndex < 1 || (currentQuestion.options && choiceIndex > currentQuestion.options.length)) {
@@ -406,6 +436,7 @@ const RegistrationDialog: React.FC<DialogProps> = ({
   // The onInput prop from TerminalShell should likely call handleSubmit or similar logic here
   // For now, using internal form submission for basic testing
 
+
   return (
     <div>
       {/* Basic input form - TerminalShell might provide its own input mechanism */}
@@ -413,6 +444,7 @@ const RegistrationDialog: React.FC<DialogProps> = ({
         {/* The prompt is displayed via addOutputLine, input is separate */}
         <input
           type={state.mode === 'early_auth' && (currentStepId === 'password' || currentStepId === 'confirmPassword') ? 'password' : 'text'}
+
           value={currentInput}
           onChange={handleInputChange}
           // autoFocus // Might be handled by TerminalShell
