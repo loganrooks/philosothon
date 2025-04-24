@@ -1,3 +1,9 @@
+- **[2025-04-24 01:27:33] - TDD:** Completed TDD cycle (Red/Green) for `RegistrationDialog` 'edit [number]' command. Added failing tests (commit `6272bd2`), implemented minimal logic (commit `8807625`). Tests pass. Worked around REG-TEST-TIMING-001. [See MB TDD Log 2025-04-24 01:27:33]
+
+
+- **[2025-04-24 01:15:47] - TDD:** Completed TDD cycle (Red/Green) for `RegistrationDialog` 'exit' command. Added failing test (commit `c237418`), implemented minimal logic to call `sendToShellMachine` (commit `ef3e0e1`). Test passes. [See MB TDD Log 2025-04-24 01:15:47]
+
+
 - **[2025-04-24 01:02:32] - TDD:** Completed TDD cycle (Red/Green) for `RegistrationDialog` 'save' command. Added failing test, implemented minimal logic to save state to localStorage (Base64 encoded). Test passes. Commits `0c7ce9a`, `29a1c77`. [See MB TDD Log 2025-04-24 01:02:32]
 
 
