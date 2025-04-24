@@ -34,6 +34,7 @@ type Action =
   | { type: 'SET_MODE'; payload: DialogMode }
   | { type: 'NEXT_STEP' } // Generic step advancement
   | { type: 'PREV_STEP' } // Generic step reversal
+  | { type: 'SET_INDEX'; payload: number } // Explicitly set index
   | { type: 'SET_ANSWER'; payload: { stepId: string; answer: any } } // Use stepId for early_auth
   | { type: 'LOAD_STATE'; payload: Partial<State> }
   | { type: 'SUBMIT_START' }
@@ -60,6 +61,8 @@ function reducer(state: State, action: Action): State {
       return { ...state, currentQuestionIndex: state.currentQuestionIndex + 1 };
     case 'PREV_STEP':
       return { ...state, currentQuestionIndex: Math.max(0, state.currentQuestionIndex - 1) };
+    case 'SET_INDEX':
+       return { ...state, currentQuestionIndex: action.payload };
     case 'SET_ANSWER':
       return {
         ...state,
@@ -77,6 +80,14 @@ function reducer(state: State, action: Action): State {
       return state;
   }
 }
+
+// Placeholder function - Replace with actual confirmation logic
+async function checkConfirmationStatus(userId: string): Promise<boolean> {
+  console.warn('Using placeholder checkConfirmationStatus - returning false for testing');
+  // In a real scenario, this would check the user's session or call a backend endpoint
+  return false; // Assume NOT confirmed for testing the error path
+}
+
 
 const RegistrationDialog: React.FC<DialogProps> = ({
   addOutputLine,
@@ -237,11 +248,10 @@ const RegistrationDialog: React.FC<DialogProps> = ({
                 return; // Exit if no ID
            }
            try {
-               // const result = await checkEmailConfirmation(pendingUserId); // Removed - Function does not exist, logic needs update for OTP
-               // For now, assume 'continue' always means confirmed in this simplified flow
-               const isConfirmed = true; // Placeholder
+               // TODO: Replace checkConfirmationStatus with the actual function/logic to verify OTP/session status
+               const isConfirmed = await checkConfirmationStatus(pendingUserId); // Replaced placeholder
                if (isConfirmed) {
-                   addOutputLine("Email confirmed (placeholder). Starting registration questions...");
+                   addOutputLine("Email confirmed. Starting registration questions..."); // Removed placeholder text
                    clearDialogState(); // Clear the pending user ID
                    dispatch({ type: 'SET_MODE', payload: 'questioning' }); // Use internal dispatch to change mode
                    // useEffect will handle displaying the prompt based on new state
@@ -364,8 +374,11 @@ const RegistrationDialog: React.FC<DialogProps> = ({
           if (error) {
               // Handle OTP initiation error
               addOutputLine(error.message || 'Failed to initiate sign-in.', { type: 'error' });
-              // Re-prompt for confirm password as the last valid step before failure
-              addOutputLine("Please confirm your password:");
+              // Reset the state to the password step index. The useEffect hook will handle re-prompting.
+              const passwordStepIndex = earlyAuthSteps.indexOf('password');
+              if (passwordStepIndex !== -1) {
+                dispatch({ type: 'SET_INDEX', payload: passwordStepIndex });
+              }
           } else {
               // OTP initiated successfully
               // Construct the confirmation message using the email from the state
