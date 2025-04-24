@@ -342,6 +342,29 @@ const RegistrationDialog: React.FC<DialogProps> = ({
         } else 
         if (input.toLowerCase() === 'back') {
             dispatch({ type: 'PREV_STEP' });
+        } else if (input.toLowerCase() === 'help') {
+          const helpMessage = [
+            "Available commands:",
+            "  next      - Go to the next question (or press Enter with input)",
+            "  back      - Go back to the previous question",
+            "  review    - Show a summary of your answers",
+            "  save      - Save your progress and exit",
+            "  exit      - Exit without saving",
+            "  help      - Show this help message",
+            // TODO: Add edit/submit when implemented
+          ].join('\n');
+          addOutputLine(helpMessage);
+          // Re-display current prompt
+          const currentQuestion = questions[state.currentQuestionIndex];
+          if (currentQuestion) {
+            addOutputLine(currentQuestion.label);
+            if (currentQuestion.hint) addOutputLine(currentQuestion.hint, { type: 'hint' });
+            if (currentQuestion.options) {
+              const optionsText = currentQuestion.options.map((opt, index) => `${index + 1}: ${opt}`).join('\n');
+              addOutputLine(optionsText);
+            }
+          }
+
         } else {
             // Existing logic for handling answers and validation
             const currentQuestion = questions[state.currentQuestionIndex];
