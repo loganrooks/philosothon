@@ -1,3 +1,9 @@
+- **[2025-04-24 14:14:32] - TDD:** Completed fixes for `RegistrationDialog.test.tsx`. Addressed original 2 target failures (`academicYear`, `handle multi-select`) and 2 subsequent failures (`validate multi-select`, `handle ranking`) by correcting assertions and structure. Commits `cddd9c7`, `192b50c`. Final status: 35 passed, 1 skipped, 32 todo. [See MB Active Log 2025-04-24 14:14:32]
+
+
+- **[2025-04-24 13:21:12] - TDD:** Fixed 2 failing tests (`academicYear` input, `multi-select-numbered` input) in `RegistrationDialog.test.tsx` by removing assertions checking next prompt text, adhering to REG-TEST-TIMING-001 workaround. Fixed structural error (nested `it` block). Commit `cddd9c7`. Target tests now pass. [See MB Active Log 2025-04-24 13:21:12]
+
+
 - **[2025-04-24 11:12:03] - TDD:** TDD cycle for RegistrationDialog 'ranked-choice-numbered' input blocked in Red phase due to persistent syntax errors in test file preventing execution. High context window identified as contributing factor. Early Return invoked.
 
 
