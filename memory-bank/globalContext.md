@@ -1,3 +1,6 @@
+- **[2025-04-24 16:17:03] - SpecPseudo:** Updated `docs/project_specifications_v3.md` based on holistic review. Added notes for TBD items (file upload, text mgmt), linked style guide, updated archived doc links, noted testing constraints. [See MB Active Log 2025-04-24 16:17:03]
+
+
 - **[2025-04-24 14:14:32] - TDD:** Completed fixes for `RegistrationDialog.test.tsx`. Addressed original 2 target failures (`academicYear`, `handle multi-select`) and 2 subsequent failures (`validate multi-select`, `handle ranking`) by correcting assertions and structure. Commits `cddd9c7`, `192b50c`. Final status: 35 passed, 1 skipped, 32 todo. [See MB Active Log 2025-04-24 14:14:32]
 
 
@@ -123,6 +126,8 @@
 
 
 # Progress
+- **[2025-04-24 16:07:24] - DevOps:** Archived obsolete V1/V2 documentation files (`project_specifications.md`, `project_specifications_v2.md`, `terminal_component_v1.md`, `p0_registration_spec.md`) to `docs/archive/` based on holistic review recommendation. Commit `03c4c02`.
+
 - **[2025-04-22 13:29:00] - Code:** Updated descriptions for 6 themes in Supabase DB using temporary script with service key.
 
 - **[2025-04-22 13:09:00] - Code:** Synced 6 themes from markdown to Supabase, renamed files to UUIDs, updated `/themes` and `/themes/[id]` pages and tests. Commit `6e96861` on `feature/theme-updates`.

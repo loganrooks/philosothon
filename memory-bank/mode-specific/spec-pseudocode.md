@@ -1,5 +1,31 @@
 # Specification Writer Specific Memory
 
+### Constraint: Testing Complex Terminal UI
+- Added: [2025-04-24 16:17:03]
+- Description: Testing complex, asynchronous terminal UI components (like RegistrationDialog) in Vitest/JSDOM has proven challenging, particularly regarding state updates and timing (e.g., REG-TEST-TIMING-001).
+- Impact: Unit test reliability may be low; requires careful test design or alternative strategies (integration tests).
+- Mitigation strategy: Use robust assertion methods, `act` wrapper, investigate timing issues, consider Playwright for end-to-end flow testing.
+
+
+### Constraint: Philosophical Texts Management Strategy
+- Added: [2025-04-24 16:17:03]
+- Description: The strategy for managing philosophical texts (Markdown vs. DB) required for the Library and Gamification AI is TBD (Spec V3 Sec 3.3.4).
+- Impact: Blocks implementation of P2 features requiring text access/processing.
+- Mitigation strategy: Investigate options based on Vector DB choice and processing pipeline needs. Document decision in spec.
+
+
+### Constraint: Terminal File Upload Mechanism
+- Added: [2025-04-24 16:17:03]
+- Description: The mechanism for handling file uploads initiated via the terminal UI (Spec V3 Req 3.8.1) is undefined.
+- Impact: Blocks implementation of P3 submission feature.
+- Mitigation strategy: Define a secure and user-friendly approach (e.g., trigger browser dialog, link to web form). Document decision in spec.
+
+
+### Feature: Core Terminal UI (Update)
+- Updated: [2025-04-24 16:17:03]
+- Description: Styling implementation should explicitly reference and follow `docs/style_guide.md`.
+
+
 ### Pseudocode: Terminal Registration - Awaiting Confirmation Mode Logic
 - Created: [2025-04-21 16:33:00]
 - Updated: [2025-04-21 16:33:00]

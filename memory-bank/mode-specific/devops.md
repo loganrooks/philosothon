@@ -1,5 +1,16 @@
 # DevOps Specific Memory
 
+### Git Commit: [2025-04-24 16:07:12] - chore: Archive obsolete V1/V2 documentation
+- **Branch**: feature/registration-v3.1-impl
+- **Commit ID**: 03c4c02
+- **Files**:
+  - `docs/project_specifications.md` -> `docs/archive/project_specifications.md`
+  - `docs/project_specifications_v2.md` -> `docs/archive/project_specifications_v2.md`
+  - `docs/architecture/terminal_component_v1.md` -> `docs/archive/terminal_component_v1.md`
+  - `docs/specs/p0_registration_spec.md` -> `docs/archive/p0_registration_spec.md`
+- **Notes**: Archived obsolete documentation files as recommended by holistic review (`docs/reviews/holistic_review_20250424.md`).
+
+
 ## Deployment History Log
 ### Git Branch Creation: [2025-04-23 10:24:44] - feature/registration-v3.1-impl
 - **Source Branch**: main
