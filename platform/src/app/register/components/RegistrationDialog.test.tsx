@@ -1298,7 +1298,85 @@ describe('RegistrationDialog (V3.1)', () => {
          expect(mockAddOutputLine).toHaveBeenCalledWith('University / Institution');
       });
     });
-    it.todo('should handle "review" command to display summary of answers');
+    it('should handle "review" command to display summary of answers', async () => {
+      const handleInput = vi.fn();
+      // Initial state: mid-registration (e.g., at index 6: programOfStudy) with some answers
+      const initialAnswers = {
+        firstName: 'Review', // index 0
+        lastName: 'User', // index 1
+        email: 'review@example.com', // index 2
+        academicYear: 'Third year', // index 3
+        // academicYearOther: '', // index 4 - Skipped if academicYear is not 'Other'
+        universityInstitution: 'Review Uni', // index 5
+      };
+      const initialState = {
+        mode: 'questioning',
+        currentQuestionIndex: 6, // At programOfStudy
+        answers: initialAnswers,
+        isSubmitting: false,
+        error: null,
+        userId: 'mock-review-user-id'
+      };
+
+      // Use the mutable state pattern established in other tests if needed
+      currentDialogState = initialState;
+
+      const { container, rerender } = render(
+        <RegistrationDialog
+          {...defaultProps}
+          dialogState={currentDialogState} // Pass mutable state
+          onInput={handleInput}
+        />
+      );
+
+      const inputElement = container.querySelector('input');
+      expect(inputElement).not.toBeNull();
+      if (!inputElement) return;
+
+      // Wait for the prompt for index 6 to ensure initial state is rendered
+      const currentQuestionPrompt = questions[6].label; // 'Program/Major(s)'
+      await waitFor(() => {
+        expect(mockAddOutputLine).toHaveBeenCalledWith(currentQuestionPrompt);
+      });
+
+      // --- Simulate entering 'review' command ---
+      await act(async () => {
+        fireEvent.change(inputElement, { target: { value: 'review' } });
+        fireEvent.submit(inputElement.closest('form')!);
+      });
+      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('review'); });
+
+      // Rerender with potentially updated state
+      rerender(<RegistrationDialog {...defaultProps} dialogState={currentDialogState} onInput={handleInput} />);
+
+      // --- Assert summary output ---
+      await waitFor(() => {
+        // Check for header
+        expect(mockAddOutputLine).toHaveBeenCalledWith('--- Registration Summary ---');
+
+        // Check for each answered question using imported questions array
+        expect(mockAddOutputLine).toHaveBeenCalledWith(`${questions[0].label}: ${initialAnswers.firstName}`);
+        expect(mockAddOutputLine).toHaveBeenCalledWith(`${questions[1].label}: ${initialAnswers.lastName}`);
+        expect(mockAddOutputLine).toHaveBeenCalledWith(`${questions[2].label}: ${initialAnswers.email}`);
+        expect(mockAddOutputLine).toHaveBeenCalledWith(`${questions[3].label}: ${initialAnswers.academicYear}`);
+        // Assuming index 4 (academicYearOther) was skipped based on answer 'Third year'
+        expect(mockAddOutputLine).toHaveBeenCalledWith(`${questions[5].label}: ${initialAnswers.universityInstitution}`);
+
+        // Check for footer/next instruction
+        // TODO: Confirm exact wording from spec or define here
+        expect(mockAddOutputLine).toHaveBeenCalledWith("Enter 'continue' to proceed from where you left off, 'submit' to finalize, or the question number (e.g., '3') to edit.");
+      });
+
+      // Assert that the *next* question prompt (index 7) was NOT displayed
+      const nextQuestionPrompt = questions[7].label; // 'Philosophy courses completed'
+      // Check all calls to mockAddOutputLine
+      const calls = mockAddOutputLine.mock.calls;
+      const nextPromptCalled = calls.some(call => call[0] === nextQuestionPrompt);
+      expect(nextPromptCalled).toBe(false);
+
+      // Optional: Assert component remains in 'questioning' mode (indirectly checked by absence of next prompt)
+      // If spec requires a 'review' mode, this assertion would change.
+    });
     it.todo('should handle "edit [number]" command to jump to a specific question');
     it.todo('should handle "submit" command on the final step');
     it.todo('should call submitRegistration server action on submit');
