@@ -1,5 +1,16 @@
 # TDD Specific Memory
 
+### Test Execution: RegistrationDialog (Analysis Run) - [2025-04-23 18:12:30]
+- **Trigger**: Manual (Task: Check Git Status and Analyze Failures)
+- **Outcome**: FAIL / **Summary**: 12 tests passed, 4 failed, 1 skipped, 44 todo
+- **Failed Tests**:
+    - `should display an error message if initiateOtpSignIn fails`: AssertionError: expected "spy" to be called with arguments: [ "Error initiating sign-in: Test OTP error", { type: 'error' } ]
+    - `should display error and stay in awaiting_confirmation if email is not confirmed via "continue" command`: AssertionError: expected "spy" to be called with arguments: [ "Email not confirmed yet. Please check your email or use 'resend'.", { type: 'error' } ]
+    - `should display the first question (academicYear) and handle valid input`: AssertionError: expected "spy" to be called with arguments: [ 'Program/Major(s)' ] (Filtered: REG-TEST-TIMING-001)
+    - `should validate required text input and show error if empty`: AssertionError: expected "spy" to be called with arguments: [ 'Program/Major(s)' ] (Filtered: REG-TEST-TIMING-001)
+- **Notes**: Ran tests specifically for `RegistrationDialog.test.tsx`. Identified 4 failures. Filtered 2 related to prompt timing (REG-TEST-TIMING-001) as requested, leaving 2 relevant failures related to OTP sign-in error handling and email confirmation error handling.
+
+
 ### Test Execution: RegistrationDialog (Required Input Validation - Green) - [2025-04-23 17:58:41]
 - **Trigger**: Manual (Post-Green Phase Code Change)
 - **Outcome**: PASS (Target Test) / **Summary**: 13 tests passed, 4 failed, 1 skipped, 44 todo
