@@ -445,7 +445,7 @@ describe('RegistrationDialog (V3.1)', () => {
 
       // Check that the confirm password prompt is displayed again (state didn't advance successfully)
       // Or potentially the password prompt if it resets further back on error
-      expect(mockAddOutputLine).toHaveBeenLastCalledWith("Please confirm your password:");
+      expect(mockAddOutputLine).toHaveBeenLastCalledWith("Please create a password (min. 8 characters):"); // Corrected assertion: Expect reset to initial password prompt
     });
     it('should transition to "awaiting_confirmation" state after successful initiateOtpSignIn', async () => {
       // Mock initiateOtpSignIn to return success

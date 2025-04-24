@@ -373,7 +373,7 @@ const RegistrationDialog: React.FC<DialogProps> = ({
 
           if (error) {
               // Handle OTP initiation error
-              addOutputLine(error.message || 'Failed to initiate sign-in.', { type: 'error' });
+              addOutputLine(`Error initiating sign-in: ${error.message || 'Unknown error'}`, { type: 'error' });
               // Reset the state to the password step index. The useEffect hook will handle re-prompting.
               const passwordStepIndex = earlyAuthSteps.indexOf('password');
               if (passwordStepIndex !== -1) {
