@@ -314,13 +314,13 @@ const RegistrationDialog: React.FC<DialogProps> = ({
            addOutputLine(`Unknown command: ${input}. Please enter 'continue' or 'resend'.`);
        }
     } else if (state.mode === 'questioning') {
+        const currentQuestion = questions[state.currentQuestionIndex]; // Get current question once
+
         if (input.toLowerCase() === 'review') {
           addOutputLine('--- Registration Summary ---');
-          // Iterate through questions up to the current index and display answers
           for (let i = 0; i < state.currentQuestionIndex; i++) {
             const question = questions[i];
             if (question && state.answers[question.id] !== undefined) {
-              // Format answer appropriately (e.g., boolean 'Yes'/'No') - basic for now
               let displayAnswer = state.answers[question.id];
               if (typeof displayAnswer === 'boolean') {
                 displayAnswer = displayAnswer ? 'Yes' : 'No';
@@ -328,9 +328,8 @@ const RegistrationDialog: React.FC<DialogProps> = ({
               addOutputLine(`${question.label}: ${displayAnswer}`);
             }
           }
-          addOutputLine("Enter 'continue' to proceed from where you left off, 'submit' to finalize, or the question number (e.g., '3') to edit.");
-          // Re-display current prompt after review
-          const currentQuestion = questions[state.currentQuestionIndex];
+          addOutputLine("Enter 'continue' to proceed, 'submit' to finalize, or question number to edit.");
+          // Re-display current prompt
           if (currentQuestion) {
             addOutputLine(currentQuestion.label);
             if (currentQuestion.hint) addOutputLine(currentQuestion.hint, { type: 'hint' });
@@ -339,8 +338,7 @@ const RegistrationDialog: React.FC<DialogProps> = ({
               addOutputLine(optionsText);
             }
           }
-        } else 
-        if (input.toLowerCase() === 'back') {
+        } else if (input.toLowerCase() === 'back') {
             dispatch({ type: 'PREV_STEP' });
         } else if (input.toLowerCase() === 'help') {
           const helpMessage = [
@@ -351,11 +349,9 @@ const RegistrationDialog: React.FC<DialogProps> = ({
             "  save      - Save your progress and exit",
             "  exit      - Exit without saving",
             "  help      - Show this help message",
-            // TODO: Add edit/submit when implemented
           ].join('\n');
           addOutputLine(helpMessage);
           // Re-display current prompt
-          const currentQuestion = questions[state.currentQuestionIndex];
           if (currentQuestion) {
             addOutputLine(currentQuestion.label);
             if (currentQuestion.hint) addOutputLine(currentQuestion.hint, { type: 'hint' });
@@ -364,8 +360,7 @@ const RegistrationDialog: React.FC<DialogProps> = ({
               addOutputLine(optionsText);
             }
           }
-
-          } else if (input.toLowerCase() === 'save') {
+        } else if (input.toLowerCase() === 'save') {
             try {
               const stateToSave = {
                 answers: state.answers,
@@ -373,14 +368,13 @@ const RegistrationDialog: React.FC<DialogProps> = ({
                 mode: state.mode,
               };
               const jsonState = JSON.stringify(stateToSave);
-              const encodedState = btoa(jsonState); // Base64 encode
+              const encodedState = btoa(jsonState);
               localStorage.setItem('philosothon-registration-v3.1', encodedState);
               addOutputLine("Progress saved.");
             } catch (error) {
               addOutputLine(`Error saving progress: ${error instanceof Error ? error.message : String(error)}`, { type: 'error' });
             }
             // Re-display current prompt after saving (or error)
-            const currentQuestion = questions[state.currentQuestionIndex];
             if (currentQuestion) {
               addOutputLine(currentQuestion.label);
               if (currentQuestion.hint) addOutputLine(currentQuestion.hint, { type: 'hint' });
@@ -389,64 +383,56 @@ const RegistrationDialog: React.FC<DialogProps> = ({
                 addOutputLine(optionsText);
               }
             }
-
+        } else if (input.toLowerCase() === 'exit') {
+            // Send exit event to the shell machine
+            sendToShellMachine({ type: 'EXIT' });
+            // Optionally clear local storage or dialog state here if needed
+            // clearDialogState(); // Example
         } else {
-            // Existing logic for handling answers and validation
-            const currentQuestion = questions[state.currentQuestionIndex];
+            // Handle answer input and validation
             if (!currentQuestion) {
                 addOutputLine("Error: No current question found.", { type: 'error' });
-                return; // Should not happen in normal flow
+                return;
             }
 
-            // Basic validation (specifics depend on question type)
             let isValid = true;
             let errorMessage = "Invalid input.";
-            let processedAnswer: any = input; // Default to raw input, allow any type
+            let processedAnswer: any = input;
 
-            // Check for required first
             if (currentQuestion.required && !input) {
                 isValid = false;
-                errorMessage = "Input cannot be empty."; // Use specific message from test
-            }
-            // Add other validation checks based on type *only if input is not empty or not required*
-            else if (currentQuestion.type === 'boolean') {
+                errorMessage = "Input cannot be empty.";
+            } else if (currentQuestion.type === 'boolean') {
                 const lowerInput = input.toLowerCase();
                 if (lowerInput === 'y' || lowerInput === 'yes') {
                     processedAnswer = true;
                 } else if (lowerInput === 'n' || lowerInput === 'no') {
                     processedAnswer = false;
                 } else {
-                    // This is the specific validation logic for the failing test
                     isValid = false;
                     errorMessage = "Invalid input. Please enter 'y' or 'n'.";
                 }
-            }
-            else if (currentQuestion.type === 'single-select' || currentQuestion.type === 'scale') {
+            } else if (currentQuestion.type === 'single-select' || currentQuestion.type === 'scale') {
                  const choiceIndex = parseInt(input, 10);
                  if (isNaN(choiceIndex) || choiceIndex < 1 || (currentQuestion.options && choiceIndex > currentQuestion.options.length)) {
-                     // Basic number/range check for select/scale
                      isValid = false;
-                     errorMessage = "Invalid input. Please enter the number corresponding to your choice."; // Corrected error message
+                     errorMessage = "Invalid input. Please enter the number corresponding to your choice.";
                 } else if (currentQuestion.options) {
-                     processedAnswer = currentQuestion.options[choiceIndex - 1]; // Store the selected option text
+                     processedAnswer = currentQuestion.options[choiceIndex - 1];
                 } else {
-                     processedAnswer = String(choiceIndex); // Store the scale number as string
+                     processedAnswer = String(choiceIndex);
                 }
             }
-            // TODO: Add validation for other types (text, email, multi-select, ranking, etc.) based on currentQuestion.validationRules
+            // TODO: Add validation for other types
 
             if (isValid) {
                 dispatch({ type: 'SET_ANSWER', payload: { stepId: currentQuestion.id, answer: processedAnswer } });
                 if (state.currentQuestionIndex === questions.length - 1) {
-                    // Last question answered
-                    addOutputLine("Registration complete. Thank you!"); // Assuming this message passes the test
+                    addOutputLine("Registration complete. Thank you!");
                     dispatch({ type: 'SET_MODE', payload: 'success' });
-                    return; // Prevent advancing index
+                    return;
                 }
 
-
-
-                // Check if the next question should be skipped
                 const nextQuestionIndex = state.currentQuestionIndex + 1;
                 const nextQuestion = questions[nextQuestionIndex];
                 let skipNext = false;
@@ -454,13 +440,13 @@ const RegistrationDialog: React.FC<DialogProps> = ({
                     skipNext = true;
                 }
 
-                dispatch({ type: 'NEXT_STEP' }); // Always advance at least one step
+                dispatch({ type: 'NEXT_STEP' });
                 if (skipNext) {
-                    dispatch({ type: 'NEXT_STEP' }); // Advance again to skip
+                    dispatch({ type: 'NEXT_STEP' });
                 }
             } else {
                 addOutputLine(errorMessage, { type: 'error' });
-                // Re-display current question prompt (will happen via useEffect)
+                // Re-display current prompt
                  addOutputLine(currentQuestion.label);
                  if (currentQuestion.hint) addOutputLine(currentQuestion.hint, { type: 'hint' });
                  if (currentQuestion.options) {
@@ -472,6 +458,7 @@ const RegistrationDialog: React.FC<DialogProps> = ({
     }
     // Add logic for other modes (review, commands) here
   };
+  // Removed extra closing brace here
 
   // Async function to handle the sign-up process
   const handleSignUp = useCallback(async () => {
