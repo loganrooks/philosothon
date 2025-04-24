@@ -1418,6 +1418,233 @@ describe('RegistrationDialog (V3.1)', () => {
          expect(mockAddOutputLine).not.toHaveBeenCalledWith(questions[10].label);
       });
 
+
+      // --- RANKING-NUMBERED ---
+      describe('ranking-numbered input', () => {
+        const questionIndex = 27; // themeRanking (order 28)
+        const initialQuestion = questions[questionIndex];
+        const nextQuestionPrompt = questions[questionIndex + 1].label; // Assuming next question exists
+
+        // Test for handling valid input
+        it('should handle ranking-numbered input (comma-separated numbers)', async () => {
+          const handleInput = vi.fn();
+          const initialState = {
+            mode: 'questioning',
+            currentQuestionIndex: questionIndex,
+            answers: {},
+            isSubmitting: false,
+            error: null,
+            userId: 'mock-ranking-valid-user-id'
+          };
+          currentDialogState = { ...initialState }; // Update local tracker
+
+          const { container } = render(
+            <RegistrationDialog
+              {...defaultProps}
+              dialogState={initialState}
+              onInput={handleInput}
+            />
+          );
+          const inputElement = container.querySelector('input');
+          expect(inputElement).not.toBeNull();
+          if (!inputElement) throw new Error("Input element not found");
+
+          // Initial render verification
+          await waitFor(() => {
+            expect(mockAddOutputLine).toHaveBeenCalledWith(initialQuestion.label);
+            expect(mockAddOutputLine).toHaveBeenCalledWith(expect.stringContaining('1: Minds and Machines'), { type: 'output' }); // Check options display
+          });
+          mockAddOutputLine.mockClear();
+
+          // Simulate valid input (ranking top 3)
+          const validInput = '5:1, 2:2, 8:3'; // Rank Extended Perception, Digital Commons, Algorithmic Aesthetics
+          await act(async () => {
+            fireEvent.change(inputElement, { target: { value: validInput } });
+            fireEvent.submit(inputElement.closest('form')!);
+          });
+          await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(validInput); });
+
+          // Assertions (Red Phase: Expect failure - component lacks logic)
+          await waitFor(() => {
+            // Check that NO error message was shown
+            expect(mockAddOutputLine).not.toHaveBeenCalledWith(expect.stringContaining('Invalid input'), expect.objectContaining({ type: 'error' }));
+            // Check that state advanced (next prompt shown) - THIS SHOULD FAIL IN RED PHASE
+            expect(mockAddOutputLine).toHaveBeenCalledWith(nextQuestionPrompt);
+          });
+        });
+
+        // Test for validation rules
+        it('should validate ranking-numbered input (valid numbers, min ranked, uniqueness, format)', async () => {
+          const handleInput = vi.fn();
+          const initialState = {
+            mode: 'questioning',
+            currentQuestionIndex: questionIndex,
+            answers: {},
+            isSubmitting: false,
+            error: null,
+            userId: 'mock-ranking-invalid-user-id'
+          };
+           currentDialogState = { ...initialState }; // Update local tracker
+
+          const { container } = render(
+            <RegistrationDialog
+              {...defaultProps}
+              dialogState={initialState}
+              onInput={handleInput}
+            />
+          );
+          const inputElement = container.querySelector('input');
+          expect(inputElement).not.toBeNull();
+          if (!inputElement) throw new Error("Input element not found");
+
+          // Initial render verification
+          await waitFor(() => {
+            expect(mockAddOutputLine).toHaveBeenCalledWith(initialQuestion.label);
+          });
+          mockAddOutputLine.mockClear();
+
+          // --- Test Case 1: Invalid Format ---
+          const invalidFormatInput = '5:1 2:2 8:3'; // Space instead of comma
+          await act(async () => {
+            fireEvent.change(inputElement, { target: { value: invalidFormatInput } });
+            fireEvent.submit(inputElement.closest('form')!);
+          });
+          await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(invalidFormatInput); });
+          await waitFor(() => {
+            // Assert specific format error - THIS SHOULD FAIL IN RED PHASE
+            expect(mockAddOutputLine).toHaveBeenCalledWith(expect.stringContaining('Invalid format. Use format "OptionNumber:Rank" separated by commas'), expect.objectContaining({ type: 'error' }));
+            // Assert state did not advance
+            expect(mockAddOutputLine).not.toHaveBeenCalledWith(nextQuestionPrompt);
+          });
+          fireEvent.change(inputElement, { target: { value: '' } }); // Clear input
+          mockAddOutputLine.mockClear();
+
+          // --- Test Case 2: Non-numeric Option ---
+          const nonNumericOptionInput = 'abc:1, 2:2, 8:3';
+          await act(async () => {
+            fireEvent.change(inputElement, { target: { value: nonNumericOptionInput } });
+            fireEvent.submit(inputElement.closest('form')!);
+          });
+          await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(nonNumericOptionInput); });
+          await waitFor(() => {
+            // Assert specific numeric error - THIS SHOULD FAIL IN RED PHASE
+            expect(mockAddOutputLine).toHaveBeenCalledWith(expect.stringContaining('Invalid option number'), expect.objectContaining({ type: 'error' }));
+            expect(mockAddOutputLine).not.toHaveBeenCalledWith(nextQuestionPrompt);
+          });
+          fireEvent.change(inputElement, { target: { value: '' } });
+          mockAddOutputLine.mockClear();
+
+          // --- Test Case 3: Non-numeric Rank ---
+           const nonNumericRankInput = '5:abc, 2:2, 8:3';
+          await act(async () => {
+            fireEvent.change(inputElement, { target: { value: nonNumericRankInput } });
+            fireEvent.submit(inputElement.closest('form')!);
+          });
+          await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(nonNumericRankInput); });
+          await waitFor(() => {
+            // Assert specific numeric error - THIS SHOULD FAIL IN RED PHASE
+            expect(mockAddOutputLine).toHaveBeenCalledWith(expect.stringContaining('Invalid rank number'), expect.objectContaining({ type: 'error' }));
+            expect(mockAddOutputLine).not.toHaveBeenCalledWith(nextQuestionPrompt);
+          });
+          fireEvent.change(inputElement, { target: { value: '' } });
+          mockAddOutputLine.mockClear();
+
+
+          // --- Test Case 4: Out-of-range Option ---
+          const outOfRangeOptionInput = '99:1, 2:2, 8:3'; // Option 99 is invalid
+          await act(async () => {
+            fireEvent.change(inputElement, { target: { value: outOfRangeOptionInput } });
+            fireEvent.submit(inputElement.closest('form')!);
+          });
+          await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(outOfRangeOptionInput); });
+          await waitFor(() => {
+            // Assert specific range error - THIS SHOULD FAIL IN RED PHASE
+            expect(mockAddOutputLine).toHaveBeenCalledWith(expect.stringContaining('Invalid option number'), expect.objectContaining({ type: 'error' }));
+            expect(mockAddOutputLine).not.toHaveBeenCalledWith(nextQuestionPrompt);
+          });
+          fireEvent.change(inputElement, { target: { value: '' } });
+          mockAddOutputLine.mockClear();
+
+          // --- Test Case 5: Out-of-range Rank ---
+          const outOfRangeRankInput = '5:4, 2:2, 8:3'; // Rank 4 is invalid (only 1, 2, 3 allowed for top 3)
+          await act(async () => {
+            fireEvent.change(inputElement, { target: { value: outOfRangeRankInput } });
+            fireEvent.submit(inputElement.closest('form')!);
+          });
+          await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(outOfRangeRankInput); });
+          await waitFor(() => {
+            // Assert specific rank range error - THIS SHOULD FAIL IN RED PHASE
+            expect(mockAddOutputLine).toHaveBeenCalledWith(expect.stringContaining('Rank must be between 1 and 3'), expect.objectContaining({ type: 'error' }));
+             expect(mockAddOutputLine).not.toHaveBeenCalledWith(nextQuestionPrompt);
+          });
+          fireEvent.change(inputElement, { target: { value: '' } });
+          mockAddOutputLine.mockClear();
+
+
+          // --- Test Case 6: Duplicate Option ---
+          const duplicateOptionInput = '5:1, 5:2, 8:3';
+          await act(async () => {
+            fireEvent.change(inputElement, { target: { value: duplicateOptionInput } });
+            fireEvent.submit(inputElement.closest('form')!);
+          });
+          await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(duplicateOptionInput); });
+          await waitFor(() => {
+            // Assert specific uniqueness error - THIS SHOULD FAIL IN RED PHASE
+            expect(mockAddOutputLine).toHaveBeenCalledWith(expect.stringContaining('Each theme can only be ranked once'), expect.objectContaining({ type: 'error' }));
+            expect(mockAddOutputLine).not.toHaveBeenCalledWith(nextQuestionPrompt);
+          });
+          fireEvent.change(inputElement, { target: { value: '' } });
+          mockAddOutputLine.mockClear();
+
+          // --- Test Case 7: Duplicate Rank ---
+          const duplicateRankInput = '5:1, 2:1, 8:3';
+          await act(async () => {
+            fireEvent.change(inputElement, { target: { value: duplicateRankInput } });
+            fireEvent.submit(inputElement.closest('form')!);
+          });
+          await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(duplicateRankInput); });
+          await waitFor(() => {
+            // Assert specific uniqueness error - THIS SHOULD FAIL IN RED PHASE
+            expect(mockAddOutputLine).toHaveBeenCalledWith(expect.stringContaining('Each rank (1, 2, 3) can only be used once'), expect.objectContaining({ type: 'error' }));
+            expect(mockAddOutputLine).not.toHaveBeenCalledWith(nextQuestionPrompt);
+          });
+          fireEvent.change(inputElement, { target: { value: '' } });
+          mockAddOutputLine.mockClear();
+
+
+          // --- Test Case 8: Insufficient Number Ranked (minRanked: 3) ---
+          const insufficientRankInput = '5:1, 2:2';
+          await act(async () => {
+            fireEvent.change(inputElement, { target: { value: insufficientRankInput } });
+            fireEvent.submit(inputElement.closest('form')!);
+          });
+          await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(insufficientRankInput); });
+          await waitFor(() => {
+            // Assert specific minRanked error - THIS SHOULD FAIL IN RED PHASE
+            expect(mockAddOutputLine).toHaveBeenCalledWith(expect.stringContaining('Please rank exactly 3 themes'), expect.objectContaining({ type: 'error' }));
+            expect(mockAddOutputLine).not.toHaveBeenCalledWith(nextQuestionPrompt);
+          });
+          fireEvent.change(inputElement, { target: { value: '' } });
+          mockAddOutputLine.mockClear();
+
+           // --- Test Case 9: Too Many Ranked (minRanked: 3) ---
+          const tooManyRankInput = '5:1, 2:2, 8:3, 1:4';
+          await act(async () => {
+            fireEvent.change(inputElement, { target: { value: tooManyRankInput } });
+            fireEvent.submit(inputElement.closest('form')!);
+          });
+          await waitFor(() => { expect(handleInput).toHaveBeenCalledWith(tooManyRankInput); });
+          await waitFor(() => {
+            // Assert specific minRanked error (or format error depending on implementation) - THIS SHOULD FAIL IN RED PHASE
+            expect(mockAddOutputLine).toHaveBeenCalledWith(expect.stringContaining('Please rank exactly 3 themes'), expect.objectContaining({ type: 'error' }));
+            expect(mockAddOutputLine).not.toHaveBeenCalledWith(nextQuestionPrompt);
+          });
+          fireEvent.change(inputElement, { target: { value: '' } });
+          mockAddOutputLine.mockClear();
+
+        });
+      });
+
       it.todo('should validate select input (valid number)');
       it.todo('should handle multi-select-numbered input (space-separated numbers)');
       it.todo('should validate multi-select-numbered input (valid numbers)');
