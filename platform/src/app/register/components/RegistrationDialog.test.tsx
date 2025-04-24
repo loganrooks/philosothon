@@ -5,6 +5,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import * as regActions from '@/app/register/actions'; // Import for typed mock
 import * as authActions from '@/lib/data/auth'; // Corrected path to DAL
 
+import { questions } from '@/app/register/data/registrationQuestions';
 // Mock dependencies - These will need refinement as implementation progresses
 // vi.mock('@/lib/hooks/useLocalStorage'); // TODO: Verify path or existence
 
@@ -1016,7 +1017,66 @@ describe('RegistrationDialog (V3.1)', () => {
         // A more robust check might involve counting calls before/after submit
         expect(indexUpdateCall).toBeUndefined(); // Or check if the value is still 45 if it was set initially
       });
-      it.todo('should validate boolean input');
+      it('should validate boolean input and show error for invalid input', async () => {
+        const mockAddOutputLine = vi.fn();
+        const mockSetDialogState = vi.fn(); // Keep for now, likely unused due to useReducer
+        // const handleInput = vi.fn(); // Cannot mock internal handler directly
+        const initialIndex = 45; // finalConfirmationAgreement is boolean
+
+        const { getByRole } = render(
+          <RegistrationDialog
+            // Align props with defaultProps definition
+            dialogState={{ mode: 'questioning', currentQuestionIndex: initialIndex }}
+            addOutputLine={mockAddOutputLine}
+            setDialogState={mockSetDialogState} // Keep for now, likely unused due to useReducer
+            sendToShellMachine={mockSendToShellMachine} // Added
+            clearDialogState={mockClearDialogState} // Added
+            userSession={null} // Added (using null as per defaultProps)
+            onInput={vi.fn()} // Added missing required prop
+            changeMode={mockChangeMode} // Added
+            // Removed: onComplete, resendConfirmationEmail, checkEmailConfirmation, initiateOtpSignIn, verifyOtpSignIn, signUpUser, submitRegistration
+          />
+        );
+
+        // Wait for the initial prompt of the boolean question
+        const boolQuestionPrompt = questions[initialIndex].label;
+        await waitFor(() => {
+          // Check if the prompt was added (ignoring hint for simplicity now)
+          expect(mockAddOutputLine).toHaveBeenCalledWith(expect.stringContaining(boolQuestionPrompt));
+        });
+
+        // Simulate invalid user input
+        const inputElement = getByRole('textbox');
+        const invalidInput = 'maybe';
+        fireEvent.change(inputElement, { target: { value: invalidInput } });
+        // Simulate pressing Enter
+        fireEvent.keyDown(inputElement, { key: 'Enter', code: 'Enter' });
+
+
+        // Assert error message is shown via addOutputLine
+        const expectedError = "Invalid input. Please enter 'y' or 'n'.";
+        await waitFor(() => {
+          expect(mockAddOutputLine).toHaveBeenCalledWith(expectedError, { type: 'error' });
+        });
+
+        // Assert the prompt for the *same* question is shown again
+        // Check if the prompt was called *again* after the error
+        const calls = mockAddOutputLine.mock.calls;
+        const promptCalls = calls.filter(call => call[0] === boolQuestionPrompt || (typeof call[0] === 'string' && call[0].includes(boolQuestionPrompt))); // Check label
+        // Expect at least two calls: initial render + re-prompt after error
+        // Using >= 2 because hints might also be called.
+        expect(promptCalls.length).toBeGreaterThanOrEqual(2);
+
+
+        // Assert state did not advance by checking that the *next* question prompt wasn't called
+        // Note: index 45 is the last question, so there is no next question.
+        // The check that the same prompt was called again is sufficient for this case.
+        // We also check the input is still present.
+
+        expect(getByRole('textbox')).toBeInTheDocument();
+        expect(getByRole('textbox')).not.toBeDisabled();
+
+      });
       it.todo('should handle select input (numbered options)');
       it.todo('should validate select input (valid number)');
       it.todo('should handle multi-select-numbered input (space-separated numbers)');
