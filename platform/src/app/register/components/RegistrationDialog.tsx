@@ -116,7 +116,7 @@ const RegistrationDialog: React.FC<DialogProps> = ({
   const [state, dispatch] = useReducer(reducer, { ...initialState, ...dialogState });
 
   const [currentInput, setCurrentInput] = useState(''); // Example input state
-  const [isSubmitting, setIsSubmitting] = useState(false); // Prevent double submission
+  // Note: isSubmitting state is now handled by the reducer
 
   // Determine current step ID based on state
   const currentStepId = state.mode === 'early_auth' ? earlyAuthSteps[state.currentQuestionIndex] : null;
@@ -186,7 +186,6 @@ const RegistrationDialog: React.FC<DialogProps> = ({
     } else if (state.mode === 'awaiting_confirmation') {
         // Prompt is now handled by the transition logic in handleSubmit/handleSignUp
         // TODO: Add logic for checkEmailConfirmation polling? Or rely on user 'continue'/'resend'
-        // TODO: Add logic for checkEmailConfirmation polling? Or rely on user 'continue'/'resend'
     }
     // Add other modes (review, success, error)
   }, [state.mode, state.currentQuestionIndex, addOutputLine]);
@@ -196,6 +195,53 @@ const RegistrationDialog: React.FC<DialogProps> = ({
     setCurrentInput(event.target.value);
   };
 
+  // Async function to handle the sign-up process (Moved before handleSubmit)
+  const handleSignUp = useCallback(async () => {
+      // Check isSubmitting state from reducer
+      if (state.isSubmitting) return;
+      dispatch({ type: 'SUBMIT_START' });
+      addOutputLine("Creating account...");
+
+      const { email, password, firstName, lastName } = state.answers;
+
+      // Password match already validated in handleSubmit
+
+      try {
+          // Call the initiateOtpSignIn function from DAL
+          const { data, error } = await initiateOtpSignIn(email);
+
+          if (error) {
+              // Handle OTP initiation error
+              addOutputLine(`Error initiating sign-in: ${error.message || 'Unknown error'}`, { type: 'error' });
+              // Reset the state to the password step index. The useEffect hook will handle re-prompting.
+              const passwordStepIndex = earlyAuthSteps.indexOf('password');
+              if (passwordStepIndex !== -1) {
+                dispatch({ type: 'SET_INDEX', payload: passwordStepIndex });
+              }
+          } else {
+              // OTP initiated successfully
+              // Construct the confirmation message using the email from the state
+              const confirmationMessage = `Account created. Please check your email (${state.answers.email}) for a confirmation link. Enter 'continue' here once confirmed, or 'resend' to request a new link.`;
+              addOutputLine(confirmationMessage);
+              // NOTE: User ID is not available immediately after OTP initiation, but the test flow relies on it being set.
+              // We'll set it based on the mock data for test purposes. Real implementation might differ.
+              if (data?.user?.id) {
+                  setDialogState('pendingUserId', data.user.id); // Reinstate setting pendingUserId
+              }
+              // Dispatch internal state update instead of calling external prop
+              dispatch({ type: 'SET_MODE', payload: 'awaiting_confirmation' });
+          }
+      } catch (error) {
+          addOutputLine(`An unexpected error occurred during sign-in initiation: ${error instanceof Error ? error.message : String(error)}`, { type: 'error' });
+           // Re-prompt for confirm password
+           addOutputLine("Please confirm your password:");
+      } finally {
+          dispatch({ type: 'SUBMIT_END' });
+      }
+  // Removed changeMode from dependencies as it's no longer called here
+  }, [state.answers, state.isSubmitting, addOutputLine, dispatch, setDialogState]);
+
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => { // Make async
     event.preventDefault();
     const input = currentInput.trim();
@@ -204,7 +250,6 @@ const RegistrationDialog: React.FC<DialogProps> = ({
     setCurrentInput(''); // Clear input field
 
     // Process the input based on the current state
-    // const currentStepId = earlyAuthSteps[state.currentQuestionIndex]; // Already defined above
     if (state.mode === 'early_auth' && currentStepId) {
         let isValid = true;
         let errorMessage = "Input cannot be empty.";
@@ -239,7 +284,7 @@ const RegistrationDialog: React.FC<DialogProps> = ({
             } else {
                 // Trigger sign up process after confirmPassword validation passes
                 // Passwords match, initiate sign up
-                handleSignUp();
+                handleSignUp(); // Now defined before this call
             }
         } else {
             addOutputLine(errorMessage, { type: 'error' });
@@ -324,6 +369,8 @@ const RegistrationDialog: React.FC<DialogProps> = ({
               let displayAnswer = state.answers[question.id];
               if (typeof displayAnswer === 'boolean') {
                 displayAnswer = displayAnswer ? 'Yes' : 'No';
+              } else if (Array.isArray(displayAnswer)) { // Handle array answers for multi-select
+                displayAnswer = displayAnswer.join(', ');
               }
               addOutputLine(`${question.label}: ${displayAnswer}`);
             }
@@ -349,6 +396,7 @@ const RegistrationDialog: React.FC<DialogProps> = ({
             "  save      - Save your progress and exit",
             "  exit      - Exit without saving",
             "  help      - Show this help message",
+            "  edit [n]  - Jump back to edit question number 'n'",
           ].join('\n');
           addOutputLine(helpMessage);
           // Re-display current prompt
@@ -477,8 +525,62 @@ const RegistrationDialog: React.FC<DialogProps> = ({
                      processedAnswer = String(choiceIndex);
                 }
             }
-            // TODO: Add validation for other types
+            else if (currentQuestion.type === 'multi-select-numbered') {
+                const selectedNumbers: number[] = [];
+                const invalidInputs: string[] = [];
+                const parts = input.split(' ').filter(part => part !== ''); // Split by space and remove empty strings
 
+                if (parts.length === 0 && currentQuestion.required) {
+                    isValid = false;
+                    errorMessage = "Input cannot be empty.";
+                } else {
+                    parts.forEach(part => {
+                        const num = parseInt(part, 10);
+                        if (isNaN(num)) {
+                            invalidInputs.push(part);
+                        } else if (!currentQuestion.options || num < 1 || num > currentQuestion.options.length) {
+                            invalidInputs.push(part);
+                        } else {
+                            // Avoid duplicates if user enters the same number twice
+                            if (!selectedNumbers.includes(num)) {
+                              selectedNumbers.push(num);
+                            }
+                        }
+                    });
+
+                    if (invalidInputs.length > 0) {
+                        isValid = false;
+                        errorMessage = `Invalid input: "${invalidInputs.join('", "')}". Please enter space-separated numbers corresponding to your choices.`;
+                    } else if (selectedNumbers.length === 0 && currentQuestion.required) {
+                         // Handles case where input is just spaces but field is required
+                         isValid = false;
+                         errorMessage = "Input cannot be empty.";
+                    } else {
+                        // Map valid numbers to option text
+                        const selectedOptions = selectedNumbers
+                            .sort((a, b) => a - b) // Sort numbers before mapping
+                            .map(num => currentQuestion.options ? currentQuestion.options[num - 1] : '') // Get text based on 1-based index
+                            .filter(option => option !== ''); // Filter out potential empty strings if options somehow missing
+                        processedAnswer = selectedOptions; // Store as an array of strings
+                    }
+                }
+            // TODO: Add validation for other types like 'ranking-numbered'
+            } else {
+              // Default case for text input or unhandled types
+              // If specific validation for text is needed, add it here.
+              // For now, assume generic text is valid unless required and empty.
+              if (currentQuestion.required && !input) {
+                  isValid = false;
+                  errorMessage = "Input cannot be empty.";
+              } else {
+                // Default case: Assume 'text' or similar. Valid if not empty when required.
+                // isValid remains true unless it was already empty and required (handled line 572)
+                // Assign input to processedAnswer for text type
+                processedAnswer = input;
+              }
+            } // This closes the final else for type validation
+
+            // Check validity after all type validations
             if (isValid) {
                 dispatch({ type: 'SET_ANSWER', payload: { stepId: currentQuestion.id, answer: processedAnswer } });
                 if (state.currentQuestionIndex === questions.length - 1) {
@@ -501,66 +603,20 @@ const RegistrationDialog: React.FC<DialogProps> = ({
             } else {
                 addOutputLine(errorMessage, { type: 'error' });
                 // Re-display current prompt
-                 addOutputLine(currentQuestion.label);
-                 if (currentQuestion.hint) addOutputLine(currentQuestion.hint, { type: 'hint' });
-                 if (currentQuestion.options) {
-                   const optionsText = currentQuestion.options.map((opt, index) => `${index + 1}: ${opt}`).join('\n');
-                   addOutputLine(optionsText);
+                 if (currentQuestion) { // Add check for currentQuestion safety
+                   addOutputLine(currentQuestion.label);
+                   if (currentQuestion.hint) addOutputLine(currentQuestion.hint, { type: 'hint' });
+                   if (currentQuestion.options) {
+                     const optionsText = currentQuestion.options.map((opt, index) => `${index + 1}: ${opt}`).join('\n');
+                     addOutputLine(optionsText);
+                   }
                  }
+                 return; // Explicitly return after handling validation error
             }
         }
     }
     // Add logic for other modes (review, commands) here
   };
-  // Removed extra closing brace here
-
-  // Async function to handle the sign-up process
-  const handleSignUp = useCallback(async () => {
-      // Check isSubmitting state from reducer
-      if (state.isSubmitting) return;
-      dispatch({ type: 'SUBMIT_START' });
-      addOutputLine("Creating account...");
-
-      const { email, password, firstName, lastName } = state.answers;
-
-      // Password match already validated in handleSubmit
-
-
-      try {
-          // Call the initiateOtpSignIn function from DAL
-          const { data, error } = await initiateOtpSignIn(email);
-
-          if (error) {
-              // Handle OTP initiation error
-              addOutputLine(`Error initiating sign-in: ${error.message || 'Unknown error'}`, { type: 'error' });
-              // Reset the state to the password step index. The useEffect hook will handle re-prompting.
-              const passwordStepIndex = earlyAuthSteps.indexOf('password');
-              if (passwordStepIndex !== -1) {
-                dispatch({ type: 'SET_INDEX', payload: passwordStepIndex });
-              }
-          } else {
-              // OTP initiated successfully
-              // Construct the confirmation message using the email from the state
-              const confirmationMessage = `Account created. Please check your email (${state.answers.email}) for a confirmation link. Enter 'continue' here once confirmed, or 'resend' to request a new link.`;
-              addOutputLine(confirmationMessage);
-              // NOTE: User ID is not available immediately after OTP initiation, but the test flow relies on it being set.
-              // We'll set it based on the mock data for test purposes. Real implementation might differ.
-              if (data?.user?.id) {
-                  setDialogState('pendingUserId', data.user.id); // Reinstate setting pendingUserId
-              }
-              // Dispatch internal state update instead of calling external prop
-              dispatch({ type: 'SET_MODE', payload: 'awaiting_confirmation' });
-          }
-      } catch (error) {
-          addOutputLine(`An unexpected error occurred during sign-in initiation: ${error instanceof Error ? error.message : String(error)}`, { type: 'error' });
-           // Re-prompt for confirm password
-           addOutputLine("Please confirm your password:");
-      } finally {
-          dispatch({ type: 'SUBMIT_END' });
-      }
-  // Removed changeMode from dependencies as it's no longer called here
-  }, [state.answers, state.isSubmitting, addOutputLine, dispatch, setDialogState]);
-
 
   // The onInput prop from TerminalShell should likely call handleSubmit or similar logic here
   // For now, using internal form submission for basic testing
