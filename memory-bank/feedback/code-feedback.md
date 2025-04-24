@@ -1,3 +1,12 @@
+### [2025-04-24 03:38:00] Intervention: Critical Error - Failed to Read Full File Content
+- **Trigger**: User feedback identifying failure to notice `read_file` truncation.
+- **Context**: Attempting to read `platform/src/app/register/components/RegistrationDialog.test.tsx` to implement tests. The file was truncated, but I failed to recognize the notice.
+- **Action Taken**: Acknowledged error. Will log intervention globally and locally. Will retry reading the *entire* file.
+- **Rationale**: Reading partial file content when full context is needed (e.g., for analysis, modification planning, applying diffs) leads to critical errors and wasted effort. Must pay attention to truncation notices and explicitly request full content or specific ranges when necessary.
+- **Outcome**: Task delayed, potential for incorrect analysis averted by user intervention.
+- **Follow-up**: Retry reading the full file content for `RegistrationDialog.test.tsx`. Emphasize careful checking of `read_file` results in future.
+
+
 ### [2025-04-23 16:46:14] Intervention: Missed Pre-Completion Test Check
 - **Trigger**: User feedback during `attempt_completion`.
 - **Context**: Attempted completion after modifying `platform/config/registrationSchema.ts` without running relevant tests first.

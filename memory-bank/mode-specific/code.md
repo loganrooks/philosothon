@@ -1,3 +1,16 @@
+### [2025-04-24 03:44:00] RegistrationDialog.test.tsx - multi-select-numbered
+- **Purpose**: Implement/fix tests for `multi-select-numbered` input.
+- **Files**: `platform/src/app/register/components/RegistrationDialog.test.tsx` (Modified)
+- **Status**: Analysis Complete - Tests Failing (Component Bug)
+- **Details**: 
+    - Read full test file content after initial truncation error.
+    - Identified existing tests covering valid/invalid `multi-select-numbered` input (lines ~1237-1403).
+    - Ran tests (`npm test -- RegistrationDialog.test.tsx -t "multi-select-numbered"`). Both tests failed.
+    - Analysis: Failures indicate the component logic (commit `469376c`) incorrectly advances state for this input type, regardless of input validity. The fix in `469376c` appears insufficient for `multi-select-numbered`.
+    - Test Modifications: Adjusted assertions to align with REG-TEST-TIMING-001 and simplify validation checks. Tests now correctly fail, highlighting the component bug.
+- **Next Step**: Commit failing tests and recommend debugging the component logic.
+
+
 ## Bug Fixes
 ### [2025-04-23 20:18:56] RegistrationDialog Logic Fixes
 - **Purpose**: Correct logic for handling failed confirmation checks and OTP sign-in errors based on TDD feedback.

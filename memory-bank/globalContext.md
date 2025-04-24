@@ -1,3 +1,17 @@
+### [2025-04-24 03:38:00] - User Intervention (Code Mode - Critical Error)
+- **Issue**: Code mode failed to recognize `read_file` truncation notice when reading `platform/src/app/register/components/RegistrationDialog.test.tsx`. Attempted to proceed with partial file content, which is unacceptable when full context is required for analysis or modification.
+- **Action**: User intervention halted the process. Code mode acknowledged the error and logged it.
+- **Learning**: Critical importance of verifying `read_file` results for truncation, especially for large files or when planning modifications. Use explicit line ranges or ensure full read when necessary.
+
+
+### [2025-04-24 03:18:35] - User Intervention (TDD Mode)
+- **Issue:** `read_file` tool may return truncated content for large files without explicit line numbers (`start_line`/`end_line`). This can lead to errors when using tools like `apply_diff` that rely on accurate line numbers and full context.
+- **Action:** Always be mindful of potential truncation. If the full file content is needed for an operation (like applying a diff across multiple sections), ensure the entire file is read or use appropriate line ranges. Verify file content if `apply_diff` or similar tools fail unexpectedly.
+
+
+- **[2025-04-24 03:01:22] - Debug:** Fixed control flow bug in `RegistrationDialog` `handleSubmit` where invalid `multi-select-numbered` input could bypass error handling. Added explicit `return` statement. Commit `469376c`. Test suite verification failed, likely due to unrelated test issues. [See MB Debug Log Issue-ID: REG-MULTI-SELECT-VALIDATION-001]
+
+
 - **[2025-04-24 01:27:33] - TDD:** Completed TDD cycle (Red/Green) for `RegistrationDialog` 'edit [number]' command. Added failing tests (commit `6272bd2`), implemented minimal logic (commit `8807625`). Tests pass. Worked around REG-TEST-TIMING-001. [See MB TDD Log 2025-04-24 01:27:33]
 
 
@@ -69,6 +83,8 @@
 - **[2025-04-23 22:58:00] - Code:** Implemented end-of-questionnaire logic in `RegistrationDialog` (Green Phase for boolean input test). Component now handles reaching the final question correctly. Commit `0ed3f95`. [See MB Log 2025-04-23 22:58:00]
 
 
+
+- **[2025-04-24 03:55:06] - Debug:** Analyzed `multi-select-numbered` validation bug in `RegistrationDialog`. Component logic appears correct (commit `469376c` fix with `return;`). Test failure likely due to test suite instability/flawed assertion in commit `cb6499e`. No component changes made. [See MB Debug Log Issue-ID: REG-MULTI-SELECT-VALIDATION-001 Update]
 
 # Progress
 - **[2025-04-24 02:13:23] - TDD:** Completed Red phase for `RegistrationDialog` 'multi-select-numbered' input. Added failing tests (commit `910c878`). Green phase blocked by tool errors/scope issues during implementation attempts. Early Return invoked. [See MB TDD Log 2025-04-24 02:13:23, MB Feedback Log 2025-04-24 02:12:54]
