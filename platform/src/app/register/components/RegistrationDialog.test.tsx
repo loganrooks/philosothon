@@ -1077,7 +1077,159 @@ describe('RegistrationDialog (V3.1)', () => {
         expect(getByRole('textbox')).not.toBeDisabled();
 
       });
-      it.todo('should handle select input (numbered options)');
+      describe('Select Input (academicYear - index 3)', () => {
+        const initialIndex = 3; // academicYear index
+        const initialState = {
+          mode: 'questioning',
+          currentQuestionIndex: initialIndex,
+          answers: { // Include answers needed for potential skip logic checks if any
+            firstName: 'Select',
+            lastName: 'Test',
+            email: 'select@example.com',
+          },
+          isSubmitting: false,
+          error: null,
+          userId: 'mock-select-user-id' // Assume user ID is available
+        };
+
+        it('should handle valid numeric input and advance state', async () => {
+          const handleInput = vi.fn();
+          const { container } = render(
+            <RegistrationDialog
+              {...defaultProps}
+              dialogState={initialState}
+              onInput={handleInput}
+            />
+          );
+          const inputElement = container.querySelector('input');
+          expect(inputElement).not.toBeNull();
+          if (!inputElement) throw new Error("Input element not found");
+
+          // Wait for the academicYear prompt (index 3)
+          const academicYearPrompt = `Year of Study`;
+          await waitFor(() => {
+            expect(mockAddOutputLine).toHaveBeenCalledWith(academicYearPrompt);
+          }, { timeout: 3000 });
+
+          // Simulate valid input ('2' for 'Second year')
+          await act(async () => {
+            fireEvent.change(inputElement, { target: { value: '2' } });
+            fireEvent.submit(inputElement.closest('form')!);
+          });
+          await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('2'); });
+
+          // Assert answer text is stored (assuming internal reducer updates state)
+          // This assertion might fail initially and needs component implementation
+          // await waitFor(() => {
+          //   // Need a way to inspect internal state or rely on side effects
+          // });
+
+          // Assert state advanced to the next question (index 5: universityInstitution, skipping 4: academicYearOther)
+          // This assertion will fail initially
+          await waitFor(() => {
+             expect(mockAddOutputLine).toHaveBeenCalledWith('University / Institution');
+          });
+        });
+
+        it('should show error for non-numeric input and not advance state', async () => {
+          const handleInput = vi.fn();
+          const { container } = render(
+            <RegistrationDialog
+              {...defaultProps}
+              dialogState={initialState}
+              onInput={handleInput}
+            />
+          );
+          const inputElement = container.querySelector('input');
+          expect(inputElement).not.toBeNull();
+          if (!inputElement) throw new Error("Input element not found");
+
+          // Wait for the academicYear prompt (index 3)
+          const academicYearPrompt = `Year of Study`;
+          await waitFor(() => {
+            expect(mockAddOutputLine).toHaveBeenCalledWith(academicYearPrompt);
+          }, { timeout: 3000 });
+
+
+          // Simulate invalid input
+          await act(async () => {
+            fireEvent.change(inputElement, { target: { value: 'abc' } });
+            fireEvent.submit(inputElement.closest('form')!);
+          });
+          await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('abc'); });
+
+          // Assert error message
+          const expectedError = "Invalid input. Please enter the number corresponding to your choice.";
+          await waitFor(() => {
+            expect(mockAddOutputLine).toHaveBeenCalledWith(expectedError, { type: 'error' });
+          });
+
+          // Assert state did not advance (next question prompt not called)
+          const nextQuestionPrompt = 'University / Institution';
+          expect(mockAddOutputLine).not.toHaveBeenCalledWith(nextQuestionPrompt);
+
+          // Assert the same prompt is shown again (Removed assertion for last call due to hint/options re-display)
+          // expect(mockAddOutputLine).toHaveBeenLastCalledWith(academicYearPrompt);
+        });
+
+        it('should show error for out-of-range numeric input and not advance state', async () => {
+          const handleInput = vi.fn();
+          const { container } = render(
+             <RegistrationDialog
+              {...defaultProps}
+              dialogState={initialState}
+              onInput={handleInput}
+            />
+          );
+          const inputElement = container.querySelector('input');
+          expect(inputElement).not.toBeNull();
+          if (!inputElement) throw new Error("Input element not found");
+
+          // Wait for the academicYear prompt (index 3)
+          const academicYearPrompt = `Year of Study`;
+          await waitFor(() => {
+            expect(mockAddOutputLine).toHaveBeenCalledWith(academicYearPrompt);
+          }, { timeout: 3000 });
+
+          // Simulate invalid input (0)
+          await act(async () => {
+            fireEvent.change(inputElement, { target: { value: '0' } });
+            fireEvent.submit(inputElement.closest('form')!);
+          });
+          await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('0'); });
+
+          // Assert error message
+          const expectedError = "Invalid input. Please enter the number corresponding to your choice.";
+          await waitFor(() => {
+            expect(mockAddOutputLine).toHaveBeenCalledWith(expectedError, { type: 'error' });
+          });
+
+          // Assert state did not advance
+          const nextQuestionPrompt = 'University / Institution';
+          expect(mockAddOutputLine).not.toHaveBeenCalledWith(nextQuestionPrompt);
+
+          // Assert the same prompt is shown again (Removed assertion for last call due to hint/options re-display)
+          // expect(mockAddOutputLine).toHaveBeenLastCalledWith(academicYearPrompt);
+
+          // Simulate invalid input (8 - out of range for 7 options)
+          await act(async () => {
+            fireEvent.change(inputElement, { target: { value: '8' } });
+            fireEvent.submit(inputElement.closest('form')!);
+          });
+          await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('8'); });
+
+          // Assert error message again
+          await waitFor(() => {
+            expect(mockAddOutputLine).toHaveBeenCalledWith(expectedError, { type: 'error' });
+          });
+
+          // Assert state did not advance again
+          expect(mockAddOutputLine).not.toHaveBeenCalledWith(nextQuestionPrompt);
+
+          // Assert the same prompt is shown again (Removed assertion for last call due to hint/options re-display)
+          // expect(mockAddOutputLine).toHaveBeenLastCalledWith(academicYearPrompt);
+        });
+      });
       it.todo('should validate select input (valid number)');
       it.todo('should handle multi-select-numbered input (space-separated numbers)');
       it.todo('should validate multi-select-numbered input (valid numbers)');
