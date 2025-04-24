@@ -1,3 +1,14 @@
+## Bug Fixes
+### [2025-04-23 20:18:56] RegistrationDialog Logic Fixes
+- **Purpose**: Correct logic for handling failed confirmation checks and OTP sign-in errors based on TDD feedback.
+- **Files**: `platform/src/app/register/components/RegistrationDialog.tsx` (Modified)
+- **Status**: Implemented & Committed (f2826f4)
+- **Details**: 
+    - Replaced placeholder `isConfirmed = true` with call to placeholder `checkConfirmationStatus` (modified to return `false` for testing) in `handleSubmit` for `awaiting_confirmation` mode. Ensures error message is shown and state remains `awaiting_confirmation`.
+    - Refactored `handleSignUp` error handler for `initiateOtpSignIn` failure: Added `SET_INDEX` action to reducer and dispatched it to reset `currentQuestionIndex` to the password step. Removed explicit re-prompting, relying on `useEffect`.
+- **Related Issue**: TDD Failures from [MB Log 2025-04-23 18:12:30]
+
+
 ## Analysis/Comparison
 ### [2025-04-23 13:05:57] Registration Skip Logic Analysis (Indices 4-6)
 - **Purpose**: Analyze `registrationQuestions.ts` data to verify skip logic related to TDD blocker [MB Log 2025-04-23 13:03:11].

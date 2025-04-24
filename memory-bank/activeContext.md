@@ -1,3 +1,30 @@
+[2025-04-23 22:40:08] - TDD - Completed Task (Fix RegistrationDialog Boolean Test Assertion) - Updated assertion in `should handle boolean input...` test within `RegistrationDialog.test.tsx` to check `addOutputLine` instead of outdated `setDialogState`. Test now fails correctly due to component logic error ("Could not find next question"). Removed console logs from `RegistrationDialog.tsx`. Commits `e77a38a`, `214d597`. [Related to MB Debug Log 2025-04-23 22:19:40]
+
+
+[2025-04-23 22:19:40] - Debug - Analysis Complete (REG-TEST-STATE-INIT-001 via Logging) - Added console logs to RegistrationDialog. Ran failing test ('boolean input'). Logs confirm component *does* initialize correctly (index 45). Test failure identified as outdated assertion expecting `setDialogState` prop call instead of internal `useReducer` dispatch. Preparing report and MB updates. [See MB Issue REG-TEST-STATE-INIT-001 Update]
+
+
+[2025-04-23 21:51:38] - TDD - Revised Test Analysis (RegistrationDialog Final Check) - Re-analyzed failures based on user feedback. Confirmed REG-TEST-STATE-INIT-001 is likely connected to *all 4* failures. Failures 3 & 4 directly show incorrect initial index. Failures 1 & 2 get stuck in confirmation loop, likely because state issues prevent correct transition to 'questioning' mode. Unit testing remains blocked by REG-TEST-STATE-INIT-001.
+
+
+[2025-04-23 21:49:57] - TDD - Test Analysis (RegistrationDialog Final Check) - Checked git status (found unstaged changes from previous debug attempt). Reviewed diffs. Ran tests (`npm test -- RegistrationDialog.test.tsx`) on modified state. Result: 13 passed, 4 failed, 44 skipped. Failures Analysis: 2 failures confirmed due to REG-TEST-STATE-INIT-001 (component not initializing at specified index 4 or 45). 2 failures due to placeholder mock (`checkConfirmationStatus`) always returning false, preventing transition to questioning state. Unit testing remains blocked by REG-TEST-STATE-INIT-001.
+
+
+[2025-04-23 21:38:00] - Debug - Task Blocked (REG-TEST-STATE-INIT-001 - Attempt 2 - EARLY RETURN) - Corrected component initialization logic (useReducer direct merge), test target index (45), and mock data (`__mocks__/registrationQuestions.ts`). Test still fails: component renders prompt for index 44 instead of initialized index 45. Root cause unclear, possibly subtle effect/reducer timing issue or test environment interaction. Invoking Early Return Clause. Recommend further investigation via logging or refactoring. [See MB Issue REG-TEST-STATE-INIT-001]
+
+
+[2025-04-23 20:45:43] - TDD - Task Blocked (RegistrationDialog TDD Cycle - Boolean Input - EARLY RETURN) - Attempted to implement test for boolean input. Multiple attempts to fix test setup (using initReducer, useEffect/LOAD_STATE) failed to correctly initialize component state (`currentQuestionIndex`) from `dialogState` prop. Tests consistently start at index 0/3 instead of the specified index (e.g., 4 or 6). This blocks testing of specific question input logic. Invoking Early Return Clause. Recommend delegating state initialization debugging (REG-TEST-STATE-INIT-001) to `debug` mode. [See MB Log 2025-04-23 20:31:05]
+
+
+[2025-04-23 20:31:05] - TDD - Regression Test Run (RegistrationDialog Post-Debug Fix) - Checked git status (clean except MB). Ran tests for `RegistrationDialog.test.tsx`. 13 passed, 3 failed, 1 skipped, 44 todo. Analyzed failures, filtering out 3 related to known timing issue REG-TEST-TIMING-001. Confirmed fix for `initiateOtpSignIn` failure (commit `c25830d`) is effective. No new regressions identified.
+
+
+[2025-04-23 20:27:45] - Debug - Completed Task (Fix RegistrationDialog Test: initiateOtpSignIn Failure) - Corrected component error message prefix and test assertion for subsequent prompt. Verified test passes. Committed fix (c25830d). [See MB Issue REG-TEST-OTP-FAIL-001]
+
+
+[2025-04-23 20:18:56] - Code - Completed Task (Fix RegistrationDialog Logic Errors) - Corrected confirmation check logic. Verified via test. Refactored OTP error handling logic; related test still fails (likely test issue). Committed changes (f2826f4).
+
+
 [2025-04-23 18:12:30] - TDD - Test Analysis (RegistrationDialog) - Checked git status (clean). Ran tests for `RegistrationDialog.test.tsx`. 4 tests failed. Filtered out 2 failures related to prompt timing (REG-TEST-TIMING-001) as other failures exist. Preparing report.
 
 

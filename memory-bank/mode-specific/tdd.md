@@ -1,6 +1,25 @@
 # TDD Specific Memory
 
+### Test Execution: RegistrationDialog Boolean Input Test Fix - [2025-04-23 22:38:39]
+- **Trigger**: Manual (Post-Assertion Fix)
+- **Outcome**: FAIL / **Summary**: 1 test failed, 60 skipped
+- **Failed Tests**:
+    - `should handle boolean input (y/n) - accepting "y"`: AssertionError: expected "spy" to be called with arguments: [ StringContaining{"Registration complete"} ]. Received "Error: Could not find next question."
+- **Notes**: Test failed as expected after fixing the assertion. The failure now correctly points to the component logic error after processing the final question (index 45), where it tries to find a non-existent next question (index 46).
+
+
 ### Test Execution: RegistrationDialog (Analysis Run) - [2025-04-23 18:12:30]
+### Test Execution: RegistrationDialog (Boolean Input - Green Attempt / State Init Debug) - [2025-04-23 20:45:43]
+- **Trigger**: Manual (Post-Code Change - Added boolean logic, attempted state init fixes)
+- **Outcome**: FAIL / **Summary**: 4 tests failed, 13 passed, 1 skipped, 43 todo
+- **Failed Tests**:
+    - `should transition to the questioning state...`: AssertionError: expected "spy" to be called with arguments: [ 'Year of Study' ] (State Init Issue)
+    - `should display the first question...`: AssertionError: expected "spy" to be called with arguments: [ 'Year of Study' ] (State Init Issue)
+    - `should validate required text input...`: AssertionError: expected "spy" to be called with arguments: [ 'Program/Major(s)' ] (State Init Issue)
+    - `should handle boolean input (y/n) - accepting "y"`: AssertionError: expected undefined to be defined (State Init Issue - test couldn't reach target index 6)
+- **Notes**: State initialization fixes (`initReducer`, `useEffect`/`LOAD_STATE`) were ineffective. Tests fail because component doesn't start at the `currentQuestionIndex` provided via `dialogState`. Boolean test logic could not be verified. Blocker: REG-TEST-STATE-INIT-001.
+
+
 - **Trigger**: Manual (Task: Check Git Status and Analyze Failures)
 - **Outcome**: FAIL / **Summary**: 12 tests passed, 4 failed, 1 skipped, 44 todo
 - **Failed Tests**:
@@ -22,7 +41,41 @@
 - **Notes**: The target test `should validate required text input and show error if empty` passed after adding the validation logic. Other failures persist due to unrelated issues (confirmation flow, timing).
 
 
+### Test Execution: RegistrationDialog (Regression Run Post-Debug Fix) - [2025-04-23 20:31:05]
+- **Trigger**: Manual (**Post-Code Change** - Debug fix `c25830d`)
+- **Outcome**: FAIL / **Summary**: 13 tests passed, 3 failed, 1 skipped, 44 todo
+- **Failed Tests**:
+    - `should transition to the questioning state and show first question after email is confirmed via "continue" command`: AssertionError: expected "spy" to be called with arguments: [ 'Year of Study' ] (Filtered: REG-TEST-TIMING-001)
+    - `should display the first question (academicYear) and handle valid input`: AssertionError: expected "spy" to be called with arguments: [ 'Year of Study' ] (Filtered: REG-TEST-TIMING-001)
+    - `should validate required text input and show error if empty`: AssertionError: expected "spy" to be called with arguments: [ 'Program/Major(s)' ] (Filtered: REG-TEST-TIMING-001)
+- **Notes**: Ran tests specifically for `RegistrationDialog.test.tsx` to check for regressions after debug fix `c25830d`. The test `should display an error message if initiateOtpSignIn fails` now passes, confirming the fix. The 3 remaining failures appear related to the known timing issue REG-TEST-TIMING-001 and were filtered out per task instructions. No new, non-timing-related regressions identified.
+
+
 ## Test Execution Results
+### Test Execution: RegistrationDialog (Final Check - Revised Analysis) - [2025-04-23 21:51:38]
+- **Trigger**: Manual (Task: Final Check & Report, Post-User Feedback)
+- **Outcome**: FAIL / **Summary**: 13 tests passed, 4 failed, 44 skipped
+- **Failed Tests**:
+    - `should transition to the questioning state...`: AssertionError: expected "spy" to be called with arguments: [ 'Year of Study' ] (Cause: Likely REG-TEST-STATE-INIT-001 - Component stuck in confirmation loop due to state issues preventing transition, exacerbated by placeholder mock returning false).
+    - `should display the first question...`: AssertionError: expected "spy" to be called with arguments: [ 'Year of Study' ] (Cause: Likely REG-TEST-STATE-INIT-001 - Component stuck in confirmation loop due to state issues preventing transition, exacerbated by placeholder mock returning false).
+    - `should validate required text input...`: AssertionError: expected "spy" to be called with arguments: [ 'Program/Major(s)' ] (Cause: REG-TEST-STATE-INIT-001 - Component rendered index 7 instead of initialized index 4).
+    - `should handle boolean input (y/n) - accepting \"y\"`: AssertionError: expected undefined to be defined (Cause: REG-TEST-STATE-INIT-001 - Component likely never reached initialized index 45).
+- **Notes**: Ran tests on unstaged state. Revised analysis confirms REG-TEST-STATE-INIT-001 is the likely root cause for *all* failures, preventing correct state initialization and transitions. Unit testing remains blocked by this issue.
+
+
+
+### Test Execution: RegistrationDialog (Final Check - Analysis Run) - [2025-04-23 21:49:57]
+- **Trigger**: Manual (Task: Final Check & Report)
+- **Outcome**: FAIL / **Summary**: 13 tests passed, 4 failed, 44 skipped
+- **Failed Tests**:
+    - `should transition to the questioning state...`: AssertionError: expected "spy" to be called with arguments: [ 'Year of Study' ] (Cause: New/Mocking Issue - Placeholder `checkConfirmationStatus` returns false)
+    - `should display the first question...`: AssertionError: expected "spy" to be called with arguments: [ 'Year of Study' ] (Cause: New/Mocking Issue - Placeholder `checkConfirmationStatus` returns false)
+    - `should validate required text input...`: AssertionError: expected "spy" to be called with arguments: [ 'Program/Major(s)' ] (Cause: REG-TEST-STATE-INIT-001 - Component rendered index 7 instead of 4)
+    - `should handle boolean input (y/n) - accepting "y"`: AssertionError: expected undefined to be defined (Cause: REG-TEST-STATE-INIT-001 - Component likely never reached index 45)
+- **Notes**: Ran tests on unstaged state (containing previous debug attempts). Confirmed REG-TEST-STATE-INIT-001 persists. Other failures masked by placeholder mock. Unit testing remains blocked.
+
+
+
 ### Test Execution: RegistrationDialog (programOfStudy Input - Green Attempt 4) - [2025-04-23 13:03:11]
 - **Trigger**: Manual (Post-Code Change - Refactored skip logic check)
 - **Outcome**: FAIL / **Summary**: 1 failed, 15 passed, 1 skipped, 45 todo
@@ -74,6 +127,13 @@
 
 
 <!-- Entries below should be added reverse chronologically (newest first) -->
+### TDD Cycle: RegistrationDialog (Boolean Input Handling) - [2025-04-23 20:45:43]
+- **Red**: Implemented test `should handle boolean input (y/n) - accepting "y"`, asserting answer storage and index advancement. Test File: `platform/src/app/register/components/RegistrationDialog.test.tsx`
+- **Green**: Added minimal logic to `handleSubmit` to process 'y'/'n' for boolean questions. Code File: `platform/src/app/register/components/RegistrationDialog.tsx`
+- **Refactor**: N/A.
+- **Outcome**: **Blocked**. Test fails due to persistent state initialization issue (REG-TEST-STATE-INIT-001) preventing the test from reaching the target question index (6). Boolean logic implementation could not be verified. Early Return invoked. Recommend delegating REG-TEST-STATE-INIT-001 to `debug` mode.
+
+
 ### TDD Cycle: RegistrationDialog (programOfStudy Input) - [2025-04-23 13:03:11]
 - **Red**: Implemented test `should handle text input for programOfStudy and advance to the next question`. Verified test failed (expected 'University/Institution' prompt, received 'Philosophy courses completed'). / Test File: `platform/src/app/register/components/RegistrationDialog.test.tsx`
 - **Green**: Attempt 1: Added explicit handling for 'text' type in validation. Test failed. Attempt 2: Added submission guard (`isSubmitting`). Test failed. Attempt 3: Refactored state update to use `SET_INDEX`. Test failed. Attempt 4: Refactored skip logic check. Test failed. / Code File: `platform/src/app/register/components/RegistrationDialog.tsx`

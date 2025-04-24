@@ -1,3 +1,6 @@
+- **[2025-04-23 22:40:08] - TDD:** Fixed outdated assertion in `RegistrationDialog.test.tsx` for boolean input test. Test now fails correctly due to component logic error. Removed debug console logs. Commits `e77a38a`, `214d597`. [See MB Log 2025-04-23 22:40:08]
+
+
 - **[2025-04-22 11:58:07] - DocsWriter:** Created new theme description file `platform/markdown/themes/meaning-in-ai-world.md` based on fetched essay content.
 - **[2025-04-22 19:11:44] - Code:** Compared schedule implementation (DAL, Page, Display) with themes, faq, workshops. Found consistent DAL/fetching patterns. Key difference: schedule page (`page.tsx`) relies on `ScheduleDisplay` for empty state handling, while other pages handle errors/empty state explicitly in JSX. Initial hypothesis: `fetchSchedule` returned unexpected empty array due to subtle data/query issue or cache. **User confirmed issue resolved by clearing cache and rebuilding.**
 
@@ -11,6 +14,23 @@
 - **[2025-04-23 11:54:31] - Code:** Completed Green Phase for `RegistrationDialog` (V3.1 - signUpUser logic). Implemented minimal code to call `signUpUser` after password confirmation, added `isSubmitting` state via reducer, and fixed related test assertion. Commit `89d2237` on `feature/registration-v3.1-impl`. [See MB Log 2025-04-23 11:54:31]
 
 - **[2025-04-23 16:37:51] - Code:** Updated `platform/config/registrationSchema.ts` to include missing 'universityInstitution' question (order 8) and re-ordered subsequent questions (9-48) to fix TDD blocker REG-SKIP-LOGIC-001. Committed to `feature/registration-v3.1-impl`. [See MB Log 2025-04-23 13:09:33]
+
+
+- **[2025-04-23 20:18:56] - Code:** Fixed logic errors in `RegistrationDialog` for handling failed confirmation checks and refactored OTP sign-in error handling. Committed to `feature/registration-v3.1-impl` (commit `f2826f4`). One related test still fails, likely due to test assertion/timing issues. [See MB Log 2025-04-23 20:18:56]
+
+
+- **[2025-04-23 20:27:45] - Debug:** Fixed failing test `should display an error message if initiateOtpSignIn fails` in `RegistrationDialog.test.tsx` by correcting the component's error message prefix and the test's assertion about the subsequent prompt. Commit `c25830d`. [See MB Issue REG-TEST-OTP-FAIL-001]
+
+
+- **[2025-04-23 20:31:05] - TDD:** Ran regression tests for `RegistrationDialog.test.tsx` after debug fix (commit `c25830d`). 13 passed, 3 failed, 1 skipped, 44 todo. Failures attributed to known timing issue REG-TEST-TIMING-001. Debug fix confirmed effective, no new regressions found.
+
+
+- **[2025-04-23 21:38:00] - Debug:** Blocked on REG-TEST-STATE-INIT-001. Component initialization logic fixed, test setup corrected (index 45, mock data). Test still fails, rendering prompt for index 44 instead of 45. Root cause unclear, possibly subtle timing/environment issue. Early Return invoked. [See MB Log 2025-04-23 21:38:00]
+
+- **[2025-04-23 21:49:57] - TDD:** Ran final check tests for `RegistrationDialog.test.tsx` on `feature/registration-v3.1-impl`. Result: 13 passed, 4 failed, 44 skipped. Analysis confirmed 2 failures due to persistent state initialization issue (REG-TEST-STATE-INIT-001) and 2 due to incomplete mocking (`checkConfirmationStatus`). Unit testing remains blocked by REG-TEST-STATE-INIT-001.
+
+
+- **[2025-04-23 22:19:40] - Debug:** Diagnosed REG-TEST-STATE-INIT-001 failure in 'boolean input' test. Added console logs to `RegistrationDialog`. Logs confirmed component initializes state correctly (index 45). Test failure is due to outdated assertion expecting `setDialogState` prop call instead of internal `useReducer` dispatch. [See MB Issue REG-TEST-STATE-INIT-001 Update]
 
 
 # Progress

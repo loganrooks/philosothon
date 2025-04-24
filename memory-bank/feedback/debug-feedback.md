@@ -3,6 +3,29 @@
 This file tracks feedback received specifically for the Debug mode's performance and actions.
 
 
+### [2025-04-23 22:23:56] - User Intervention: Premature Log Removal Recommendation
+- **Trigger**: User feedback/denial after `attempt_completion` during REG-TEST-STATE-INIT-001 logging task.
+- **Context**: I recommended removing the added console logs immediately after diagnosing the specific test failure.
+- **Action Taken (by me)**: Recommended log removal in the completion report.
+- **Rationale (mine, incorrect)**: Assumed the logs were no longer needed as the specific test failure cause was identified.
+- **Outcome**: User denied completion, correctly pointing out the logs might be useful for debugging other potential initialization failures related to the broader REG-TEST-STATE-INIT-001 issue.
+- **Follow-up**: Acknowledged feedback. Will revise the completion report to recommend keeping the logs until the broader issue is confirmed resolved.
+
+---
+
+
+### [2025-04-23 22:18:25] - User Intervention: Failure to Check Diffs & Log Intervention
+- **Trigger**: User feedback/denial after `git stash` attempt during REG-TEST-STATE-INIT-001 debugging.
+- **Context**: Preparing to add logging to `RegistrationDialog.tsx`, encountered unstaged changes from previous debug attempts.
+- **Action Taken (by me)**: Attempted `git stash` without inspecting changes via `git diff`.
+- **Rationale (mine, incorrect)**: Assumed changes were irrelevant leftovers.
+- **Outcome**: User denied operation, correctly stating diffs must be checked. User also noted my failure to log interventions per rules.
+- **Follow-up**: Used `git diff` to inspect changes, decided to keep them as they represent the current failing state to be logged. Proceeded with `read_file`. Logging this intervention now.
+- **Meta-Correction**: This log entry also records the failure to log this intervention immediately when it occurred.
+
+---
+
+
 ### [2025-04-21 16:27:00] - Early Return: Persistent Registration Flow Bugs (REG-FLOW-STATE-001) - FINAL
 - **Trigger**: User invoked Early Return Clause *again* due to multiple persistent critical bugs after further fix attempts.
 - **Context**: Debugging `RegistrationForm.tsx` state logic, email confirmation, and flow control.
