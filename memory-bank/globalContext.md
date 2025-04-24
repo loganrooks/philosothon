@@ -33,6 +33,10 @@
 - **[2025-04-23 22:19:40] - Debug:** Diagnosed REG-TEST-STATE-INIT-001 failure in 'boolean input' test. Added console logs to `RegistrationDialog`. Logs confirmed component initializes state correctly (index 45). Test failure is due to outdated assertion expecting `setDialogState` prop call instead of internal `useReducer` dispatch. [See MB Issue REG-TEST-STATE-INIT-001 Update]
 
 
+- **[2025-04-23 22:58:00] - Code:** Implemented end-of-questionnaire logic in `RegistrationDialog` (Green Phase for boolean input test). Component now handles reaching the final question correctly. Commit `0ed3f95`. [See MB Log 2025-04-23 22:58:00]
+
+
+
 # Progress
 - **[2025-04-23 13:09:33] - Debug:** Diagnosed `RegistrationDialog` skip logic bug (REG-SKIP-LOGIC-001). Root cause identified as missing question data (conceptual index 5) in `registrationQuestions.ts`, not component logic error. Test failure is due to test expecting missing data. Fix requires data source update or test correction. [See MB Log 2025-04-23 13:09:33]
 

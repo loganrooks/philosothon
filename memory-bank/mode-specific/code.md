@@ -79,6 +79,8 @@
 - **API Surface**: Exports `RegistrationDialog` component.
 - **Tests**: `platform/src/app/register/components/RegistrationDialog.test.tsx` (9/60 tests passing, covering implemented logic)
 - **Notes**: Implemented minimal logic to call `signUpUser` after password confirmation. Added `isSubmitting` state via reducer. Fixed test assertion. Next step is to implement logic for remaining `it.todo` tests.
+      - **Update [2025-04-23 22:58:00]**: Added end-of-questionnaire handling in `handleSubmit` for `questioning` mode. Checks if `currentQuestionIndex` is the last question; if so, adds completion message and sets mode to `success`. Fixes boolean input test failure. Commit `0ed3f95`.
+
 
 
 ### [2025-04-22 19:46:15] ScheduleDisplay Refinement
