@@ -1385,6 +1385,91 @@ describe('RegistrationDialog (V3.1)', () => {
     it.todo('should disable "prev" on the first question');
     it.todo('should disable "next" on the last question before submission');
     it.todo('should handle unknown commands gracefully');
+    it('should handle "help" command to display available commands', async () => {
+      const handleInput = vi.fn();
+      // Initial state: mid-registration (e.g., at index 6: programOfStudy)
+      const initialState = {
+        mode: 'questioning',
+        currentQuestionIndex: 6, // At programOfStudy
+        answers: {
+          firstName: 'Help',
+          lastName: 'User',
+          email: 'help@example.com',
+          academicYear: 'Second year',
+          universityInstitution: 'Help Uni',
+        },
+        isSubmitting: false,
+        error: null,
+        userId: 'mock-help-user-id'
+      };
+      currentDialogState = initialState; // Update local tracker
+
+      const { container, rerender } = render(
+        <RegistrationDialog
+          {...defaultProps}
+          dialogState={currentDialogState} // Pass mutable state
+          onInput={handleInput}
+        />
+      );
+
+      const inputElement = container.querySelector('input');
+      expect(inputElement).not.toBeNull();
+      if (!inputElement) return;
+
+      // Wait for the prompt for index 6 to ensure initial state is rendered
+      const currentQuestionPrompt = questions[6].label; // 'Program/Major(s)'
+      await waitFor(() => {
+        expect(mockAddOutputLine).toHaveBeenCalledWith(currentQuestionPrompt);
+      });
+
+      // --- Simulate entering 'help' command ---
+      await act(async () => {
+        fireEvent.change(inputElement, { target: { value: 'help' } });
+        fireEvent.submit(inputElement.closest('form')!);
+      });
+      await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('help'); });
+
+      // Rerender with potentially updated state (though state shouldn't change here)
+      rerender(<RegistrationDialog {...defaultProps} dialogState={currentDialogState} onInput={handleInput} />);
+
+      // --- Assert help message output ---
+      const expectedHelpMessage = [
+        "Available commands:",
+        "  next      - Go to the next question (or press Enter with input)",
+        "  back      - Go back to the previous question",
+        "  review    - Show a summary of your answers",
+        "  save      - Save your progress and exit",
+        "  exit      - Exit without saving",
+        "  help      - Show this help message",
+        // "  edit [N]  - Jump to question number N to edit", // Add when implemented
+        // "  submit    - Finalize and submit your registration (only at the end)", // Add when implemented
+      ].join('\n');
+
+      await waitFor(() => {
+        expect(mockAddOutputLine).toHaveBeenCalledWith(expectedHelpMessage);
+      });
+
+      // Assert that the current question prompt is re-displayed *after* the help message
+      // Check the *last* call related to the current question prompt
+      const calls = mockAddOutputLine.mock.calls;
+      const lastPromptCallIndex = calls.map(call => call[0]).lastIndexOf(currentQuestionPrompt);
+      const lastHelpCallIndex = calls.map(call => call[0]).lastIndexOf(expectedHelpMessage);
+
+      expect(lastPromptCallIndex).toBeGreaterThan(lastHelpCallIndex); // Prompt should be redisplayed after help
+
+      // Assert state did not change (index and mode)
+      // Check mockSetDialogState calls *after* the 'help' input was processed
+      // Find the index of the call where 'help' was handled to slice calls after that point
+      const helpHandledCallIndex = mockAddOutputLine.mock.calls.findIndex(call => call[0] === expectedHelpMessage);
+      const setDialogStateCallsAfterHelp = mockSetDialogState.mock.calls.slice(helpHandledCallIndex > -1 ? helpHandledCallIndex : 0);
+
+      const indexUpdateCall = setDialogStateCallsAfterHelp.find(call => call[0] === 'currentQuestionIndex');
+      const modeUpdateCall = setDialogStateCallsAfterHelp.find(call => call[0] === 'mode');
+
+      expect(indexUpdateCall).toBeUndefined(); // Index should not change
+      expect(modeUpdateCall).toBeUndefined(); // Mode should not change
+    });
+
   });
 
   describe('Local Storage Interaction', () => {
