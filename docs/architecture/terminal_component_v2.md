@@ -6,7 +6,7 @@
 
 ## 1. Overview
 
-This document outlines the V2 architecture for the modular and extensible terminal UI component in React, evolving from V1 (`docs/architecture/terminal_component_v1.md`). This version addresses the significantly expanded scope required by Project Specification V3.0, including registration, authentication, status viewing, submissions, document library, chatbot, and gamification, while refining state management and interaction patterns.
+This document outlines the V2 architecture for the modular and extensible terminal UI component in React, evolving from V1 architecture. This version addresses the significantly expanded scope required by Project Specification V3.0, including registration, authentication, status viewing, submissions, document library, chatbot, and gamification, while refining state management and interaction patterns.
 
 ## 2. Goals
 
@@ -131,20 +131,60 @@ interface DialogProps {
 
 ## 7. Specific Interaction Patterns
 
-*   **File Upload (`SubmissionDialog`):**
-    1.  User enters `upload` command (or similar) in Submission mode.
-    2.  `SubmissionDialog.processInput` handles the command.
-    3.  `SubmissionDialog` calls a function provided by `TerminalShell` (e.g., `requestFileUpload(callback)`) via props/context.
-    4.  `TerminalShell` renders the `<input type="file">` element and attaches the `callback`.
-    5.  User selects a file using the browser's native file picker.
-    6.  The `onChange` handler of the input calls the `callback` provided by `SubmissionDialog`, passing the `File` object.
-    7.  `SubmissionDialog` receives the `File` object and proceeds with the upload logic (e.g., calling Supabase Storage API via Server Action or client library).
-    8.  `SubmissionDialog` uses `addOutputLine` to report progress/success/failure.
-*   **MCP Interaction (`ChatDialog`, `GamificationDialog`):**
-    1.  These dialogs establish and manage WebSocket connections to their respective MCP servers upon activation (or use HTTP requests).
-    2.  User input via `processInput` is formatted and sent to the MCP server.
-    3.  Responses received from the MCP server are processed by the dialog.
-    4.  The dialog uses `addOutputLine` to display responses and potentially `sendToShellMachine` if the MCP response requires a global state change (e.g., puzzle completion triggers mode change).
+### 7.1 Registration Dialog Interaction Example
+
+This diagram illustrates a typical flow when the user provides input within the `RegistrationDialog`.
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant InputLine
+    participant TerminalShell as TerminalShell (XState Machine)
+    participant RegistrationDialog as RegistrationDialog (ActiveDialog)
+    participant RegAction as Registration Server Action
+
+    User->>InputLine: Enters registration answer (e.g., 'My Name')
+    InputLine->>TerminalShell: onSubmit('My Name')
+    TerminalShell->>TerminalShell: Sends 'INPUT' event { value: 'My Name' } to XState machine
+    TerminalShell->>RegistrationDialog: processInput('My Name') (Invoked by machine action/service)
+    RegistrationDialog->>RegistrationDialog: Validates input ('My Name')
+    alt Input Valid
+        RegistrationDialog->>RegistrationDialog: Updates internal state (e.g., answers)
+        RegistrationDialog->>TerminalShell: addOutputLine('Proceeding to next question...')
+        RegistrationDialog->>RegistrationDialog: Renders next question prompt
+        RegistrationDialog->>TerminalShell: addOutputLine('Next Question Prompt...')
+    else Input Invalid
+        RegistrationDialog->>TerminalShell: addOutputLine('Error: Invalid input. Please try again.')
+        RegistrationDialog->>RegistrationDialog: Renders same question prompt again
+        RegistrationDialog->>TerminalShell: addOutputLine('Current Question Prompt...')
+    else Input is 'submit' command
+        RegistrationDialog->>RegAction: Invokes Server Action with collected answers
+        RegAction-->>RegistrationDialog: Returns success/error
+        alt Submission Success
+            RegistrationDialog->>TerminalShell: sendToShellMachine({ type: 'CHANGE_MODE', targetMode: 'success' })
+        else Submission Error
+            RegistrationDialog->>TerminalShell: addOutputLine('Error submitting registration.')
+        end
+    end
+```
+
+### 7.2 File Upload (`SubmissionDialog`)
+
+1.  User enters `upload` command (or similar) in Submission mode.
+2.  `SubmissionDialog.processInput` handles the command.
+3.  `SubmissionDialog` calls a function provided by `TerminalShell` (e.g., `requestFileUpload(callback)`) via props/context.
+4.  `TerminalShell` renders the `<input type="file">` element and attaches the `callback`.
+5.  User selects a file using the browser's native file picker.
+6.  The `onChange` handler of the input calls the `callback` provided by `SubmissionDialog`, passing the `File` object.
+7.  `SubmissionDialog` receives the `File` object and proceeds with the upload logic (e.g., calling Supabase Storage API via Server Action or client library).
+8.  `SubmissionDialog` uses `addOutputLine` to report progress/success/failure.
+
+### 7.3 MCP Interaction (`ChatDialog`, `GamificationDialog`)
+
+1.  These dialogs establish and manage WebSocket connections to their respective MCP servers upon activation (or use HTTP requests).
+2.  User input via `processInput` is formatted and sent to the MCP server.
+3.  Responses received from the MCP server are processed by the dialog.
+4.  The dialog uses `addOutputLine` to display responses and potentially `sendToShellMachine` if the MCP response requires a global state change (e.g., puzzle completion triggers mode change).
 
 ## 8. Extensibility
 
