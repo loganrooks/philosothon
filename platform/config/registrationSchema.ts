@@ -12,7 +12,7 @@ export type QuestionType =
   | 'boolean' // Single checkbox or Yes/No
   | 'single-select' // Radio buttons / Dropdown
   | 'multi-select-numbered' // Checkboxes with numbered selection
-  | 'ranking-numbered'; // Numbered ranking input
+  | 'ranked-choice-numbered'; // Numbered ranking input
 
 // Define the structure for a single question definition - V3.1 Spec (Section 6.1)
 export interface QuestionDefinition {
@@ -504,7 +504,7 @@ export const registrationSchema: QuestionDefinition[] = [
     section: 'Theme Preferences',
     order: 28, // Correct order
     label: 'Please rank your top 3 preferred themes',
-    type: 'ranking-numbered',
+    type: 'ranked-choice-numbered',
     required: true,
     options: [ // Updated themes from outline Q18
       'Minds and Machines: Consciousness Beyond the Human',
@@ -551,7 +551,7 @@ export const registrationSchema: QuestionDefinition[] = [
     section: 'Workshop Preferences',
     order: 30, // Correct order
     label: 'Please rank your top 3 preferred workshops',
-    type: 'ranking-numbered',
+    type: 'ranked-choice-numbered',
     required: true,
     options: [ // Updated workshops from outline Q20
       'Language Models as Philosophical Objects',
@@ -920,7 +920,7 @@ export function generateRegistrationSchema() {
         // If storing numbers (indices), use z.array(z.number())
         zodType = z.array(z.string());
         break;
-      case 'ranking-numbered':
+      case 'ranked-choice-numbered':
         // Store as JSONB, e.g., [{ optionValue: string, rank: number }, ...] or [{ optionIndex: number, rank: number }, ...]
         // Basic validation here, complex refine in generator script
         zodType = z.array(z.object({

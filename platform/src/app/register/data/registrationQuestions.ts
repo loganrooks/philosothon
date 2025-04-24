@@ -16,7 +16,7 @@ export type QuestionType =
   | 'ranking-numbered'; // Added V3 type
 
 // Re-import QuestionDefinition to reuse nested types if needed
-import { QuestionDefinition } from '@/../config/registrationSchema';
+import { QuestionDefinition } from '../config/registrationSchema';
 
 export interface Question {
   id: string;
@@ -537,7 +537,7 @@ export const questions: Question[] = [
     section: 'Theme Preferences', // Added
     order: 28, // Added
     label: `Please rank your top 3 preferred themes`,
-    type: 'ranking-numbered',
+    type: 'ranked-choice-numbered',
     required: true,
     options: ["Minds and Machines: Consciousness Beyond the Human","Digital Commons: Rethinking Property in Information Space","Algorithmic Governance: Authority Without Autonomy?","Technological Singularity: Philosophical Implications of Superintelligence","Extended Perception: Technology and Phenomenological Experience","Digital Ethics: Beyond Utilitarian Frameworks","Attention Economies: The Commodification of Consciousness","Algorithmic Aesthetics: Beauty in the Age of Machine Creation","Other"],
     hint: `Enter rank (1, 2, 3) for your top 3 choices (e.g., \`5:1 2:2 8:3\`).`,
@@ -573,7 +573,7 @@ export const questions: Question[] = [
     section: 'Workshop Preferences', // Added
     order: 30, // Added
     label: `Please rank your top 3 preferred workshops`,
-    type: 'ranking-numbered',
+    type: 'ranked-choice-numbered',
     required: true,
     options: ["Language Models as Philosophical Objects","Generative AI Art: Creativity, Authorship, and Aesthetics","Reinforcement Learning: The Technical Foundations of AGI","Technology as Tool vs Master: Beyond Instrumentalism","Digital Commons and Information Capitalism","The Attention Economy: Technical Mechanisms and Philosophical Implications","Thinking Through Technical Systems: A Philosophical Approach","Design Philosophy: From Metaphysics to Material Reality","Other"],
     hint: `Enter rank (1, 2, 3) for your top 3 choices (e.g., \`1:1 5:2 3:3\`).`,
