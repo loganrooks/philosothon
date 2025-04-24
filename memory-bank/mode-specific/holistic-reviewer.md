@@ -5,6 +5,28 @@
 <!-- Append tasks delegated to other modes using the format below -->
 
 ## Review Findings & Recommendations
+### Finding: Integration/SPARC/TDD - [2025-04-24 11:57:11]
+- **Category**: Integration/SPARC/TDD
+- **Location/File(s)**: `platform/src/app/register/components/RegistrationDialog.test.tsx`
+- **Observation**: Test suite for `RegistrationDialog` is unstable. **Verification Run:** 8 failed, 24 passed, 33 skipped (out of 65). **No syntax errors preventing execution were found**, contradicting recent MB logs. **Failure Analysis:** Most failures stem from incorrect/fragile assertions (e.g., expecting specific output lines, incorrect state transitions due to mock setup for confirmation flow) rather than critical component bugs (boolean validation failure is an exception). **Skipped Tests:** 33 skips are mostly `it.todo` placeholders aligning with remaining spec features. **Code Hygiene:** Significant duplication exists between `ranked-choice-numbered` and `ranking-numbered` test blocks (lines ~1423-1871). Tests also rely on timing workarounds (REG-TEST-TIMING-001).
+- **Recommendation**: **Highest Priority:** Delegate fixing `RegistrationDialog.test.tsx` to `tdd` mode. Task: Correct the 8 failing test assertions, remove duplicated test block (lines ~1649-1871), address assertion fragility. Ensure 24 currently passing tests remain passing.
+- **Severity/Priority**: High
+
+### Finding: Integration - [2025-04-24 11:50:50]
+- **Category**: Integration
+- **Location/File(s)**: `platform/src/app/register/components/RegistrationDialog.tsx`
+- **Observation**: Component lacks implementation for handling and validating the `ranked-choice-numbered` input type specified in `registrationSchema.ts` and `docs/event_info/registration_outline.md`.
+- **Recommendation**: Implement `ranked-choice-numbered` logic in the component *after* the test suite is verified and stabilized. Delegate to `code` or `tdd` mode.
+- **Severity/Priority**: Medium
+
+### Finding: Integration - [2025-04-24 11:50:50]
+- **Category**: Integration
+- **Location/File(s)**: `platform/src/app/register/components/RegistrationDialog.tsx`
+- **Observation**: Logic for checking email confirmation status (`checkConfirmationStatus`) and resending confirmation emails (`resendConfirmationEmail`) relies on placeholder functions or commented-out mocks. Real implementation is missing.
+- **Recommendation**: Implement actual backend logic/integration for email confirmation checks and resends when required by the development phase. This is lower priority than fixing tests and core component logic.
+- **Severity/Priority**: Low
+
+
 ### Finding: SPARC/TDD - [2025-04-18 01:03:00]
 - **Category**: SPARC/TDD
 - **Location/File(s)**: `memory-bank/globalContext.md`
