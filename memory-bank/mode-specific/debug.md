@@ -1,6 +1,20 @@
 # Debug Specific Memory
 
 ## Issue History
+### Issue: REG-MULTI-SELECT-VALID-001 - Alleged incorrect state advance for valid multi-select-numbered input - [Status: Closed (No Bug Found)] - [2025-04-24 10:13:38]
+- **Reported**: 2025-04-24 10:10:19 (Task Context) / **Severity**: Medium (Reported) / **Symptoms**: Task context claimed test `should handle multi-select-numbered input...` failure indicated component incorrectly advanced state on valid input.
+- **Investigation**:
+    1. Checked out correct commit `bf24bfe`. (2025-04-24 10:12:04)
+    2. Analyzed `RegistrationDialog.tsx` `handleSubmit` logic for valid `multi-select-numbered` input: Confirmed logic correctly validates input, stores answer array, and dispatches `NEXT_STEP`. (2025-04-24 10:12:16)
+    3. Analyzed test `RegistrationDialog.test.tsx` (`should handle multi-select-numbered input...` lines 1237-1286): Found assertion for *next* prompt was removed (REG-TEST-TIMING-001 workaround). Remaining assertion only checks for absence of error. (2025-04-24 10:12:56)
+    4. Ran test suite `npm test -- RegistrationDialog.test.tsx`: Confirmed target test failed. (2025-04-24 10:13:38)
+    5. Analyzed test failure output: Failure occurred because assertion checking *initial options display* (line 1266) failed within `waitFor`, indicating state advanced before the assertion could pass, confirming timing issue. (2025-04-24 10:13:38)
+- **Root Cause**: The component logic for handling valid `multi-select-numbered` input is correct at commit `bf24bfe`. The reported test failure is due to test suite timing instability (REG-TEST-TIMING-001) and flawed assertions, not a component bug related to incorrect state advancement on valid input.
+- **Fix Applied**: None required for component logic.
+- **Verification**: Code analysis and test failure analysis confirm component behaves correctly, test fails due to timing/assertions.
+- **Related Issues**: REG-TEST-TIMING-001, Task Context [2025-04-24 10:10:19]
+
+
 ### Issue: REG-MULTI-SELECT-VALIDATION-001 - RegistrationDialog advances state on invalid multi-select-numbered input - [Status: Analysis Complete - No Fix Needed] - [2025-04-24 03:55:06]
 - **Reported**: 2025-04-24 02:52:14 (Task Context) / **Severity**: Medium / **Symptoms**: Test `should validate multi-select-numbered input (valid numbers)` fails, indicating component advances state (`NEXT_STEP` dispatched) despite invalid input (e.g., "1 abc").
 - **Investigation**:

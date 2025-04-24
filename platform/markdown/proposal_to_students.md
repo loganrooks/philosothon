@@ -18,16 +18,16 @@ Think of it as a philosophy hackathon – but instead of coding, we're creating 
 
 ## **Event Details**
 
-**Monday, April 26:**
+**Saturday, April 26:**
 * 8:30AM: Sign-in and welcome
 * 9:00AM: Opening remarks and theme announcement
 * 12:00-1:00PM: Workshop #1
-* 6:00-8:00PM: Workshop #2
+* 5:00-6:00PM: Workshop #2
 * 11:59PM: Submission deadline
 
-**Tuesday, April 27:**
-* 10:30AM-12:30PM: Team presentations
-* 12:30-2:00PM: Discussion, feedback, and closing
+**Sunday, April 27:**
+* 10:30AM-1:30PM: Team presentations
+* 1:30-2:00PM: Discussion, feedback, and closing
 
 **Location:** BA 1230
 

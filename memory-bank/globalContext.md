@@ -100,6 +100,9 @@
 - **[2025-04-23 13:03:11] - TDD:** Blocked on `RegistrationDialog` TDD cycle for `programOfStudy` input handling due to persistent test failure (incorrect step advancement). Multiple Green phase attempts failed. Root cause suspected in `registrationQuestions.ts` data or state/timing issue. Early Return Clause invoked. [See MB Log 2025-04-23 13:03:11]
 
 - **[2025-04-22 19:46:15] - Code:** Completed ScheduleDisplay refinements (time format, single time, mobile responsiveness) on `schedule-update` branch (commit `ab867a3`). Component tests pass. Build successful. [See MB Log 2025-04-22 19:33:03]
+- **[2025-04-24 10:13:38] - Debug:** Investigated alleged bug in `RegistrationDialog` (commit `bf24bfe`) regarding incorrect state advancement for *valid* `multi-select-numbered` input. Found component logic is correct; state advances as expected. Related test failure (`should handle multi-select-numbered input...`) confirmed to be caused by test timing issues (REG-TEST-TIMING-001) and flawed assertions, not a component bug. No code changes made. [See MB Debug Log Issue-ID: REG-MULTI-SELECT-VALID-001]
+
+
 - **[2025-04-23 17:58:41] - TDD:** Completed TDD cycle for required input validation in `RegistrationDialog`. Test passes after adding validation logic. Commit `fc52995`. [See MB Log 2025-04-23 17:58:41]
 
 

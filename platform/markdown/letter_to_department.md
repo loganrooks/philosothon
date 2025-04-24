@@ -14,20 +14,18 @@ The Philosothon adapts the hackathon format to philosophical inquiry. Participan
 
 ## **Detailed Schedule**
 
-**Monday, April 7, 2025:**
+**Saturday, Arpil 26, 2025:**
 
 * 8:30AM-9:00AM: Sign-in and welcome
 * 9:00AM-9:30AM: Opening remarks and theme announcement
-* 9:30AM-11:30AM: Initial team meetings
-* 12:00PM-1:00PM: Philosophy of technology workshop (with lunch provided)
-* 6:00PM-8:00PM: Pascal Quest workshop (limited to one representative per team)
+* 12:00PM-1:00PM: Workshop #1 (with lunch provided)
+* 5:00PM-6:00PM: Workshop #2
 * 11:59PM: Submission deadline for presentations and written components
 
-**Tuesday, April 8, 2025:**
+**Sunday, April 27, 2025:**
 
-* 10:30AM-12:30PM: Team presentations
-* 12:30PM-1:30PM: Feedback collection and discussion
-* 1:30PM-2:00PM: Closing remarks
+* 10:30AM-1:30PM: Team presentations
+* 1:30PM-2:00PM: Feedback collection, discussion and closing remarks
 
 ## **Organizational Structure**
 
@@ -67,7 +65,7 @@ We commit to providing the department with a comprehensive post-event report det
 
 ## **Funding Request**
 
-We respectfully request financial support of $50 to cover lunch for participants during the Pascal Quest workshop. This modest investment will help us test the viability of this innovative educational format.
+We respectfully request financial support of $60 to cover lunch for participants during the first workshop. This modest investment will help us test the viability of this innovative educational format.
 
 ## **Conclusion**
 
