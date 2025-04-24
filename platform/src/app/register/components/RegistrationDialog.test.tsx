@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act, renderHook } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, MockInstance } from 'vitest'; // Import MockInstance
 import { QuestionType } from '@/../config/registrationSchema'; // Import QuestionType
 // import useLocalStorage from '@/lib/hooks/useLocalStorage'; // TODO: Verify path or existence
@@ -26,7 +26,7 @@ const mockClearDialogState = vi.fn();
 const mockChangeMode = vi.fn();
 
 // Import the actual component directly
-import RegistrationDialog from './RegistrationDialog';
+import RegistrationDialog, { useRegistrationReducer, registrationInitialState, type RegistrationState, type RegistrationAction } from './RegistrationDialog';
 
 
 // Default props based on V2 Architecture doc
@@ -114,7 +114,6 @@ async function simulateFlowToQuestion(
         switch (question.type) {
           case 'text':
           case 'textarea': stepInput = `Answer for ${stepId}`; break;
-          case 'number':
           case 'scale': stepInput = String(question.validationRules?.min?.value ?? 1); break; // Default to min value
           case 'boolean': stepInput = 'y'; break; // Default to 'yes'
           case 'single-select': stepInput = '1'; break; // Default to first option
@@ -263,6 +262,8 @@ describe('RegistrationDialog (V3.1)', () => {
         const inputElement = container.querySelector('input');
         await simulateInputCommand(inputElement, 'Test');
 
+        // Check that the input was echoed
+        expect(mockAddOutputLine).toHaveBeenCalledWith('> Test', { type: 'input' });
         // Check for Last Name prompt
         // Need to wait for the state update and subsequent useEffect to run
         await waitFor(() => {
@@ -1977,6 +1978,25 @@ describe('RegistrationDialog (V3.1)', () => {
       const expectedJson = JSON.stringify(expectedStateToSave);
       const expectedBase64 = btoa(expectedJson); // Use btoa for Base64 encoding
 
+      // Assert the *content* saved to localStorage
+      await waitFor(() => {
+        const setItemArgs = setItemSpy.mock.calls[0]; // Get args from the first call
+        expect(setItemArgs).toBeDefined();
+        if (!setItemArgs) return; // Guard for TS
+        const savedKey = setItemArgs[0];
+        const savedValueBase64 = setItemArgs[1];
+        expect(savedKey).toBe(expectedKey);
+
+        // Decode and parse the saved state
+        const savedValueJson = atob(savedValueBase64);
+        const savedState = JSON.parse(savedValueJson);
+
+        // Assert the answers match the initial state provided to the test
+        expect(savedState.answers).toEqual(initialSaveState.answers);
+        expect(savedState.currentQuestionIndex).toBe(initialSaveState.currentQuestionIndex);
+        expect(savedState.mode).toBe(initialSaveState.mode);
+      });
+
       await waitFor(() => {
         expect(setItemSpy).toHaveBeenCalledTimes(1);
         expect(setItemSpy).toHaveBeenCalledWith(expectedKey, expectedBase64);
@@ -2026,3 +2046,134 @@ describe('RegistrationDialog (V3.1)', () => {
 
 
 }); // Closes main describe 'RegistrationDialog (V3.1)'
+
+
+describe('Reducer Logic (useRegistrationReducer Hook)', () => {
+  it('should update answers state when SET_ANSWER is dispatched', () => {
+    // Arrange: Render the hook
+    const { result } = renderHook(() => useRegistrationReducer());
+
+    // Act: Dispatch an action
+    const testPayload = { stepId: 'firstName', answer: 'TestName' };
+    act(() => {
+      result.current.dispatch({ type: 'SET_ANSWER', payload: testPayload });
+    });
+
+    // Assert: Check if the state was updated correctly
+    expect(result.current.state.answers.firstName).toBe('TestName');
+  });
+
+  it('should update mode and reset index when SET_MODE is dispatched to questioning', () => {
+    // Arrange: Render the hook with a different initial mode
+    const { result } = renderHook(() => useRegistrationReducer({ mode: 'early_auth', currentQuestionIndex: 1 }));
+
+    // Act: Dispatch SET_MODE to questioning
+    act(() => {
+      result.current.dispatch({ type: 'SET_MODE', payload: 'questioning' });
+    });
+
+    // Assert: Check mode and index
+    expect(result.current.state.mode).toBe('questioning');
+    expect(result.current.state.currentQuestionIndex).toBe(3); // Should reset to start of questions (index 3)
+  });
+
+   it('should increment index when NEXT_STEP is dispatched', () => {
+    // Arrange: Render the hook
+    const { result } = renderHook(() => useRegistrationReducer({ currentQuestionIndex: 5 }));
+
+    // Act: Dispatch NEXT_STEP
+    act(() => {
+      result.current.dispatch({ type: 'NEXT_STEP' });
+    });
+
+    // Assert: Check index
+    expect(result.current.state.currentQuestionIndex).toBe(6);
+  });
+
+   it('should decrement index when PREV_STEP is dispatched', () => {
+    // Arrange: Render the hook
+    const { result } = renderHook(() => useRegistrationReducer({ currentQuestionIndex: 5 }));
+
+    // Act: Dispatch PREV_STEP
+    act(() => {
+      result.current.dispatch({ type: 'PREV_STEP' });
+    });
+
+    // Assert: Check index
+    expect(result.current.state.currentQuestionIndex).toBe(4);
+  });
+
+   it('should not decrement index below 0 when PREV_STEP is dispatched', () => {
+    // Arrange: Render the hook
+    const { result } = renderHook(() => useRegistrationReducer({ currentQuestionIndex: 0 }));
+
+    // Act: Dispatch PREV_STEP
+    act(() => {
+      result.current.dispatch({ type: 'PREV_STEP' });
+    });
+
+    // Assert: Check index
+    expect(result.current.state.currentQuestionIndex).toBe(0);
+  });
+
+   it('should set specific index when SET_INDEX is dispatched', () => {
+    // Arrange: Render the hook
+    const { result } = renderHook(() => useRegistrationReducer());
+
+    // Act: Dispatch SET_INDEX
+    act(() => {
+      result.current.dispatch({ type: 'SET_INDEX', payload: 10 });
+    });
+
+    // Assert: Check index
+    expect(result.current.state.currentQuestionIndex).toBe(10);
+  });
+
+   it('should merge loaded state when LOAD_STATE is dispatched', () => {
+    // Arrange: Render the hook
+    const { result } = renderHook(() => useRegistrationReducer());
+    const loadPayload: Partial<RegistrationState> = {
+        mode: 'questioning',
+        currentQuestionIndex: 15,
+        answers: { 'firstName': 'Loaded Name' }
+    };
+
+    // Act: Dispatch LOAD_STATE
+    act(() => {
+      result.current.dispatch({ type: 'LOAD_STATE', payload: loadPayload });
+    });
+
+    // Assert: Check merged state
+    expect(result.current.state.mode).toBe('questioning');
+    expect(result.current.state.currentQuestionIndex).toBe(15);
+    expect(result.current.state.answers.firstName).toBe('Loaded Name');
+    expect(result.current.state.isSubmitting).toBe(false); // Check initial state wasn't overwritten
+  });
+
+   it('should set isSubmitting to true on SUBMIT_START', () => {
+    // Arrange: Render the hook
+    const { result } = renderHook(() => useRegistrationReducer());
+
+    // Act: Dispatch SUBMIT_START
+    act(() => {
+      result.current.dispatch({ type: 'SUBMIT_START' });
+    });
+
+    // Assert: Check isSubmitting
+    expect(result.current.state.isSubmitting).toBe(true);
+  });
+
+   it('should set isSubmitting to false on SUBMIT_END', () => {
+    // Arrange: Render the hook with submitting true
+    const { result } = renderHook(() => useRegistrationReducer({ isSubmitting: true }));
+
+    // Act: Dispatch SUBMIT_END
+    act(() => {
+      result.current.dispatch({ type: 'SUBMIT_END' });
+    });
+
+    // Assert: Check isSubmitting
+    expect(result.current.state.isSubmitting).toBe(false);
+  });
+
+});

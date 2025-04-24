@@ -22,45 +22,40 @@ interface DialogProps {
   changeMode: (mode: DialogMode) => void;
 }
 
-interface State {
+// --- State Management Hook ---
+export interface RegistrationState {
   mode: DialogMode;
-  currentQuestionIndex: number; // Will represent step within early_auth or question index
+  currentQuestionIndex: number;
   answers: Record<string, any>;
-  // Add other state properties as needed by tests
   isSubmitting: boolean;
 }
 
-type Action =
+export type RegistrationAction =
   | { type: 'SET_MODE'; payload: DialogMode }
-  | { type: 'NEXT_STEP' } // Generic step advancement
-  | { type: 'PREV_STEP' } // Generic step reversal
-  | { type: 'SET_INDEX'; payload: number } // Explicitly set index
-  | { type: 'SET_ANSWER'; payload: { stepId: string; answer: any } } // Use stepId for early_auth
-  | { type: 'LOAD_STATE'; payload: Partial<State> }
+  | { type: 'NEXT_STEP' }
+  | { type: 'PREV_STEP' }
+  | { type: 'SET_INDEX'; payload: number }
+  | { type: 'SET_ANSWER'; payload: { stepId: string; answer: any } }
+  | { type: 'LOAD_STATE'; payload: Partial<RegistrationState> }
   | { type: 'SUBMIT_START' }
   | { type: 'SUBMIT_END' };
 
-const initialState: State = {
+export const registrationInitialState: RegistrationState = {
   mode: 'intro',
-  currentQuestionIndex: 0, // 0: First Name, 1: Last Name, 2: Email, etc. in early_auth
+  currentQuestionIndex: 0,
   answers: {},
   isSubmitting: false,
 };
 
-// Define steps for early auth
-const earlyAuthSteps = ['firstName', 'lastName', 'email', 'password', 'confirmPassword']; // Keep adding steps as needed
+// Define steps for early auth (kept separate for potential use outside hook)
+export const earlyAuthSteps = ['firstName', 'lastName', 'email', 'password', 'confirmPassword'];
 
-function reducer(state: State, action: Action): State {
-
+function registrationReducer(state: RegistrationState, action: RegistrationAction): RegistrationState {
   switch (action.type) {
     case 'SET_MODE':
-      // Only reset index if mode is changing *to* questioning from something else,
-      // or if changing to a non-questioning mode.
-      // Preserve index if already in questioning mode (e.g., set by initReducer).
       const shouldResetIndex = state.mode !== action.payload;
+      // Start questioning at index 3 ('academicYear'), otherwise 0 unless already questioning
       const startIndex = (action.payload === 'questioning' && shouldResetIndex) ? 3 : (action.payload !== 'questioning' ? 0 : state.currentQuestionIndex);
-      const newState_SET_MODE = { ...state, mode: action.payload, currentQuestionIndex: startIndex };
-
       return { ...state, mode: action.payload, currentQuestionIndex: startIndex };
     case 'NEXT_STEP':
       // TODO: Add logic for end of questions
@@ -68,8 +63,6 @@ function reducer(state: State, action: Action): State {
     case 'PREV_STEP':
       return { ...state, currentQuestionIndex: Math.max(0, state.currentQuestionIndex - 1) };
     case 'SET_INDEX':
-       const newState_SET_INDEX = { ...state, currentQuestionIndex: action.payload };
-
        return { ...state, currentQuestionIndex: action.payload };
     case 'SET_ANSWER':
       return {
@@ -80,12 +73,7 @@ function reducer(state: State, action: Action): State {
         },
       };
     case 'LOAD_STATE':
-        // Merge the payload into the current state
-        // Be careful not to overwrite essential parts if payload is incomplete
-         const newState_LOAD_STATE = { ...state, ...action.payload };
-
         return { ...state, ...action.payload };
-    // Add other action handlers as needed by tests
     case 'SUBMIT_START':
       return { ...state, isSubmitting: true };
     case 'SUBMIT_END':
@@ -94,6 +82,13 @@ function reducer(state: State, action: Action): State {
       return state;
   }
 }
+
+export function useRegistrationReducer(initialDialogState?: Partial<RegistrationState>) {
+  const [state, dispatch] = useReducer(registrationReducer, { ...registrationInitialState, ...initialDialogState });
+  return { state, dispatch };
+}
+// --- End State Management Hook ---
+
 
 // Placeholder function - Replace with actual confirmation logic
 async function checkConfirmationStatus(userId: string): Promise<boolean> {
@@ -112,11 +107,11 @@ const RegistrationDialog: React.FC<DialogProps> = ({
   onInput, // Assuming this prop exists for handling input submission
   changeMode,
 }) => {
-  // Initialize state by merging initialState with the dialogState prop
-  const [state, dispatch] = useReducer(reducer, { ...initialState, ...dialogState });
+  // Use the custom hook, passing the dialogState prop for initialization
+  const { state, dispatch } = useRegistrationReducer(dialogState);
 
   const [currentInput, setCurrentInput] = useState(''); // Example input state
-  // Note: isSubmitting state is now handled by the reducer
+  // Note: isSubmitting state is now handled by the hook's reducer
 
   // Determine current step ID based on state
   const currentStepId = state.mode === 'early_auth' ? earlyAuthSteps[state.currentQuestionIndex] : null;

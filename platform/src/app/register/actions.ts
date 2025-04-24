@@ -9,8 +9,7 @@ import { fetchRegistrationByUserId, insertRegistration, RegistrationInput } from
 import { Database, Json } from '@/lib/supabase/database.types'; // Import generated types including Json
 
 
-// Generated Zod schema based on central configuration
-// Generated Zod schema based on central configuration
+
 export const RegistrationSchema = generateRegistrationSchema();
 // Define an inferred type based on the Zod schema
 type ValidatedRegistrationData = z.infer<typeof RegistrationSchema>;

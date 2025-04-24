@@ -800,7 +800,7 @@ export function RegistrationForm({ initialAuthStatus }: { initialAuthStatus?: { 
         } else if (answer) { // Only validate non-empty answers further (unless required check failed)
             // TODO: Implement detailed validation based on question.type and question.validationRules
             // Example:
-            if (question.type === 'number' || question.type === 'scale') {
+            if (question.type === 'scale' || question.type === 'number') {
                 const num = parseInt(answer, 10);
                 if (isNaN(num)) validationError = "Invalid number.";
                 // Add min/max checks from validationRules
@@ -814,7 +814,7 @@ export function RegistrationForm({ initialAuthStatus }: { initialAuthStatus?: { 
                  const nums = answer.split(' ').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
                  // TODO: Add validation (valid options, min/max selections)
                  processedAnswerValue = nums;
-            } else if (question.type === 'ranking-numbered') {
+            } else if (question.type === 'ranked-choice-numbered') {
                  // TODO: Implement parsing and validation (format, unique, minRanked)
                  processedAnswerValue = answer; // Placeholder
             }
