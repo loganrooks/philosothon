@@ -626,7 +626,7 @@ describe('RegistrationDialog (V3.1)', () => {
 
       // Verify we reached awaiting_confirmation state (check for confirmation prompt)
       const confirmationPrompt = `Account created. Please check your email (${testEmail}) for a confirmation link. Enter 'continue' here once confirmed, or 'resend' to request a new link.`;
-      await waitFor(() => { expect(mockAddOutputLine).toHaveBeenCalledWith(confirmationPrompt); });
+      await assertOutputLine(expect, mockAddOutputLine, confirmationPrompt);
       // --- End simulation ---
 
       // Simulate user entering 'continue' using helper
@@ -675,13 +675,13 @@ describe('RegistrationDialog (V3.1)', () => {
       await simulateInputCommand(inputElement, testData.lastName);
       await simulateInputCommand(inputElement, testData.email);
       await simulateInputCommand(inputElement, testData.password);
-      await waitFor(() => { expect(mockAddOutputLine).toHaveBeenCalledWith(expect.stringContaining("Please confirm your password:")); });
+      await assertOutputLine(expect, mockAddOutputLine, expect.stringContaining("Please confirm your password:"));
       await simulateInputCommand(inputElement, testData.password);
       await waitFor(() => { expect(authActions.initiateOtpSignIn).toHaveBeenCalledTimes(1); });
       await waitFor(() => { expect(mockSetDialogState).toHaveBeenCalledWith('pendingUserId', 'mock-unconfirmed-user-id'); });
       // Adjust confirmation prompt if OTP flow changes it
       const confirmationPrompt = `Account created. Please check your email (${testEmail}) for a confirmation link. Enter 'continue' here once confirmed, or 'resend' to request a new link.`;
-      await waitFor(() => { expect(mockAddOutputLine).toHaveBeenCalledWith(confirmationPrompt); });
+      await assertOutputLine(expect, mockAddOutputLine, confirmationPrompt);
       // --- End simulation ---
 
       // Simulate user entering 'continue'
@@ -697,9 +697,7 @@ describe('RegistrationDialog (V3.1)', () => {
 
       // Assert error message was shown
       const expectedError = "Email not confirmed yet. Please check your email or use 'resend'.";
-      await waitFor(() => {
-        expect(mockAddOutputLine).toHaveBeenCalledWith(expectedError, { type: 'error' });
-      });
+      await assertOutputLine(expect, mockAddOutputLine, expectedError, { type: 'error' });
 
       // Assert the confirmation prompt is shown again (indicating still in awaiting_confirmation)
       // Use toHaveBeenLastCalledWith to be more precise
@@ -729,13 +727,13 @@ describe('RegistrationDialog (V3.1)', () => {
       await simulateInputCommand(inputElement, testData.lastName);
       await simulateInputCommand(inputElement, testData.email);
       await simulateInputCommand(inputElement, testData.password);
-      await waitFor(() => { expect(mockAddOutputLine).toHaveBeenCalledWith(expect.stringContaining("Please confirm your password:")); });
+      await assertOutputLine(expect, mockAddOutputLine, expect.stringContaining("Please confirm your password:"));
       await simulateInputCommand(inputElement, testData.password);
       await waitFor(() => { expect(authActions.initiateOtpSignIn).toHaveBeenCalledTimes(1); });
       await waitFor(() => { expect(mockSetDialogState).toHaveBeenCalledWith('pendingUserId', 'mock-resend-user-id'); });
       // Adjust confirmation prompt if OTP flow changes it
       const confirmationPrompt = `Account created. Please check your email (${testEmail}) for a confirmation link. Enter 'continue' here once confirmed, or 'resend' to request a new link.`;
-      await waitFor(() => { expect(mockAddOutputLine).toHaveBeenCalledWith(confirmationPrompt); });
+      await assertOutputLine(expect, mockAddOutputLine, confirmationPrompt);
       // --- End simulation ---
 
       // Simulate user entering 'resend'
