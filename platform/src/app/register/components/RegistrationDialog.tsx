@@ -74,7 +74,12 @@ function registrationReducer(state: RegistrationState, action: RegistrationActio
         },
       };
     case 'LOAD_STATE':
-        return { ...state, ...action.payload };
+        // Type guard to ensure payload exists for LOAD_STATE
+        if (action.type === 'LOAD_STATE') {
+          const newState = { ...state, ...action.payload };
+          return newState;
+        }
+        // Removed erroneous return statements here
     case 'SUBMIT_START':
       return { ...state, isSubmitting: true };
     case 'SUBMIT_END':
@@ -105,6 +110,8 @@ const RegistrationDialog: React.FC<DialogProps> = ({
   const { state, dispatch } = useRegistrationReducer(dialogState);
 
   const [currentInput, setCurrentInput] = useState(''); // Example input state
+  const [showPrompt, setShowPrompt] = useState(true); // Flag to control prompt display after errors
+
   // Note: isSubmitting state is now handled by the hook's reducer
 
   // Determine current step ID based on state
@@ -123,7 +130,12 @@ const RegistrationDialog: React.FC<DialogProps> = ({
   }, [state.mode, addOutputLine]); // Run only once when mode becomes 'intro' initially
 
   // Effect to display current prompt based on state.mode and currentStepId
+    // Removed debug log
   useEffect(() => {
+    if (!showPrompt) {
+      setShowPrompt(true); // Reset flag for next interaction
+      return; // Don't show prompt if flag was false
+    }
 
     if (state.mode === 'early_auth') {
        const currentStepId = earlyAuthSteps[state.currentQuestionIndex]; // Get step ID for early auth
@@ -173,11 +185,29 @@ const RegistrationDialog: React.FC<DialogProps> = ({
         }
       }
     } else if (state.mode === 'awaiting_confirmation') {
-        // Prompt is now handled by the transition logic in handleSubmit/handleSignUp
-        // TODO: Add logic for checkEmailConfirmation polling? Or rely on user 'continue'/'resend'
+        // Display prompt when entering this mode
+        const confirmationPrompt = `Account created. Please check your email (${state.answers.email}) for a confirmation link. Enter 'continue' here once confirmed, or 'resend' to request a new link.`;
+        addOutputLine(confirmationPrompt);
     }
     // Add other modes (review, success, error)
-  }, [state.mode, state.currentQuestionIndex, addOutputLine]);
+  // Reverted dependencies
+  }, [state.mode, state.currentQuestionIndex, state.answers, addOutputLine, showPrompt]); // Added showPrompt
+
+  // Effect to check for saved progress on mount
+  useEffect(() => {
+    try {
+      const savedData = localStorage.getItem('philosothon-registration-v3.1');
+      if (savedData) {
+        // Basic check if data exists, no need to fully parse here for the prompt
+        addOutputLine('Existing registration progress found. Use "register continue" to resume.', { type: 'system' });
+      }
+    } catch (error) {
+      // Ignore errors reading localStorage on mount for this prompt
+      console.error("Error checking localStorage on mount:", error);
+    }
+    // Run only once on mount, addOutputLine is a dependency
+  }, [addOutputLine]);
+
 
   // Simplified input handling - will need refinement based on tests
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -201,6 +231,7 @@ const RegistrationDialog: React.FC<DialogProps> = ({
 
           if (error) {
               // Handle OTP initiation error
+              setShowPrompt(false); // Prevent default prompt display
               addOutputLine(`Error initiating sign-in: ${error.message || 'Unknown error'}`, { type: 'error' });
               // Reset the state to the password step index. The useEffect hook will handle re-prompting.
               const passwordStepIndex = earlyAuthSteps.indexOf('password');
@@ -211,13 +242,11 @@ const RegistrationDialog: React.FC<DialogProps> = ({
               // OTP initiated successfully
               // Construct the confirmation message using the email from the state
               const confirmationMessage = `Account created. Please check your email (${state.answers.email}) for a confirmation link. Enter 'continue' here once confirmed, or 'resend' to request a new link.`;
-              addOutputLine(confirmationMessage);
-              // NOTE: User ID is not available immediately after OTP initiation, but the test flow relies on it being set.
-              // We'll set it based on the mock data for test purposes. Real implementation might differ.
-              // Dispatch internal state update instead of calling external prop
+              // addOutputLine(confirmationMessage); // Message displayed by useEffect on mode change
               dispatch({ type: 'SET_MODE', payload: 'awaiting_confirmation' });
           }
       } catch (error) {
+          setShowPrompt(false); // Prevent default prompt display
           addOutputLine(`An unexpected error occurred during sign-in initiation: ${error instanceof Error ? error.message : String(error)}`, { type: 'error' });
            // Re-prompt for confirm password
            addOutputLine("Please confirm your password:");
@@ -229,109 +258,148 @@ const RegistrationDialog: React.FC<DialogProps> = ({
 
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => { // Make async
-    console.log('[DEBUG][Component] handleSubmit invoked');
     event.preventDefault();
     const input = currentInput.trim();
     addOutputLine(`> ${input}`, { type: 'input' }); // Echo input
     onInput(input); // Pass input to TerminalShell/Dialog handler
     setCurrentInput(''); // Clear input field
 
-    // Process the input based on the current state
-    if (state.mode === 'early_auth' && currentStepId) {
-        let isValid = true;
-        let errorMessage = "Input cannot be empty.";
+    const currentQuestion = questions[state.currentQuestionIndex]; // Get current question for potential re-display
+    const lowerInput = input.toLowerCase();
 
-        if (!input) {
-            isValid = false;
-        } else if (currentStepId === 'email') {
-            // Basic email format check (improve as needed by tests)
-            if (!/\S+@\S+\.\S+/.test(input)) {
-                isValid = false;
-                errorMessage = "Invalid email format.";
-            }
-        } else if (currentStepId === 'password') {
-            // Basic password length check
-            if (input.length < 8) {
-                isValid = false;
-                errorMessage = "Password must be at least 8 characters.";
-            }
-        } else if (currentStepId === 'confirmPassword') {
-            // Check if passwords match
-            if (input !== state.answers.password) {
-                isValid = false;
-                errorMessage = "Passwords do not match.";
-            }
+    // --- Global Command Handling (Executes regardless of mode) ---
+    if (lowerInput === 'exit') {
+        sendToShellMachine({ type: 'EXIT' });
+        return;
+    } else if (lowerInput === 'help') {
+      const helpMessage = [
+        "Available commands:",
+        "  next      - Go to the next question (or press Enter with input)",
+        "  back      - Go back to the previous question",
+        "  review    - Show a summary of your answers",
+        "  save      - Save your progress and exit",
+        "  exit      - Exit without saving",
+        "  help      - Show this help message",
+        "  edit [n]  - Jump back to edit question number 'n'",
+        "  register continue - Load saved progress",
+      ].join('\n');
+      addOutputLine(helpMessage);
+      // Re-display current prompt (if applicable)
+      setShowPrompt(false); // Prevent useEffect from re-displaying
+      if (state.mode === 'questioning' && currentQuestion) {
+        addOutputLine(currentQuestion.label);
+        if (currentQuestion.hint) addOutputLine(currentQuestion.hint, { type: 'hint' });
+        if (currentQuestion.options) {
+          const optionsText = currentQuestion.options.map((opt, index) => `${index + 1}: ${opt}`).join('\n');
+          addOutputLine(optionsText);
         }
-
-        if (isValid) {
-            dispatch({ type: 'SET_ANSWER', payload: { stepId: currentStepId, answer: input } });
-            // Only dispatch NEXT_STEP if not the final step (confirmPassword)
-            if (currentStepId !== 'confirmPassword') {
-                dispatch({ type: 'NEXT_STEP' });
-            } else {
-                // Trigger sign up process after confirmPassword validation passes
-                // Passwords match, initiate sign up
-                handleSignUp(); // Now defined before this call
-            }
+      } else if (state.mode === 'early_auth' && currentStepId) {
+         let prompt = "Please enter your First Name:";
+         if (currentStepId === 'lastName') prompt = "Please enter your Last Name:";
+         else if (currentStepId === 'email') prompt = "Please enter your University Email Address:";
+         else if (currentStepId === 'password') prompt = "Please create a password (min. 8 characters):";
+         else if (currentStepId === 'confirmPassword') prompt = "Please confirm your password:";
+         addOutputLine(prompt);
+      } else if (state.mode === 'awaiting_confirmation') {
+         const confirmationPrompt = `Account created. Please check your email (${state.answers.email}) for a confirmation link. Enter 'continue' here once confirmed, or 'resend' to request a new link.`;
+         addOutputLine(confirmationPrompt);
+      }
+      return;
+    } else if (lowerInput === 'register continue') {
+      addOutputLine("Loading saved progress...");
+      try {
+        const savedData = localStorage.getItem('philosothon-registration-v3.1');
+        if (savedData) {
+          const decodedData = atob(savedData);
+          const parsedState: Partial<RegistrationState> = JSON.parse(decodedData);
+          if (parsedState && typeof parsedState.currentQuestionIndex === 'number') {
+            const stateToLoad = { ...parsedState, mode: 'questioning' as DialogMode };
+            dispatch({ type: 'LOAD_STATE', payload: stateToLoad });
+            addOutputLine("Registration progress loaded.");
+            // Relying on useEffect triggered by state change to display prompt
+          } else {
+            throw new Error("Saved data is invalid or missing essential properties.");
+          }
         } else {
-            addOutputLine(errorMessage, { type: 'error' });
-            // Re-display prompt
-            let prompt = "Please enter your First Name:"; // Default
-             if (currentStepId === 'lastName') {
-                 prompt = "Please enter your Last Name:";
-             } else if (currentStepId === 'email') {
-                 prompt = "Please enter your University Email Address:";
-             } else if (currentStepId === 'password') {
-                 prompt = "Please create a password (min. 8 characters):";
-             } else if (currentStepId === 'confirmPassword') {
-                 prompt = "Please confirm your password:";
+          setShowPrompt(false); // Prevent default prompt display
+          addOutputLine("No registration in progress found.", { type: 'error' });
+          // Re-display current prompt based on the *current* state index
+          const promptQuestion = questions[state.currentQuestionIndex];
+           if (promptQuestion && state.mode === 'questioning') {
+             addOutputLine(promptQuestion.label);
+             if (promptQuestion.hint) addOutputLine(promptQuestion.hint, { type: 'hint' });
+             if (promptQuestion.options) {
+                const optionsText = promptQuestion.options.map((opt, index) => `${index + 1}: ${opt}`).join('\n');
+                addOutputLine(optionsText);
              }
-             // Add prompts for other steps
-            addOutputLine(prompt);
+           } else {
+             // Fallback if not in questioning or question not found (e.g., if continue is used in early_auth)
+             addOutputLine("Please enter your First Name:"); // Or appropriate prompt for current mode
+           }
         }
-    } else if (state.mode === 'awaiting_confirmation') {
-       if (input.toLowerCase() === 'continue') {
+      } catch (error) {
+        setShowPrompt(false); // Prevent default prompt display
+        addOutputLine(`Failed to load saved progress. Data might be corrupted. Error: ${error instanceof Error ? error.message : String(error)}`, { type: 'error' });
+         // Re-display current prompt based on the *current* state index
+         const promptQuestion = questions[state.currentQuestionIndex];
+         if (promptQuestion && state.mode === 'questioning') {
+           addOutputLine(promptQuestion.label);
+           if (promptQuestion.hint) addOutputLine(promptQuestion.hint, { type: 'hint' });
+           if (promptQuestion.options) {
+                const optionsText = promptQuestion.options.map((opt, index) => `${index + 1}: ${opt}`).join('\n');
+                addOutputLine(optionsText);
+            }
+         } else {
+             // Fallback if not in questioning or question not found (e.g., if continue is used in early_auth)
+             addOutputLine("Please enter your First Name:"); // Or appropriate prompt for current mode
+         }
+      }
+      return; // Prevent falling through after attempting load
+    }
+
+    // --- Mode-Specific Logic ---
+
+    // --- Awaiting Confirmation Mode ---
+    if (state.mode === 'awaiting_confirmation') {
+       if (lowerInput === 'continue') {
            addOutputLine("Checking confirmation status...");
            try {
-               // Call the server action to check the current user's status
                const isConfirmed = await checkCurrentUserConfirmationStatus();
                if (isConfirmed) {
                    addOutputLine("Email confirmed. Starting registration questions...");
-                   // No need to clear pendingUserId as it's no longer used
-                   dispatch({ type: 'SET_MODE', payload: 'questioning' }); // Use internal dispatch to change mode
-                   // useEffect will handle displaying the prompt based on new state
+                   dispatch({ type: 'SET_MODE', payload: 'questioning' });
                } else {
-                   // Display specific error message
+                   setShowPrompt(false); // Prevent default prompt display
                    addOutputLine("Email not confirmed yet. Please check your email or use 'resend'.", { type: 'error' });
-                   // Re-display the original confirmation prompt
                    const confirmationPrompt = `Account created. Please check your email (${state.answers.email}) for a confirmation link. Enter 'continue' here once confirmed, or 'resend' to request a new link.`;
                    addOutputLine(confirmationPrompt);
                }
            } catch (error) {
+                setShowPrompt(false); // Prevent default prompt display
                 addOutputLine(`Error during confirmation check: ${error instanceof Error ? error.message : String(error)}`, { type: 'error' });
-                // Also re-display prompt on catch
                 const confirmationPrompt = `Account created. Please check your email (${state.answers.email}) for a confirmation link. Enter 'continue' here once confirmed, or 'resend' to request a new link.`;
                 addOutputLine(confirmationPrompt);
            }
-       } else if (input.toLowerCase() === 'resend') {
+       } else if (lowerInput === 'resend') {
            const email = state.answers.email;
            if (!email) {
+               setShowPrompt(false); // Prevent default prompt display
                addOutputLine("Error: Could not find email to resend confirmation.", { type: 'error' });
-               // Re-display prompt
                const confirmationPrompt = `Account created. Please check your email for a confirmation link. Enter 'continue' here once confirmed, or 'resend' to request a new link.`;
                addOutputLine(confirmationPrompt);
                return;
            }
            addOutputLine("Resending confirmation email...");
            try {
-               // Call the initiateOtpSignIn function from the auth DAL
                const { error } = await initiateOtpSignIn(email);
                if (error) {
+                   setShowPrompt(false); // Prevent default prompt display
                    addOutputLine(`Error resending confirmation: ${error.message || 'Unknown error'}`, { type: 'error' });
                } else {
                    addOutputLine("Confirmation email resent. Please check your inbox.");
                }
            } catch (error) {
+               setShowPrompt(false); // Prevent default prompt display
                addOutputLine(`An unexpected error occurred during resend: ${error instanceof Error ? error.message : String(error)}`, { type: 'error' });
            } finally {
                // Always re-display the prompt after attempting resend
@@ -339,27 +407,66 @@ const RegistrationDialog: React.FC<DialogProps> = ({
                addOutputLine(confirmationPrompt);
            }
        } else {
+           setShowPrompt(false); // Prevent default prompt display
            addOutputLine(`Unknown command: ${input}. Please enter 'continue' or 'resend'.`);
+           const confirmationPrompt = `Account created. Please check your email (${state.answers.email}) for a confirmation link. Enter 'continue' here once confirmed, or 'resend' to request a new link.`;
+           addOutputLine(confirmationPrompt);
        }
-    } else if (state.mode === 'questioning') {
-        const currentQuestion = questions[state.currentQuestionIndex]; // Get current question once
+       return; // Ensure no further processing after handling awaiting_confirmation input
+    }
 
-        if (input.toLowerCase() === 'review') {
+    // --- Early Auth Mode ---
+    else if (state.mode === 'early_auth' && currentStepId) {
+        let isValid = true;
+        let errorMessage = "Input cannot be empty.";
+
+        if (!input) {
+            isValid = false;
+        } else if (currentStepId === 'email') {
+            if (!/\S+@\S+\.\S+/.test(input)) { isValid = false; errorMessage = "Invalid email format."; }
+        } else if (currentStepId === 'password') {
+            if (input.length < 8) { isValid = false; errorMessage = "Password must be at least 8 characters."; }
+        } else if (currentStepId === 'confirmPassword') {
+            if (input !== state.answers.password) { isValid = false; errorMessage = "Passwords do not match."; }
+        }
+
+        if (isValid) {
+            setShowPrompt(true); // Ensure prompt shows for next step
+            dispatch({ type: 'SET_ANSWER', payload: { stepId: currentStepId, answer: input } });
+            if (currentStepId !== 'confirmPassword') {
+                dispatch({ type: 'NEXT_STEP' });
+            } else {
+                handleSignUp();
+            }
+        } else {
+            setShowPrompt(false); // Prevent default prompt display
+            addOutputLine(errorMessage, { type: 'error' });
+            let prompt = "Please enter your First Name:";
+             if (currentStepId === 'lastName') prompt = "Please enter your Last Name:";
+             else if (currentStepId === 'email') prompt = "Please enter your University Email Address:";
+             else if (currentStepId === 'password') prompt = "Please create a password (min. 8 characters):";
+             else if (currentStepId === 'confirmPassword') prompt = "Please confirm your password:";
+            addOutputLine(prompt);
+        }
+        return; // Ensure no further processing after handling early_auth input
+    }
+
+    // --- Questioning Mode (Answer Handling) ---
+    else if (state.mode === 'questioning') {
+        // Commands specific to questioning mode
+        if (lowerInput === 'review') {
           addOutputLine('--- Registration Summary ---');
           for (let i = 0; i < state.currentQuestionIndex; i++) {
             const question = questions[i];
             if (question && state.answers[question.id] !== undefined) {
               let displayAnswer = state.answers[question.id];
-              if (typeof displayAnswer === 'boolean') {
-                displayAnswer = displayAnswer ? 'Yes' : 'No';
-              } else if (Array.isArray(displayAnswer)) { // Handle array answers for multi-select
-                displayAnswer = displayAnswer.join(', ');
-              }
+              if (typeof displayAnswer === 'boolean') displayAnswer = displayAnswer ? 'Yes' : 'No';
+              else if (Array.isArray(displayAnswer)) displayAnswer = displayAnswer.join(', ');
               addOutputLine(`${question.label}: ${displayAnswer}`);
             }
           }
           addOutputLine("Enter 'continue' to proceed, 'submit' to finalize, or question number to edit.");
-          // Re-display current prompt
+          setShowPrompt(false); // Prevent default prompt display
           if (currentQuestion) {
             addOutputLine(currentQuestion.label);
             if (currentQuestion.hint) addOutputLine(currentQuestion.hint, { type: 'hint' });
@@ -367,39 +474,14 @@ const RegistrationDialog: React.FC<DialogProps> = ({
               const optionsText = currentQuestion.options.map((opt, index) => `${index + 1}: ${opt}`).join('\n');
               addOutputLine(optionsText);
             }
-            console.log('[DEBUG] Checking for back command...');
           }
-            console.log('[DEBUG] Back command matched. Dispatching PREV_STEP...');
-        } else if (input.toLowerCase() === 'back') {
+          return;
+        } else if (lowerInput === 'back') {
             dispatch({ type: 'PREV_STEP' });
-        } else if (input.toLowerCase() === 'help') {
-          const helpMessage = [
-            "Available commands:",
-            "  next      - Go to the next question (or press Enter with input)",
-            "  back      - Go back to the previous question",
-            "  review    - Show a summary of your answers",
-            "  save      - Save your progress and exit",
-            "  exit      - Exit without saving",
-            "  help      - Show this help message",
-            "  edit [n]  - Jump back to edit question number 'n'",
-          ].join('\n');
-          addOutputLine(helpMessage);
-          // Re-display current prompt
-          if (currentQuestion) {
-            addOutputLine(currentQuestion.label);
-            if (currentQuestion.hint) addOutputLine(currentQuestion.hint, { type: 'hint' });
-            if (currentQuestion.options) {
-              const optionsText = currentQuestion.options.map((opt, index) => `${index + 1}: ${opt}`).join('\n');
-              addOutputLine(optionsText);
-            }
-          }
-        } else if (input.toLowerCase() === 'save') {
+            return;
+        } else if (lowerInput === 'save') {
             try {
-              const stateToSave = {
-                answers: state.answers,
-                currentQuestionIndex: state.currentQuestionIndex,
-                mode: state.mode,
-              };
+              const stateToSave = { answers: state.answers, currentQuestionIndex: state.currentQuestionIndex, mode: state.mode };
               const jsonState = JSON.stringify(stateToSave);
               const encodedState = btoa(jsonState);
               localStorage.setItem('philosothon-registration-v3.1', encodedState);
@@ -407,7 +489,7 @@ const RegistrationDialog: React.FC<DialogProps> = ({
             } catch (error) {
               addOutputLine(`Error saving progress: ${error instanceof Error ? error.message : String(error)}`, { type: 'error' });
             }
-            // Re-display current prompt after saving (or error)
+            setShowPrompt(false); // Prevent default prompt display
             if (currentQuestion) {
               addOutputLine(currentQuestion.label);
               if (currentQuestion.hint) addOutputLine(currentQuestion.hint, { type: 'hint' });
@@ -416,69 +498,35 @@ const RegistrationDialog: React.FC<DialogProps> = ({
                 addOutputLine(optionsText);
               }
             }
-            console.log('[DEBUG] Checking for exit command...');
-        } else if (input.toLowerCase() === 'exit') {
-            // Send exit event to the shell machine
-            console.log('[DEBUG] Exit command matched. Calling sendToShellMachine...');
-            sendToShellMachine({ type: 'EXIT' });
-            // Optionally clear local storage or dialog state here if needed
-            // clearDialogState(); // Example
-        } else if (input.toLowerCase().startsWith('edit ')) {
+            return;
+        } else if (lowerInput.startsWith('edit ')) {
           const parts = input.split(' ');
           if (parts.length !== 2) {
+            setShowPrompt(false); // Prevent default prompt display
             addOutputLine("Invalid command format. Use 'edit [number]'.", { type: 'error' });
-            // Re-display current prompt (label and hint only)
-            if (currentQuestion) {
-              addOutputLine(currentQuestion.label);
-              if (currentQuestion.hint) addOutputLine(currentQuestion.hint, { type: 'hint' });
-            }
             return;
           }
           const numberStr = parts[1];
-          const targetQuestionNumber = parseInt(numberStr, 10); // 1-based number from user
-
+          const targetQuestionNumber = parseInt(numberStr, 10);
           if (isNaN(targetQuestionNumber)) {
-            addOutputLine("Invalid command format. Use 'edit [number]'.", { type: 'error' });
-            // Re-display current prompt (label and hint only)
-            if (currentQuestion) {
-              addOutputLine(currentQuestion.label);
-              if (currentQuestion.hint) addOutputLine(currentQuestion.hint, { type: 'hint' });
-            }
-            return;
+             setShowPrompt(false); // Prevent default prompt display
+             addOutputLine("Invalid command format. Use 'edit [number]'.", { type: 'error' });
+             return;
           }
-
-          // Validate range (1 to currentQuestionIndex)
-          // Note: currentQuestionIndex is 0-based, targetQuestionNumber is 1-based
-          const maxValidQuestionNumber = state.currentQuestionIndex; // Can only edit *previous* questions
-          if (targetQuestionNumber < 1) {
-            // Handle numbers less than 1
-            const rangeMessage = `Invalid question number. Please enter a number between 1 and ${maxValidQuestionNumber}.`;
-            addOutputLine(rangeMessage, { type: 'error' });
-            // Re-display current prompt (label and hint only)
-            if (currentQuestion) {
-              addOutputLine(currentQuestion.label);
-              if (currentQuestion.hint) addOutputLine(currentQuestion.hint, { type: 'hint' });
-            }
-            return;
-          } else if (targetQuestionNumber > maxValidQuestionNumber) {
-            // Handle numbers greater than current index (future questions)
-            const futureMessage = `Cannot edit questions you haven't answered yet. Please enter a number between 1 and ${maxValidQuestionNumber}.`;
-            addOutputLine(futureMessage, { type: 'error' });
-            // Re-display current prompt (label and hint only)
-            if (currentQuestion) {
-              addOutputLine(currentQuestion.label);
-              if (currentQuestion.hint) addOutputLine(currentQuestion.hint, { type: 'hint' });
-            }
-            return;
+          const maxValidQuestionNumber = state.currentQuestionIndex;
+          if (targetQuestionNumber < 1 || targetQuestionNumber > maxValidQuestionNumber) {
+             setShowPrompt(false); // Prevent default prompt display
+             const rangeMessage = `Invalid question number. Please enter a number between 1 and ${maxValidQuestionNumber}.`;
+             addOutputLine(rangeMessage, { type: 'error' });
+             return;
           }
-
-          // Valid number, proceed to jump
-          const targetIndex = targetQuestionNumber - 1; // Convert to 0-based index
+          const targetIndex = targetQuestionNumber - 1;
           addOutputLine(`Jumping back to question ${targetQuestionNumber}...`);
           dispatch({ type: 'SET_INDEX', payload: targetIndex });
-
-        } else {
-            // Handle answer input and validation
+          return;
+        }
+        // --- Answer Handling ---
+        else {
             if (!currentQuestion) {
                 addOutputLine("Error: No current question found.", { type: 'error' });
                 return;
@@ -488,225 +536,122 @@ const RegistrationDialog: React.FC<DialogProps> = ({
             let errorMessage = "Invalid input.";
             let processedAnswer: any = input;
 
-            if (currentQuestion.required && !input) {
-                isValid = false;
-                errorMessage = "Input cannot be empty.";
-            } else if (currentQuestion.type === 'boolean') {
-                const lowerInput = input.toLowerCase();
-                if (lowerInput === 'y' || lowerInput === 'yes') {
-                    processedAnswer = true;
-                } else if (lowerInput === 'n' || lowerInput === 'no') {
-                    processedAnswer = false;
-                } else {
-                    isValid = false;
-                    errorMessage = "Invalid input. Please enter 'y' or 'n'.";
-                }
-            } else if (currentQuestion.type === 'single-select' || currentQuestion.type === 'scale') {
-                 const choiceIndex = parseInt(input, 10);
-                 if (isNaN(choiceIndex) || choiceIndex < 1 || (currentQuestion.options && choiceIndex > currentQuestion.options.length)) {
+            // ... (Existing validation logic for boolean, single-select, multi-select, ranked-choice, text) ...
+             if (currentQuestion.required && !input) {
+                 isValid = false;
+                 errorMessage = "Input cannot be empty.";
+             } else if (currentQuestion.type === 'boolean') {
+                 const lowerInput = input.toLowerCase();
+                 if (lowerInput === 'y' || lowerInput === 'yes') processedAnswer = true;
+                 else if (lowerInput === 'n' || lowerInput === 'no') processedAnswer = false;
+                 else { isValid = false; errorMessage = "Invalid input. Please enter 'y' or 'n'."; }
+             } else if (currentQuestion.type === 'single-select' || currentQuestion.type === 'scale') {
+                  const choiceIndex = parseInt(input, 10);
+                  if (isNaN(choiceIndex) || choiceIndex < 1 || (currentQuestion.options && choiceIndex > currentQuestion.options.length)) {
+                      isValid = false;
+                      errorMessage = "Invalid input. Please enter the number corresponding to your choice.";
+                 } else if (currentQuestion.options) {
+                      processedAnswer = currentQuestion.options[choiceIndex - 1];
+                 } else {
+                      processedAnswer = String(choiceIndex);
+                 }
+             }
+             else if (currentQuestion.type === 'multi-select-numbered') {
+                 const selectedNumbers: number[] = [];
+                 const invalidInputs: string[] = [];
+                 const parts = input.split(' ').filter(part => part !== '');
+
+                 if (parts.length === 0 && currentQuestion.required) {
                      isValid = false;
-                     errorMessage = "Invalid input. Please enter the number corresponding to your choice.";
-                } else if (currentQuestion.options) {
-                     processedAnswer = currentQuestion.options[choiceIndex - 1];
-                } else {
-                     processedAnswer = String(choiceIndex);
-                }
-            }
-            else if (currentQuestion.type === 'multi-select-numbered') {
-                const selectedNumbers: number[] = [];
-                const invalidInputs: string[] = [];
-                const parts = input.split(' ').filter(part => part !== ''); // Split by space and remove empty strings
+                     errorMessage = "Input cannot be empty.";
+                 } else {
+                     parts.forEach(part => {
+                         const num = parseInt(part, 10);
+                         if (isNaN(num)) invalidInputs.push(part);
+                         else if (!currentQuestion.options || num < 1 || num > currentQuestion.options.length) invalidInputs.push(part);
+                         else { if (!selectedNumbers.includes(num)) selectedNumbers.push(num); }
+                     });
 
-                if (parts.length === 0 && currentQuestion.required) {
-                    isValid = false;
-                    errorMessage = "Input cannot be empty.";
-                } else {
-                    parts.forEach(part => {
-                        const num = parseInt(part, 10);
-                        if (isNaN(num)) {
-                            invalidInputs.push(part);
-                        } else if (!currentQuestion.options || num < 1 || num > currentQuestion.options.length) {
-                            invalidInputs.push(part);
-                        } else {
-                            // Avoid duplicates if user enters the same number twice
-                            if (!selectedNumbers.includes(num)) {
-                              selectedNumbers.push(num);
-                            }
-                        }
-                    });
-
-                    if (invalidInputs.length > 0) {
-                        isValid = false;
-                        errorMessage = `Invalid input: "${invalidInputs.join('", "')}". Please enter space-separated numbers corresponding to your choices.`;
-                    } else if (selectedNumbers.length === 0 && currentQuestion.required) {
-                         // Handles case where input is just spaces but field is required
+                     if (invalidInputs.length > 0) {
                          isValid = false;
-                         errorMessage = "Input cannot be empty.";
-                    } else {
-                        // Map valid numbers to option text
-                        const selectedOptions = selectedNumbers
-                            .sort((a, b) => a - b) // Sort numbers before mapping
-                            .map(num => currentQuestion.options ? currentQuestion.options[num - 1] : '') // Get text based on 1-based index
-                            .filter(option => option !== ''); // Filter out potential empty strings if options somehow missing
-                        processedAnswer = selectedOptions; // Store as an array of strings
-                    }
-                }
-           } else if (currentQuestion.type === 'ranked-choice-numbered') {
-              console.log('[DEBUG] Entering ranked-choice validation');
-              // --- Ranked Choice Validation ---
-              isValid = true; // Assume valid initially
-              errorMessage = ''; // Reset error message
-              const minRequiredRanks = currentQuestion.validationRules?.minRanked?.value ?? 3; // Default to 3 if not specified
-              // NOTE: The schema doesn't have a 'strict' flag. The tests expect EXACTLY minRequiredRanks.
-              // We enforce exact count based on tests for now.
-              const isStrictCount = currentQuestion.validationRules?.strict ?? false; // Hardcoded based on test expectations
-              const numOptions = currentQuestion.options?.length ?? 0;
-              // Rank should be between 1 and numOptions.
-              const maxRankValue = numOptions; // Correct max rank based on number of options
-              const parsedEntries: { option: number; rank: number }[] = [];
-              const seenOptions = new Set<number>();
-              const seenRanks = new Set<number>();
-
-              // 1. Parse input (handle comma OR space delimiters, trim)
-              const entries = input.split(/[,\s]+/).map(s => s.trim()).filter(Boolean);
-
-              // 2. Validate each entry's format, numeric value, range, and uniqueness
-              const rankPattern = /^\d+:\d+$/; // Regex for "Number:Number" format
-              for (const entry of entries) {
-                console.log(`[DEBUG] Validating entry: ${entry}`);
-                // **Strict Format Check First**
-                if (!rankPattern.test(entry)) {
-                   isValid = false;
-                   console.log(`[DEBUG] Format check failed for ${entry}. isValid before: ${isValid}`);
-                   // Add specific checks for non-numeric parts if format is generally wrong
-                   const parts = entry.split(':');
-                   if (parts.length === 2) {
-                       if (isNaN(parseInt(parts[0], 10))) {
-                           errorMessage = 'Invalid option number'; // Match test expectation
-                       } else if (isNaN(parseInt(parts[1], 10))) {
-                           errorMessage = 'Invalid rank number'; // Match test expectation
-                       } else {
-                           // Match test expectation (more specific)
-                           errorMessage = 'Invalid format. Use format "OptionNumber:Rank" separated by commas';
-                       }
-                   } else {
-                        // Match test expectation (more specific)
-                       errorMessage = 'Invalid format. Use format "OptionNumber:Rank" separated by commas';
-                   }
-                   break; // Exit handleSubmit immediately on error
-                }
-
-                // Format is valid, now parse and check ranges/uniqueness
-                const parts = entry.split(':');
-                const optionNum = parseInt(parts[0], 10);
-                const rankNum = parseInt(parts[1], 10);
-
-                // Check option range
-                if (optionNum < 1 || optionNum > numOptions) {
-                  isValid = false;
-                  console.log(`[DEBUG] Option range check failed for ${entry}. isValid before: ${isValid}`);
-                  errorMessage = `Invalid option number. Must be between 1 and ${numOptions}.`;
-                  break;
-                }
-
-                // **Corrected Rank Range Check Condition (1 to numOptions)**
-                // Using hardcoded '3' in error message to match specific test expectation for themeRanking
-                // Check rank range (1 to maxRankValue, which is numOptions)
-                // Check rank range (1 to maxRankValue, which is numOptions)
-                // The error message in the test 'should show error for out-of-range rank' expects "1 and 3",
-                // but the actual max rank depends on the number of options (numOptions).
-                // We use the correct logic here, the test might need adjustment if numOptions != 3.
-                if (rankNum < 1 || rankNum > maxRankValue) {
-                  isValid = false;
-                  console.log(`[DEBUG] Rank range check failed for ${entry}. isValid before: ${isValid}`);
-                  errorMessage = `Rank must be between 1 and ${maxRankValue}.`; // Use dynamic maxRankValue
-                  return; // Explicitly return to stop processing
-                }
-
-                // Check option uniqueness
-                if (seenOptions.has(optionNum)) {
-                  isValid = false;
-                  console.log(`[DEBUG] Option uniqueness check failed for ${entry}. isValid before: ${isValid}`);
-                  errorMessage = 'Each theme can only be ranked once';
-                  break; // Exit handleSubmit immediately on error
+                         errorMessage = `Invalid input: "${invalidInputs.join('", "')}". Please enter space-separated numbers corresponding to your choices.`;
+                     } else if (selectedNumbers.length === 0 && currentQuestion.required) {
+                          isValid = false;
+                          errorMessage = "Input cannot be empty.";
+                     } else {
+                         const selectedOptions = selectedNumbers
+                             .sort((a, b) => a - b)
+                             .map(num => currentQuestion.options ? currentQuestion.options[num - 1] : '')
+                             .filter(option => option !== '');
+                         processedAnswer = selectedOptions;
+                     }
                  }
+            } else if (currentQuestion.type === 'ranked-choice-numbered') {
+               // --- Ranked Choice Validation ---
+               isValid = true;
+               errorMessage = '';
+               const minRequiredRanks = currentQuestion.validationRules?.minRanked?.value ?? 3;
+               const isStrictCount = currentQuestion.validationRules?.strict ?? false;
+               const numOptions = currentQuestion.options?.length ?? 0;
+               const maxRankValue = numOptions;
+               const parsedEntries: { option: number; rank: number }[] = [];
+               const seenOptions = new Set<number>();
+               const seenRanks = new Set<number>();
+               const entries = input.split(/[,\s]+/).map(s => s.trim()).filter(Boolean);
+               const rankPattern = /^\d+:\d+$/;
+
+               for (const entry of entries) {
+                 if (!rankPattern.test(entry)) {
+                    isValid = false;
+                    const parts = entry.split(':');
+                    if (parts.length === 2) {
+                        if (isNaN(parseInt(parts[0], 10))) errorMessage = 'Invalid option number';
+                        else if (isNaN(parseInt(parts[1], 10))) errorMessage = 'Invalid rank number';
+                        else errorMessage = 'Invalid format. Use format "OptionNumber:Rank" separated by commas';
+                    } else errorMessage = 'Invalid format. Use format "OptionNumber:Rank" separated by commas';
+                    break;
+                 }
+                 const parts = entry.split(':');
+                 const optionNum = parseInt(parts[0], 10);
+                 const rankNum = parseInt(parts[1], 10);
+                 if (optionNum < 1 || optionNum > numOptions) { isValid = false; errorMessage = `Invalid option number. Must be between 1 and ${numOptions}.`; break; }
+                 if (rankNum < 1 || rankNum > maxRankValue) { isValid = false; errorMessage = `Rank must be between 1 and ${maxRankValue}.`; break; } // Use dynamic maxRankValue
+                 if (seenOptions.has(optionNum)) { isValid = false; errorMessage = 'Each theme can only be ranked once'; break; }
                  seenOptions.add(optionNum);
-
-                // Check rank uniqueness
-                if (seenRanks.has(rankNum)) {
-                  isValid = false;
-                  console.log(`[DEBUG] Rank uniqueness check failed for ${entry}. isValid before: ${isValid}`);
-                  errorMessage = `Each rank must be used only once`; // Match test expectation (general message)
-                  break; // Exit loop immediately on error, allow error message display
-                 }
+                 if (seenRanks.has(rankNum)) { isValid = false; errorMessage = `Each rank must be used only once`; break; }
                  seenRanks.add(rankNum);
+                 parsedEntries.push({ option: optionNum, rank: rankNum });
+               }
 
-                // If all checks pass for this entry, add it
-                parsedEntries.push({ option: optionNum, rank: rankNum });
-              } // End loop for entry validation
-
-              console.log(`[DEBUG] After loop. isValid: ${isValid}, parsedEntries: ${JSON.stringify(parsedEntries)}`);
-              // Renumbering subsequent check
-
-
-              // 4. Check sequence and count *only if* format/range/uniqueness checks passed
-              // Perform final checks only if all individual entries were valid
-              if (isValid) {
-                console.log('[DEBUG] Entering sequential check...');
-                // Check for skipped ranks first
-                if (parsedEntries.length > 0) { // Only check sequence if there are entries
-                  const sortedRanks = Array.from(seenRanks).sort((a, b) => a - b);
-                  for (let i = 0; i < sortedRanks.length; i++) {
-                    if (sortedRanks[i] !== i + 1) {
-                      isValid = false;
-                       console.log(`[DEBUG] Sequential check failed. Missing rank: ${i + 1}. isValid before: ${isValid}`);
-                      errorMessage = `Ranks must be sequential (1, 2, 3, ...). Missing rank: ${i + 1}`;
-                      break; // Stop on first missing rank
-                    }
-                  }
-                }
-
-                console.log(`[DEBUG] After sequential check. isValid: ${isValid}, errorMessage: ${errorMessage}`);
-                // If still valid after sequence check, then check count
-                console.log('[DEBUG] Entering count check...');
-                if (isValid) {
-                   if (isStrictCount && entries.length !== minRequiredRanks) {
-                      isValid = false;
-                     console.log(`[DEBUG] Strict count check failed. isValid before: ${isValid}`);
-                      errorMessage = `Please rank exactly ${minRequiredRanks} themes`;
-                   } else if (!isStrictCount && entries.length < minRequiredRanks) {
-                      isValid = false;
-                     console.log(`[DEBUG] Non-strict count check failed. isValid before: ${isValid}`);
-                      errorMessage = `Please rank at least ${minRequiredRanks} themes`;
+               if (isValid) {
+                 if (parsedEntries.length > 0) {
+                   const sortedRanks = Array.from(seenRanks).sort((a, b) => a - b);
+                   for (let i = 0; i < sortedRanks.length; i++) {
+                     if (sortedRanks[i] !== i + 1) {
+                       isValid = false;
+                       errorMessage = `Ranks must be sequential (1, 2, 3, ...). Missing rank: ${i + 1}`;
+                       break;
+                     }
                    }
-                }
-                console.log(`[DEBUG] After count check. isValid: ${isValid}, errorMessage: ${errorMessage}`);
-              }
+                 }
+                 if (isValid) {
+                    if (isStrictCount && entries.length !== minRequiredRanks) { isValid = false; errorMessage = `Please rank exactly ${minRequiredRanks} themes`; }
+                    else if (!isStrictCount && entries.length < minRequiredRanks) { isValid = false; errorMessage = `Please rank at least ${minRequiredRanks} themes`; }
+                 }
+               }
 
-              // 4. Final decision and processing
-              console.log(`[DEBUG] Final decision. isValid: ${isValid}, processedAnswer: ${JSON.stringify(processedAnswer)}, errorMessage: ${errorMessage}`);
-              if (isValid) {
-                processedAnswer = parsedEntries; // Store the array of objects
-              }
-              // Error message is set if !isValid
-              // --- End Ranked Choice Validation ---
+               if (isValid) processedAnswer = parsedEntries;
+               // --- End Ranked Choice Validation ---
 
-            } else {
-              // Default case for text input or unhandled types
-              // If specific validation for text is needed, add it here.
-              // For now, assume generic text is valid unless required and empty.
-              if (currentQuestion.required && !input) {
-                  isValid = false;
-                  errorMessage = "Input cannot be empty.";
-              } else {
-                // Default case: Assume 'text' or similar. Valid if not empty when required.
-                // Assign input to processedAnswer for text type
-                processedAnswer = input;
-              }
-            } // This closes the final else for type validation
+             } else {
+               // Default text input
+               if (currentQuestion.required && !input) { isValid = false; errorMessage = "Input cannot be empty."; }
+               else processedAnswer = input;
+             }
 
             // Check validity after all type validations
             if (isValid) {
+                setShowPrompt(true); // Ensure prompt shows for next step
                 dispatch({ type: 'SET_ANSWER', payload: { stepId: currentQuestion.id, answer: processedAnswer } });
                 if (state.currentQuestionIndex === questions.length - 1) {
                     addOutputLine("Registration complete. Thank you!");
@@ -726,6 +671,7 @@ const RegistrationDialog: React.FC<DialogProps> = ({
                     dispatch({ type: 'NEXT_STEP' });
                 }
             } else {
+                setShowPrompt(false); // Prevent default prompt display
                 addOutputLine(errorMessage, { type: 'error' });
                 // Re-display current prompt
                  if (currentQuestion) { // Add check for currentQuestion safety
