@@ -1203,9 +1203,7 @@ describe('RegistrationDialog (V3.1)', () => {
           // Simulate invalid input (8 - out of range for 7 options)await simulateInputCommand(inputElement, '8');
 
           // Assert error message again
-          await waitFor(() => {
-            expect(mockAddOutputLine).toHaveBeenCalledWith(expectedError, { type: 'error' });
-          });
+          await assertOutputLine(expect, mockAddOutputLine, expectedError, { type: 'error' });
 
           // Assert state did not advance again
           expect(mockAddOutputLine).not.toHaveBeenCalledWith(nextQuestionPrompt);
@@ -1240,11 +1238,9 @@ describe('RegistrationDialog (V3.1)', () => {
 
 
         // Initial render verification
-        await waitFor(() => {
-          expect(mockAddOutputLine).toHaveBeenCalledWith(initialQuestion.label);
-          // Check options display (adjust if formatting changes)
-          // Assertion for next prompt removed due to REG-TEST-TIMING-001 and component logic issues.
-        });
+        await assertOutputLine(expect, mockAddOutputLine, initialQuestion.label);
+        // Check options display (adjust if formatting changes)
+        // Assertion for next prompt removed due to REG-TEST-TIMING-001 and component logic issues.
         mockAddOutputLine.mockClear(); // Clear mocks before input
 
         const validInput = '1 3'; // Select "Analytic philosophy" and "Ancient philosophy"
@@ -1285,9 +1281,7 @@ describe('RegistrationDialog (V3.1)', () => {
         if (!inputElement) throw new Error("Input element not found");
 
         // Initial render verification
-        await waitFor(() => {
-          expect(mockAddOutputLine).toHaveBeenCalledWith(initialQuestion.label);
-        });
+        await assertOutputLine(expect, mockAddOutputLine, initialQuestion.label);
         const initialHint = initialQuestion.hint; // Capture hint for re-display check
 
         // --- Test Case 1: Non-numeric input ---
