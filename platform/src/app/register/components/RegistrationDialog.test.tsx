@@ -1943,9 +1943,7 @@ describe('RegistrationDialog (V3.1)', () => {
       await simulateInputCommand(inputElement, 'edit 11');
 
       // Assert error message
-      await waitFor(() => {
-        expect(mockAddOutputLine).toHaveBeenCalledWith("Cannot edit questions you haven't answered yet. Please enter a number between 1 and 10.", { type: 'error' });
-      });
+      await assertOutputLine(expect, mockAddOutputLine, "Cannot edit questions you haven't answered yet. Please enter a number between 1 and 10.", { type: 'error' });
       // Assert prompt for the *same* question is shown again (checking hint as it's displayed after label)
       const initialQuestionHint = questions[10].hint;
       expect(mockAddOutputLine).toHaveBeenLastCalledWith(initialQuestionHint, { type: 'hint' });
@@ -1991,9 +1989,7 @@ describe('RegistrationDialog (V3.1)', () => {
 
       // Wait for the initial prompt for index 6
       const programPrompt = `Program/Major(s)`;
-      await waitFor(() => {
-        expect(mockAddOutputLine).toHaveBeenCalledWith(programPrompt);
-      });
+      await assertOutputLine(expect, mockAddOutputLine, programPrompt);
 
       // Simulate entering 'save' command
       await simulateInputCommand(inputElement, 'save');
