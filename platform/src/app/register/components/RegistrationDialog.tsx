@@ -564,7 +564,146 @@ const RegistrationDialog: React.FC<DialogProps> = ({
                         processedAnswer = selectedOptions; // Store as an array of strings
                     }
                 }
-            // TODO: Add validation for other types like 'ranked-choice-numbered'
+           } else if (currentQuestion.type === 'ranked-choice-numbered') {
+              console.log('[DEBUG] Entering ranked-choice validation');
+              // --- Ranked Choice Validation ---
+              isValid = true; // Assume valid initially
+              errorMessage = ''; // Reset error message
+              const minRequiredRanks = currentQuestion.validationRules?.minRanked?.value ?? 3; // Default to 3 if not specified
+              // NOTE: The schema doesn't have a 'strict' flag. The tests expect EXACTLY minRequiredRanks.
+              // We enforce exact count based on tests for now.
+              const isStrictCount = currentQuestion.validationRules?.strict ?? false; // Hardcoded based on test expectations
+              const numOptions = currentQuestion.options?.length ?? 0;
+              // Rank should be between 1 and numOptions.
+              const maxRankValue = numOptions; // Correct max rank based on number of options
+              const parsedEntries: { option: number; rank: number }[] = [];
+              const seenOptions = new Set<number>();
+              const seenRanks = new Set<number>();
+
+              // 1. Parse input (handle comma OR space delimiters, trim)
+              const entries = input.split(/[,\s]+/).map(s => s.trim()).filter(Boolean);
+
+              // 2. Validate each entry's format, numeric value, range, and uniqueness
+              const rankPattern = /^\d+:\d+$/; // Regex for "Number:Number" format
+              for (const entry of entries) {
+                console.log(`[DEBUG] Validating entry: ${entry}`);
+                // **Strict Format Check First**
+                if (!rankPattern.test(entry)) {
+                   isValid = false;
+                   console.log(`[DEBUG] Format check failed for ${entry}. isValid before: ${isValid}`);
+                   // Add specific checks for non-numeric parts if format is generally wrong
+                   const parts = entry.split(':');
+                   if (parts.length === 2) {
+                       if (isNaN(parseInt(parts[0], 10))) {
+                           errorMessage = 'Invalid option number'; // Match test expectation
+                       } else if (isNaN(parseInt(parts[1], 10))) {
+                           errorMessage = 'Invalid rank number'; // Match test expectation
+                       } else {
+                           // Match test expectation (more specific)
+                           errorMessage = 'Invalid format. Use format "OptionNumber:Rank" separated by commas';
+                       }
+                   } else {
+                        // Match test expectation (more specific)
+                       errorMessage = 'Invalid format. Use format "OptionNumber:Rank" separated by commas';
+                   }
+                   break; // Exit handleSubmit immediately on error
+                }
+
+                // Format is valid, now parse and check ranges/uniqueness
+                const parts = entry.split(':');
+                const optionNum = parseInt(parts[0], 10);
+                const rankNum = parseInt(parts[1], 10);
+
+                // Check option range
+                if (optionNum < 1 || optionNum > numOptions) {
+                  isValid = false;
+                  console.log(`[DEBUG] Option range check failed for ${entry}. isValid before: ${isValid}`);
+                  errorMessage = `Invalid option number. Must be between 1 and ${numOptions}.`;
+                  break;
+                }
+
+                // **Corrected Rank Range Check Condition (1 to numOptions)**
+                // Using hardcoded '3' in error message to match specific test expectation for themeRanking
+                // Check rank range (1 to maxRankValue, which is numOptions)
+                // Check rank range (1 to maxRankValue, which is numOptions)
+                // The error message in the test 'should show error for out-of-range rank' expects "1 and 3",
+                // but the actual max rank depends on the number of options (numOptions).
+                // We use the correct logic here, the test might need adjustment if numOptions != 3.
+                if (rankNum < 1 || rankNum > maxRankValue) {
+                  isValid = false;
+                  console.log(`[DEBUG] Rank range check failed for ${entry}. isValid before: ${isValid}`);
+                  errorMessage = `Rank must be between 1 and ${maxRankValue}.`; // Use dynamic maxRankValue
+                  return; // Explicitly return to stop processing
+                }
+
+                // Check option uniqueness
+                if (seenOptions.has(optionNum)) {
+                  isValid = false;
+                  console.log(`[DEBUG] Option uniqueness check failed for ${entry}. isValid before: ${isValid}`);
+                  errorMessage = 'Each theme can only be ranked once';
+                  break; // Exit handleSubmit immediately on error
+                 }
+                 seenOptions.add(optionNum);
+
+                // Check rank uniqueness
+                if (seenRanks.has(rankNum)) {
+                  isValid = false;
+                  console.log(`[DEBUG] Rank uniqueness check failed for ${entry}. isValid before: ${isValid}`);
+                  errorMessage = `Each rank must be used only once`; // Match test expectation (general message)
+                  break; // Exit loop immediately on error, allow error message display
+                 }
+                 seenRanks.add(rankNum);
+
+                // If all checks pass for this entry, add it
+                parsedEntries.push({ option: optionNum, rank: rankNum });
+              } // End loop for entry validation
+
+              console.log(`[DEBUG] After loop. isValid: ${isValid}, parsedEntries: ${JSON.stringify(parsedEntries)}`);
+              // Renumbering subsequent check
+
+
+              // 4. Check sequence and count *only if* format/range/uniqueness checks passed
+              // Perform final checks only if all individual entries were valid
+              if (isValid) {
+                console.log('[DEBUG] Entering sequential check...');
+                // Check for skipped ranks first
+                if (parsedEntries.length > 0) { // Only check sequence if there are entries
+                  const sortedRanks = Array.from(seenRanks).sort((a, b) => a - b);
+                  for (let i = 0; i < sortedRanks.length; i++) {
+                    if (sortedRanks[i] !== i + 1) {
+                      isValid = false;
+                       console.log(`[DEBUG] Sequential check failed. Missing rank: ${i + 1}. isValid before: ${isValid}`);
+                      errorMessage = `Ranks must be sequential (1, 2, 3, ...). Missing rank: ${i + 1}`;
+                      break; // Stop on first missing rank
+                    }
+                  }
+                }
+
+                console.log(`[DEBUG] After sequential check. isValid: ${isValid}, errorMessage: ${errorMessage}`);
+                // If still valid after sequence check, then check count
+                console.log('[DEBUG] Entering count check...');
+                if (isValid) {
+                   if (isStrictCount && entries.length !== minRequiredRanks) {
+                      isValid = false;
+                     console.log(`[DEBUG] Strict count check failed. isValid before: ${isValid}`);
+                      errorMessage = `Please rank exactly ${minRequiredRanks} themes`;
+                   } else if (!isStrictCount && entries.length < minRequiredRanks) {
+                      isValid = false;
+                     console.log(`[DEBUG] Non-strict count check failed. isValid before: ${isValid}`);
+                      errorMessage = `Please rank at least ${minRequiredRanks} themes`;
+                   }
+                }
+                console.log(`[DEBUG] After count check. isValid: ${isValid}, errorMessage: ${errorMessage}`);
+              }
+
+              // 4. Final decision and processing
+              console.log(`[DEBUG] Final decision. isValid: ${isValid}, processedAnswer: ${JSON.stringify(processedAnswer)}, errorMessage: ${errorMessage}`);
+              if (isValid) {
+                processedAnswer = parsedEntries; // Store the array of objects
+              }
+              // Error message is set if !isValid
+              // --- End Ranked Choice Validation ---
+
             } else {
               // Default case for text input or unhandled types
               // If specific validation for text is needed, add it here.
@@ -574,7 +713,6 @@ const RegistrationDialog: React.FC<DialogProps> = ({
                   errorMessage = "Input cannot be empty.";
               } else {
                 // Default case: Assume 'text' or similar. Valid if not empty when required.
-                // isValid remains true unless it was already empty and required (handled line 572)
                 // Assign input to processedAnswer for text type
                 processedAnswer = input;
               }

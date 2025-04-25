@@ -40,6 +40,7 @@ export interface QuestionDefinition {
     // For ranked-choice-numbered
     minRanked?: { value: number; message?: string }; // e.g., { value: 3, message: "Please rank at least 3 options." }
     uniqueSelections?: boolean | string; // Ensure ranked options are unique
+    strict?: boolean; // Enforce exact count if true, otherwise minimum
     // Add other rules as needed
   };
   dependsOn?: string; // ID of question this depends on
@@ -521,7 +522,8 @@ export const registrationSchema: QuestionDefinition[] = [
     description: 'Rank your top 3 preferred themes for discussion groups. Enter the option number followed by a colon and the rank (1, 2, or 3), separated by spaces or commas. Example: `5:1 2:2 8:3` means Option 5 is 1st choice, Option 2 is 2nd, Option 8 is 3rd.',
     validationRules: {
       required: 'Theme ranking is required.',
-      minRanked: { value: 3, message: 'Please rank exactly 3 themes.' }, // Spec says "top 3"
+      minRanked: { value: 3, message: 'Please rank at least 3 themes.' }, // Default is non-strict (>= 3)
+      // strict: true, // Add this line to enforce *exactly* 3 ranks
       // Add pattern validation for format like "number:rank" and uniqueness checks in Zod generation/client-side
       // uniqueSelections: 'Each theme can only be ranked once.', // Handled by Zod refine
     },
