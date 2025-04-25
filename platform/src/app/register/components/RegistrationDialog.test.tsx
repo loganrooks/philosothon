@@ -289,6 +289,7 @@ describe('RegistrationDialog (V3.1)', () => {
   });
 
   it('should render initial messages, handle "register new", and prompt for First Name', async () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockReturnValue(null);
     const { container } = render(<RegistrationDialog {...defaultProps} onInput={vi.fn()} />);
     const inputElement = container.querySelector('input');
     expect(inputElement).not.toBeNull();
