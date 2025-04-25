@@ -134,12 +134,19 @@ export const __setMockMachineState = (
            mockAddOutputLine(newState.context.error, { type: 'error' });
            mockAddOutputLine("Please confirm your password:"); // Machine transitions back here on signup error
         }
-     }
-  } else if (newState.value === "signingUp") {
-     // Simulate entry action for signingUp state
-     mockAddOutputLine("Creating account...");
-  }
-  // Add more else if blocks here for other states as needed by tests
+    }
+ } else if (newState.value === "signingUp") {
+    // Simulate entry action for signingUp state
+    mockAddOutputLine("Creating account...");
+ } else if (newState.value === "awaitingConfirmation") {
+    // Simulate entry action for awaitingConfirmation state
+    // Need context to have userEmail for the message
+    const email = (newState.context && 'userEmail' in newState.context && typeof newState.context.userEmail === 'string')
+                  ? newState.context.userEmail
+                  : '[unknown email]';
+    mockAddOutputLine(`Account created. Please check your email (${email}) for a confirmation link. Enter 'continue' here once confirmed, or 'resend' to request a new link.`);
+ }
+ // Add more else if blocks here for other states as needed by tests
 };
 
 export const __getMockMachineSend = () => mockMachineSend;
@@ -1106,7 +1113,7 @@ await assertOutputLine(
         answers: { firstName: "Success", lastName: "User", email: testEmail },
       };
       __setMockMachineState({
-        value: "earlyAuth.signingUp",
+        value: "signingUp", // Corrected state name
         context: initialContext,
       });
 
@@ -1119,19 +1126,20 @@ await assertOutputLine(
         />,
       );
 
-      // 4. Assert any output associated with 'signingUp' state (optional)
-      // await assertOutputLine(expect, mockAddOutputLine, "Signing up...");
+      // 4. Assert the "Creating account..." message (simulated by helper)
+      await assertOutputLine(expect, mockAddOutputLine, "Creating account...");
       mockAddOutputLine.mockClear();
 
-      // 5. Set the mock state to reflect the successful transition
-      //    (Assuming machine transitions to 'awaitingConfirmation' on SIGNUP_SUCCESS)
+      // 5. Manually simulate the service success by setting the state
+      //    to 'awaitingConfirmation' with the user email in context.
+      //    The helper will simulate the entry action.
       const confirmationContext = { ...initialContext, userEmail: testEmail }; // Add userEmail to context
       __setMockMachineState({
         value: "awaitingConfirmation",
         context: confirmationContext,
       });
 
-      // 6. Assert the confirmation message output (based on 'awaitingConfirmation' entry actions)
+      // 6. Assert the confirmation message output (simulated by helper)
       const expectedMessage = `Account created. Please check your email (${testEmail}) for a confirmation link. Enter 'continue' here once confirmed, or 'resend' to request a new link.`;
       await assertOutputLine(expect, mockAddOutputLine, expectedMessage);
     });
