@@ -2130,38 +2130,93 @@ describe('RegistrationDialog (V3.1)', () => {
         // Refactored validation tests into individual 'it' blocks
 
         describe('Validation (ranked-choice-numbered)', () => {
-          // Helper setup for validation tests
-          const setupValidationTest = async () => {
-            const handleInput = vi.fn();
-            const initialState = {
-              mode: 'questioning',
-              currentQuestionIndex: questionIndex,
-              answers: {},
-              isSubmitting: false,
-              error: null,
-              userId: 'mock-ranking-validation-user-id'
-            };
-            currentDialogState = { ...initialState };
+          beforeEach(async () => {
+            // Reset mocks defined outside beforeEach if necessary
+            vi.resetAllMocks(); // General reset
 
-            const { container } = render(
+            let container: HTMLElement; // Keep container local if only used here
+            const questionIndex = 12; // workshopPreferenceRanking
+            const initialQuestion = questions[questionIndex];
+            const testEmail = `ranked-validate-${Math.random()}@example.com`; // Unique email per test run
+
+            // Mock server actions within beforeEach to ensure clean state
+            vi.mocked(authActions.initiateOtpSignIn).mockResolvedValue({
+              data: { user: { email: testEmail, id: `mock-ranked-validate-user-${Math.random()}` } }, error: null
+            });
+            vi.mocked(regActions.checkCurrentUserConfirmationStatus).mockResolvedValue(true); // Assume confirmed for validation tests
+
+            // --- Manual Simulation to reach index 12 ---
+            const renderResult = render(
               <RegistrationDialog
                 {...defaultProps}
-                dialogState={initialState}
-                onInput={handleInput}
+                // onInput prop might not be needed for validation tests
               />
             );
-            const inputElement = container.querySelector('input');
-            expect(inputElement).not.toBeNull();
+            container = renderResult.container;
+            inputElement = container.querySelector('input');
             if (!inputElement) throw new Error("Input element not found");
 
-            // Initial render verification
-            await assertOutputLine(expect, mockAddOutputLine, initialQuestion.label);
-            mockAddOutputLine.mockClear();
-            return { inputElement };
-          };
+            const testData = { firstName: 'RankedValidate', lastName: 'Test', email: testEmail, password: 'password123' };
+            // Wait for intro
+            await assertOutputLine(expect, mockAddOutputLine, "Checking for saved progress...");
+            await assertOutputLine(expect, mockAddOutputLine, "Welcome to the Philosothon Registration!");
+            await assertOutputLine(expect, mockAddOutputLine, "We need to collect some information to get you started.");
+            // Simulate 'register new'
+            await simulateInputCommand(inputElement, 'register new');
+            await assertOutputLine(expect, mockAddOutputLine, "Starting new registration...");
+            await assertOutputLine(expect, mockAddOutputLine, "Please enter your First Name:");
+            // Simulate Early Auth
+            await simulateInputCommand(inputElement, testData.firstName);
+            await assertOutputLine(expect, mockAddOutputLine, "Please enter your Last Name:");
+            await simulateInputCommand(inputElement, testData.lastName);
+            await assertOutputLine(expect, mockAddOutputLine, "Please enter your University Email Address:");
+            await simulateInputCommand(inputElement, testData.email);
+            await assertOutputLine(expect, mockAddOutputLine, "Please create a password (min. 8 characters):");
+            await simulateInputCommand(inputElement, testData.password);
+            await assertOutputLine(expect, mockAddOutputLine, "Please confirm your password:");
+            await simulateInputCommand(inputElement, testData.password);
+            await waitFor(() => { expect(authActions.initiateOtpSignIn).toHaveBeenCalledTimes(1); });
+            const confirmationPrompt = `Account created. Please check your email (${testEmail}) for a confirmation link. Enter 'continue' here once confirmed, or 'resend' to request a new link.`;
+            await assertOutputLine(expect, mockAddOutputLine, confirmationPrompt);
+            // Simulate 'continue'
+            await simulateInputCommand(inputElement, 'continue');
+            await waitFor(() => { expect(regActions.checkCurrentUserConfirmationStatus).toHaveBeenCalledTimes(1); });
+            await assertOutputLine(expect, mockAddOutputLine, "Email confirmed. Starting registration questions...");
 
+            // Simulate intermediate answers (accounting for skip logic)
+            await assertOutputLine(expect, mockAddOutputLine, 'Year of Study'); // Q3 (Index 3)
+            await simulateInputCommand(inputElement, '2'); // Skips Q4
+            await assertOutputLine(expect, mockAddOutputLine, 'University / Institution'); // Q5 (Index 5)
+            await simulateInputCommand(inputElement, 'Test University');
+            await assertOutputLine(expect, mockAddOutputLine, 'Program/Major(s)'); // Q6 (Index 6)
+            await simulateInputCommand(inputElement, 'Test Program');
+            await assertOutputLine(expect, mockAddOutputLine, 'Philosophy courses completed'); // Q7 (Index 7)
+            await simulateInputCommand(inputElement, 'None yet');
+            await assertOutputLine(expect, mockAddOutputLine, 'How would you rate your confidence in philosophical discussion?'); // Q8 (Index 8)
+            await simulateInputCommand(inputElement, '5');
+            await assertOutputLine(expect, mockAddOutputLine, 'How would you rate your confidence in philosophical writing?'); // Q9 (Index 9)
+            await simulateInputCommand(inputElement, '6');
+            await assertOutputLine(expect, mockAddOutputLine, 'Which philosophical traditions are you most familiar with?'); // Q10 (Index 10)
+            await simulateInputCommand(inputElement, '1 3');
+            await assertOutputLine(expect, mockAddOutputLine, 'Areas of philosophical interest'); // Q11 (Index 11)
+            await simulateInputCommand(inputElement, 'Test Interests');
+            // --- End Intermediate Simulation ---
+
+            // Ensure we are at the target question before each validation test
+            const targetQuestionPrompt = initialQuestion.label; // 'Please rank your top 3 preferred workshops'
+            await assertOutputLine(expect, mockAddOutputLine, targetQuestionPrompt);
+
+            // Clear mocks before each validation test case
+            mockAddOutputLine.mockClear();
+            // vi.clearAllMocks(); // Reset server action mocks - might be too broad, reset specific mocks if needed
+          });
+
+          // setupValidationTest helper removed as beforeEach handles setup
+
+          // Declare inputElement in the describe scope to be accessible by beforeEach and it blocks
+          let inputElement: HTMLInputElement | null = null;
           it('should accept valid format (space delimiter)', async () => {
-            const { inputElement } = await setupValidationTest();
+
             const validInputSpaces = '5:1 2:2 8:3'; // Space delimiter is valid
             await simulateInputCommand(inputElement, validInputSpaces);
             await waitFor(() => {
@@ -2172,7 +2227,7 @@ describe('RegistrationDialog (V3.1)', () => {
           });
 
           it('should show error for invalid format (missing colon)', async () => {
-             const { inputElement } = await setupValidationTest();
+ 
              const invalidFormatInput = '5 1, 2:2, 8:3';
              await simulateInputCommand(inputElement, invalidFormatInput);
              // Expect the actual format error from the component
@@ -2181,7 +2236,7 @@ describe('RegistrationDialog (V3.1)', () => {
            });
 
            it('should show error for invalid format (wrong separator)', async () => {
-             const { inputElement } = await setupValidationTest();
+ 
              const invalidFormatInput = '5:1; 2:2; 8:3';
              await simulateInputCommand(inputElement, invalidFormatInput);
              // Expect the actual format error from the component
@@ -2190,7 +2245,7 @@ describe('RegistrationDialog (V3.1)', () => {
            });
 
           it('should show error for non-numeric option', async () => {
-            const { inputElement } = await setupValidationTest();
+
             const nonNumericOptionInput = 'abc:1, 2:2, 8:3';
             await simulateInputCommand(inputElement, nonNumericOptionInput);
             // Expect the actual format error first, as 'abc' fails the format check
@@ -2199,7 +2254,7 @@ describe('RegistrationDialog (V3.1)', () => {
           });
 
           it('should show error for non-numeric rank', async () => {
-            const { inputElement } = await setupValidationTest();
+
             const nonNumericRankInput = '5:abc, 2:2, 8:3';
             await simulateInputCommand(inputElement, nonNumericRankInput);
             await waitFor(() => {
@@ -2210,7 +2265,7 @@ describe('RegistrationDialog (V3.1)', () => {
           });
 
           it('should show error for out-of-range option', async () => {
-            const { inputElement } = await setupValidationTest();
+
             const outOfRangeOptionInput = '99:1, 2:2, 8:3'; // Option 99 is invalid
             await simulateInputCommand(inputElement, outOfRangeOptionInput);
             await waitFor(() => {
@@ -2222,7 +2277,7 @@ describe('RegistrationDialog (V3.1)', () => {
           });
 
           it('should show error for out-of-range rank', async () => {
-            const { inputElement } = await setupValidationTest();
+
             const outOfRangeRankInput = '5:4, 2:2, 8:3'; // Rank 4 is invalid
             await simulateInputCommand(inputElement, outOfRangeRankInput);
             await waitFor(() => {
@@ -2233,7 +2288,7 @@ describe('RegistrationDialog (V3.1)', () => {
           });
 
           it('should show error for duplicate option', async () => {
-            const { inputElement } = await setupValidationTest();
+
             const duplicateOptionInput = '5:1, 5:2, 8:3';
             await simulateInputCommand(inputElement, duplicateOptionInput);
             await waitFor(() => {
@@ -2244,7 +2299,7 @@ describe('RegistrationDialog (V3.1)', () => {
           });
 
           it('should show error for duplicate rank', async () => {
-            const { inputElement } = await setupValidationTest();
+
             const duplicateRankInput = '5:1, 2:1, 8:3';
             await simulateInputCommand(inputElement, duplicateRankInput);
             await waitFor(() => {
@@ -2256,7 +2311,7 @@ describe('RegistrationDialog (V3.1)', () => {
           });
 
           it('should show error for insufficient number ranked (minRanked: 3)', async () => {
-            const { inputElement } = await setupValidationTest();
+
             const insufficientRankInput = '5:1, 2:2';
             await simulateInputCommand(inputElement, insufficientRankInput);
             await waitFor(() => {
@@ -2268,7 +2323,7 @@ describe('RegistrationDialog (V3.1)', () => {
           });
 
           it('should accept more than minRanked items (non-strict default)', async () => {
-            const { inputElement } = await setupValidationTest();
+
             const moreThanMinRankInput = '5:1, 2:2, 8:3, 1:4'; // 4 valid, unique options and ranks
             await simulateInputCommand(inputElement, moreThanMinRankInput);
             await waitFor(() => {
@@ -2291,7 +2346,7 @@ describe('RegistrationDialog (V3.1)', () => {
           });
 
           it('should show error for skipped ranks', async () => {
-            const { inputElement } = await setupValidationTest();
+
             const skippedRankInput = '5:1, 8:3'; // Rank 2 is missing
             await simulateInputCommand(inputElement, skippedRankInput);
             await waitFor(() => {
@@ -2302,7 +2357,7 @@ describe('RegistrationDialog (V3.1)', () => {
           });
 
           it('should show the first error encountered for multiple validation issues', async () => {
-            const { inputElement } = await setupValidationTest();
+
             // Input has non-numeric option AND duplicate rank
             const multipleErrorsInput = 'abc:1, 5:1';
             await simulateInputCommand(inputElement, multipleErrorsInput);
