@@ -1294,10 +1294,7 @@ describe('RegistrationDialog (V3.1)', () => {
 
         // --- Test Case 2: Out-of-range input ---
          mockAddOutputLine.mockClear();
-         await act(async () => {
-           fireEvent.change(inputElement, { target: { value: '1 9' } }); // Option 9 is out of range (1-8)
-           fireEvent.submit(inputElement.closest('form')!);
-         });
+         await simulateInputCommand(inputElement, '1 9'); // Option 9 is out of range (1-8)
          await waitFor(() => { expect(handleInput).toHaveBeenCalledWith('1 9'); });
          await waitFor(() => {
            // Assert error message was called AT SOME POINT
@@ -1640,10 +1637,7 @@ describe('RegistrationDialog (V3.1)', () => {
       });
 
       // Simulate user entering 'exit'
-      await act(async () => {
-        fireEvent.change(inputElement, { target: { value: 'exit' } });
-        fireEvent.submit(inputElement.closest('form')!);
-      });
+      await simulateInputCommand(inputElement, 'exit');
       // We still need to wait for potential async updates triggered by submit
 
       // Assert sendToShellMachine was called with EXIT event
