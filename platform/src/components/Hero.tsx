@@ -24,7 +24,7 @@ const Hero = () => {
           Register Now
         </Link>
       </div>
-      <div className="px-16">
+      <div className="px-24">
         <p className="text-sm text-light-text mt-4 text-center max-w-3xl mx-auto mb-8">
           <span className="font-bold">UPDATE:</span> 
             {' '} 
