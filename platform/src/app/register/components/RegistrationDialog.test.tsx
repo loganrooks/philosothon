@@ -1229,8 +1229,7 @@ describe('RegistrationDialog (V3.1)', () => {
         if (!inputElement) return;
 
         // --- Manual Simulation to reach index 45 ---
-        // (This will be long, consider a helper if repeating often, but manual is safer for now)
-        const testData = { firstName: 'BoolY', lastName: 'Test', email: testEmail, password: 'password123' };
+        const testDataBoolY = { firstName: 'BoolY', lastName: 'Test', email: testEmail, password: 'password123' };
         // Wait for intro
         await assertOutputLine(expect, mockAddOutputLine, "Checking for saved progress...");
         await assertOutputLine(expect, mockAddOutputLine, "Welcome to the Philosothon Registration!");
@@ -1240,48 +1239,136 @@ describe('RegistrationDialog (V3.1)', () => {
         await assertOutputLine(expect, mockAddOutputLine, "Starting new registration...");
         await assertOutputLine(expect, mockAddOutputLine, "Please enter your First Name:");
         // Simulate Early Auth
-        await simulateInputCommand(inputElement, testData.firstName);
+        await simulateInputCommand(inputElement, testDataBoolY.firstName);
         await assertOutputLine(expect, mockAddOutputLine, "Please enter your Last Name:");
-        await simulateInputCommand(inputElement, testData.lastName);
+        await simulateInputCommand(inputElement, testDataBoolY.lastName);
         await assertOutputLine(expect, mockAddOutputLine, "Please enter your University Email Address:");
-        await simulateInputCommand(inputElement, testData.email);
+        await simulateInputCommand(inputElement, testDataBoolY.email);
         await assertOutputLine(expect, mockAddOutputLine, "Please create a password (min. 8 characters):");
-        await simulateInputCommand(inputElement, testData.password);
+        await simulateInputCommand(inputElement, testDataBoolY.password);
         await assertOutputLine(expect, mockAddOutputLine, "Please confirm your password:");
-        await simulateInputCommand(inputElement, testData.password);
+        await simulateInputCommand(inputElement, testDataBoolY.password);
         await waitFor(() => { expect(authActions.initiateOtpSignIn).toHaveBeenCalledTimes(1); });
-        const confirmationPrompt = `Account created. Please check your email (${testEmail}) for a confirmation link. Enter 'continue' here once confirmed, or 'resend' to request a new link.`;
-        await assertOutputLine(expect, mockAddOutputLine, confirmationPrompt);
+        const confirmationPromptBoolY = `Account created. Please check your email (${testEmail}) for a confirmation link. Enter 'continue' here once confirmed, or 'resend' to request a new link.`;
+        await assertOutputLine(expect, mockAddOutputLine, confirmationPromptBoolY);
         // Simulate 'continue'
         await simulateInputCommand(inputElement, 'continue');
         await waitFor(() => { expect(regActions.checkCurrentUserConfirmationStatus).toHaveBeenCalledTimes(1); });
 
-        // Simulate answers for questions 3 through 44 (indices 3 to 44)
-        for (let i = 3; i < 45; i++) {
-             const question = questions[i];
-             if (!question) { console.warn(`Missing question at index ${i}`); continue; } // Skip if question missing
+        // Simulate answers for questions, following observed skip logic
+        // Q0: academicYear (select) - Index 3
+        await assertOutputLine(expect, mockAddOutputLine, "Year of Study");
+        await simulateInputCommand(inputElement, '1'); // Answer: First year -> OBSERVED: Skips to Q5 (Index 7)
 
-             // Wait for the prompt for question i
-             await assertOutputLine(expect, mockAddOutputLine, expect.stringContaining(question.label));
+        // Q5: universityInstitution (text) - Index 7
+        await assertOutputLine(expect, mockAddOutputLine, "University / Institution");
+        await simulateInputCommand(inputElement, 'UofT'); // Answer: UofT -> Should go to Q6 (Index 8)
 
-             // Determine default valid input based on type
-             let stepInput = 'Default';
-             switch (question.type) {
-               case 'text':
-               case 'textarea': stepInput = `Answer ${i}`; break;
-               case 'scale': stepInput = String(question.validationRules?.min?.value ?? 1); break;
-               case 'boolean': stepInput = 'y'; break;
-               case 'single-select': stepInput = '1'; break;
-               case 'multi-select-numbered': stepInput = '1'; break;
-               case 'ranked-choice-numbered': stepInput = '1:1 2:2 3:3'; break; // Adjust if needed
-             }
-             await simulateInputCommand(inputElement, stepInput);
-        }
-        // --- End Manual Simulation ---
+        // Q6: programOfStudy (text) - Index 8
+        await assertOutputLine(expect, mockAddOutputLine, "Program/Major(s)");
+        await simulateInputCommand(inputElement, 'CompSci'); // Answer: CompSci -> Should go to Q7 (Index 9)
 
-        // Now we should be at index 45
-        const boolQuestionPrompt = `By submitting this form, I confirm that I understand the time commitment required for the Philosothon (all day April 26 and morning of April 27) and will make arrangements to fully participate and provide feedback on my experience.`;
-        await assertOutputLine(expect, mockAddOutputLine, boolQuestionPrompt);
+        // Q7: philosophyCoursework (boolean) - Index 9
+        // Expect Q8 prompt indicator after answering Q7
+        await assertOutputLine(expect, mockAddOutputLine, "[reg 8/46]> ", undefined, 4000);
+        await simulateInputCommand(inputElement, 'y'); // Answer: Yes -> Should go to Q8 (Index 10)
+
+        // Q8: philosophyCourseworkDetails (textarea) - Index 10
+        await assertOutputLine(expect, mockAddOutputLine, "Please list the philosophy courses you have taken");
+        await simulateInputCommand(inputElement, 'Intro, Ethics'); // Answer -> Should go to Q9 (Index 11)
+
+        // Q9: philosophicalInterests (multi-select-numbered) - Index 11
+        await assertOutputLine(expect, mockAddOutputLine, "Which philosophical traditions are you most familiar with?");
+        await simulateInputCommand(inputElement, '1 3'); // Answer -> Should go to Q10 (Index 12)
+
+        // Q10: writingConfidence (scale) - Index 12
+        await assertOutputLine(expect, mockAddOutputLine, "How would you rate your confidence in philosophical writing?");
+        await simulateInputCommand(inputElement, '4'); // Answer -> Should go to Q11 (Index 13)
+
+        // Q11: workshopPreferences (ranked-choice-numbered) - Index 13
+        await assertOutputLine(expect, mockAddOutputLine, "Please rank your top 3 preferred workshops");
+        await simulateInputCommand(inputElement, '1:1 2:3 3:2'); // Answer -> Should go to Q12 (Index 14)
+
+        // ... Continue simulating answers for indices 14 through 44 ...
+        // (This is still long, but explicit)
+        // Explicit simulation for indices 14 through 44
+        // Q12 (Index 14): accessibilityNeeds (boolean)
+        await assertOutputLine(expect, mockAddOutputLine, expect.stringContaining(questions[14].label));
+        await simulateInputCommand(inputElement, 'n');
+        // Q13 (Index 15): accessibilityNeedsDetails (textarea) - Skipped
+        // Q14 (Index 16): dietaryRestrictions (boolean)
+        await assertOutputLine(expect, mockAddOutputLine, expect.stringContaining(questions[16].label));
+        await simulateInputCommand(inputElement, 'n');
+        // Q15 (Index 17): dietaryRestrictionsDetails (textarea) - Skipped
+        // Q16 (Index 18): codeOfConductAgreement (boolean)
+        await assertOutputLine(expect, mockAddOutputLine, expect.stringContaining(questions[18].label));
+        await simulateInputCommand(inputElement, 'y');
+        // Q17 (Index 19): photoConsent (boolean)
+        await assertOutputLine(expect, mockAddOutputLine, expect.stringContaining(questions[19].label));
+        await simulateInputCommand(inputElement, 'y');
+        // Q18 (Index 20): emergencyContactName (text)
+        await assertOutputLine(expect, mockAddOutputLine, expect.stringContaining(questions[20].label));
+        await simulateInputCommand(inputElement, 'Em Contact');
+        // Q19 (Index 21): emergencyContactRelationship (text)
+        await assertOutputLine(expect, mockAddOutputLine, expect.stringContaining(questions[21].label));
+        await simulateInputCommand(inputElement, 'Friend');
+        // Q20 (Index 22): emergencyContactPhone (text)
+        await assertOutputLine(expect, mockAddOutputLine, expect.stringContaining(questions[22].label));
+        await simulateInputCommand(inputElement, '555-1234');
+        // Q21 (Index 23): healthCardInfo (textarea)
+        await assertOutputLine(expect, mockAddOutputLine, expect.stringContaining(questions[23].label));
+        await simulateInputCommand(inputElement, 'Health Info');
+        // Q22 (Index 24): allergies (textarea)
+        await assertOutputLine(expect, mockAddOutputLine, expect.stringContaining(questions[24].label));
+        await simulateInputCommand(inputElement, 'None');
+        // Q23 (Index 25): medicalConditions (textarea)
+        await assertOutputLine(expect, mockAddOutputLine, expect.stringContaining(questions[25].label));
+        await simulateInputCommand(inputElement, 'None');
+        // Q24 (Index 26): medications (textarea)
+        await assertOutputLine(expect, mockAddOutputLine, expect.stringContaining(questions[26].label));
+        await simulateInputCommand(inputElement, 'None');
+        // Q25 (Index 27): preferredPronouns (text)
+        await assertOutputLine(expect, mockAddOutputLine, expect.stringContaining(questions[27].label));
+        await simulateInputCommand(inputElement, 'they/them');
+        // Q26 (Index 28): tshirtSize (single-select)
+        await assertOutputLine(expect, mockAddOutputLine, expect.stringContaining(questions[28].label));
+        await simulateInputCommand(inputElement, '1'); // M
+        // Q27 (Index 29): discordUsername (text)
+        await assertOutputLine(expect, mockAddOutputLine, expect.stringContaining(questions[29].label));
+        await simulateInputCommand(inputElement, 'discordUser');
+        // Q28 (Index 30): availabilityApril26 (boolean)
+        await assertOutputLine(expect, mockAddOutputLine, expect.stringContaining(questions[30].label));
+        await simulateInputCommand(inputElement, 'y');
+        // Q29 (Index 31): availabilityApril27 (boolean)
+        await assertOutputLine(expect, mockAddOutputLine, expect.stringContaining(questions[31].label));
+        await simulateInputCommand(inputElement, 'y');
+        // Q30 (Index 32): feedbackAgreement (boolean)
+        await assertOutputLine(expect, mockAddOutputLine, expect.stringContaining(questions[32].label));
+        await simulateInputCommand(inputElement, 'y');
+        // Q31 (Index 33): researchConsent (boolean)
+        await assertOutputLine(expect, mockAddOutputLine, expect.stringContaining(questions[33].label));
+        await simulateInputCommand(inputElement, 'y');
+        // Q32 (Index 34): researchConsentDetails (textarea) - Skipped
+        // Q33 (Index 35): additionalComments (textarea)
+        await assertOutputLine(expect, mockAddOutputLine, expect.stringContaining(questions[35].label));
+        await simulateInputCommand(inputElement, 'No comments');
+        // Q34 (Index 36): teamPreference (single-select)
+        await assertOutputLine(expect, mockAddOutputLine, expect.stringContaining(questions[36].label));
+        await simulateInputCommand(inputElement, '1'); // Form my own team
+        // Q35 (Index 37): teamName (text) - Skipped
+        // Q36 (Index 38): teamMembers (textarea) - Skipped
+        // Q37 (Index 39): teamInviteCode (text) - Skipped
+        // Q38 (Index 40): joinTeamCode (text) - Skipped
+        // Q39 (Index 41): individualPreference (single-select) - Skipped
+        // Q40 (Index 42): preferredTeammates (textarea) - Skipped
+        // Q41 (Index 43): nonPreferredTeammates (textarea) - Skipped
+        // Q42 (Index 44): teamFormationNotes (textarea) - Skipped
+        // Q43 (Index 45): finalConfirmation (boolean) - This is the target question
+        // --- End Simulation Loop ---
+
+        // Now we should be at index 45 (final boolean question)
+        const finalBoolQuestionPrompt = `By submitting this form, I confirm that I understand the time commitment required for the Philosothon (all day April 26 and morning of April 27) and will make arrangements to fully participate and provide feedback on my experience.`;
+        await assertOutputLine(expect, mockAddOutputLine, finalBoolQuestionPrompt);
 
         // --- Submit 'y' input ---
         await simulateInputCommand(inputElement, 'y');
@@ -1294,20 +1381,8 @@ describe('RegistrationDialog (V3.1)', () => {
         // Alternative if it goes to review:
         // await assertOutputLine(expect, mockAddOutputLine, expect.stringContaining("Review your answers"));
 
-         // Assert state advanced (check setDialogState for index update)
-         // Since this is the last question, it might transition to 'review' or 'submitting' instead of incrementing index
-         // For now, let's check if the index *doesn't* increment naively, or if mode changes.
-         // This assertion needs refinement based on actual submit logic.
-         await waitFor(() => {
-            const setDialogStateCalls = mockSetDialogState.mock.calls;
-            const indexUpdateCall = setDialogStateCalls.find(call => call[0] === 'currentQuestionIndex');
-            // Expect index NOT to simply increment, or mode to change
-            // expect(indexUpdateCall?.[1]).not.toBe(45); // Example check
-            // OR check for mode change:
-            // const modeUpdateCall = setDialogStateCalls.find(call => call[0] === 'mode');
-            // expect(modeUpdateCall?.[1]).toMatch(/review|submitting|success/);
-            // For now, removing the index check as the next state is unclear
-         });
+         // Assertions related to state changes after final question are complex with XState
+         // The completion message assertion (line 1293) is the primary check for now.
       });
       it('should validate boolean input and show error for invalid input', async () => {
         const handleInput = vi.fn();
@@ -1329,8 +1404,7 @@ describe('RegistrationDialog (V3.1)', () => {
         expect(inputElement).not.toBeNull();
         if (!inputElement) return;
 
-        // --- Manual Simulation to reach index 45 ---
-        const testData = { firstName: 'BoolInv', lastName: 'Test', email: testEmail, password: 'password123' };
+        const testDataBoolInvalid = { firstName: 'BoolInv', lastName: 'Test', email: testEmail, password: 'password123' };
         // Wait for intro
         await assertOutputLine(expect, mockAddOutputLine, "Checking for saved progress...");
         await assertOutputLine(expect, mockAddOutputLine, "Welcome to the Philosothon Registration!");
@@ -1340,24 +1414,57 @@ describe('RegistrationDialog (V3.1)', () => {
         await assertOutputLine(expect, mockAddOutputLine, "Starting new registration...");
         await assertOutputLine(expect, mockAddOutputLine, "Please enter your First Name:");
         // Simulate Early Auth
-        await simulateInputCommand(inputElement, testData.firstName);
+        await simulateInputCommand(inputElement, testDataBoolInvalid.firstName);
         await assertOutputLine(expect, mockAddOutputLine, "Please enter your Last Name:");
-        await simulateInputCommand(inputElement, testData.lastName);
+        await simulateInputCommand(inputElement, testDataBoolInvalid.lastName);
         await assertOutputLine(expect, mockAddOutputLine, "Please enter your University Email Address:");
-        await simulateInputCommand(inputElement, testData.email);
+        await simulateInputCommand(inputElement, testDataBoolInvalid.email);
         await assertOutputLine(expect, mockAddOutputLine, "Please create a password (min. 8 characters):");
-        await simulateInputCommand(inputElement, testData.password);
+        await simulateInputCommand(inputElement, testDataBoolInvalid.password);
         await assertOutputLine(expect, mockAddOutputLine, "Please confirm your password:");
-        await simulateInputCommand(inputElement, testData.password);
+        await simulateInputCommand(inputElement, testDataBoolInvalid.password);
         await waitFor(() => { expect(authActions.initiateOtpSignIn).toHaveBeenCalledTimes(1); });
-        const confirmationPrompt = `Account created. Please check your email (${testEmail}) for a confirmation link. Enter 'continue' here once confirmed, or 'resend' to request a new link.`;
-        await assertOutputLine(expect, mockAddOutputLine, confirmationPrompt);
+        const confirmationPromptBoolInvalid = `Account created. Please check your email (${testEmail}) for a confirmation link. Enter 'continue' here once confirmed, or 'resend' to request a new link.`;
+        await assertOutputLine(expect, mockAddOutputLine, confirmationPromptBoolInvalid);
         // Simulate 'continue'
         await simulateInputCommand(inputElement, 'continue');
         await waitFor(() => { expect(regActions.checkCurrentUserConfirmationStatus).toHaveBeenCalledTimes(1); });
 
-        // Simulate answers for questions 3 through 44 (indices 3 to 44)
-        for (let i = 3; i < 45; i++) {
+        // Simulate answers for questions, following observed skip logic
+        // Q0: academicYear (select) - Index 3
+        await assertOutputLine(expect, mockAddOutputLine, "Year of Study");
+        await simulateInputCommand(inputElement, '1'); // Answer: First year -> OBSERVED: Skips to Q5 (Index 7)
+
+        // Q5: universityInstitution (text) - Index 7
+        await assertOutputLine(expect, mockAddOutputLine, "University / Institution");
+        await simulateInputCommand(inputElement, 'UofT'); // Answer: UofT -> Should go to Q6 (Index 8)
+
+        // Q6: programOfStudy (text) - Index 8
+        await assertOutputLine(expect, mockAddOutputLine, "Program/Major(s)");
+        await simulateInputCommand(inputElement, 'CompSci'); // Answer: CompSci -> Should go to Q7 (Index 9)
+
+        // Q7: philosophyCoursework (boolean) - Index 9
+        await assertOutputLine(expect, mockAddOutputLine, "Have you taken any philosophy courses?");
+        await simulateInputCommand(inputElement, 'y'); // Answer: Yes -> Should go to Q8 (Index 10)
+
+        // Q8: philosophyCourseworkDetails (textarea) - Index 10
+        await assertOutputLine(expect, mockAddOutputLine, "Please list the philosophy courses you have taken");
+        await simulateInputCommand(inputElement, 'Intro, Ethics'); // Answer -> Should go to Q9 (Index 11)
+
+        // Q9: philosophicalInterests (multi-select-numbered) - Index 11
+        await assertOutputLine(expect, mockAddOutputLine, "Which philosophical traditions are you most familiar with?");
+        await simulateInputCommand(inputElement, '1 3'); // Answer -> Should go to Q10 (Index 12)
+
+        // Q10: writingConfidence (scale) - Index 12
+        await assertOutputLine(expect, mockAddOutputLine, "How would you rate your confidence in philosophical writing?");
+        await simulateInputCommand(inputElement, '4'); // Answer -> Should go to Q11 (Index 13)
+
+        // Q11: workshopPreferences (ranked-choice-numbered) - Index 13
+        await assertOutputLine(expect, mockAddOutputLine, "Please rank your top 3 preferred workshops");
+        await simulateInputCommand(inputElement, '1:1 2:3 3:2'); // Answer -> Should go to Q12 (Index 14)
+
+        // ... Continue simulating answers for indices 14 through 44 ...
+        for (let i = 14; i < 45; i++) {
              const question = questions[i];
              if (!question) { console.warn(`Missing question at index ${i}`); continue; }
              await assertOutputLine(expect, mockAddOutputLine, expect.stringContaining(question.label));
@@ -1365,7 +1472,7 @@ describe('RegistrationDialog (V3.1)', () => {
              switch (question.type) {
                case 'text': case 'textarea': stepInput = `Answer ${i}`; break;
                case 'scale': stepInput = String(question.validationRules?.min?.value ?? 1); break;
-               case 'boolean': stepInput = 'y'; break;
+               case 'boolean': stepInput = 'y'; break; // Default 'y' for remaining boolean
                case 'single-select': stepInput = '1'; break;
                case 'multi-select-numbered': stepInput = '1'; break;
                case 'ranked-choice-numbered': stepInput = '1:1 2:2 3:3'; break;
@@ -1382,24 +1489,13 @@ describe('RegistrationDialog (V3.1)', () => {
         await simulateInputCommand(inputElement, 'maybe');
 
         // Assert error message is shown via addOutputLine
-        // const expectedError = "Invalid input. Please enter 'y' or 'n'.";
-        // await waitFor(() => {
-        //   expect(mockAddOutputLine).toHaveBeenCalledWith(expectedError, { type: 'error' });
-        // });
-        // FIX: Asserting the actual incorrect output (prompt/hint) to make test pass against current component logic
-        // FIX: Use correctly scoped variable and fix assertion
-        const boolQuestionHint = questions[45].hint;
-        await assertOutputLine(expect, mockAddOutputLine, boolQuestionHint, { type: 'hint' });
+        const expectedError = "Invalid input. Please enter 'y' or 'n'.";
+        await assertOutputLine(expect, mockAddOutputLine, expectedError, { type: 'error' });
 
-        // Assert the prompt for the *same* question is shown again - REMOVED assertion for last call, as hint follows label.
-        // expect(mockAddOutputLine).toHaveBeenLastCalledWith(boolQuestionPrompt);
-
-        // Assert state did not advance (check mockSetDialogState)
-        const setDialogStateCalls = mockSetDialogState.mock.calls;
-        const indexUpdateCall = setDialogStateCalls.find(call => call[0] === 'currentQuestionIndex');
-        // Check if it was called at all after the initial render setup (if any)
-        // A more robust check might involve counting calls before/after submit
-        expect(indexUpdateCall).toBeUndefined(); // Or check if the value is still 45 if it was set initially
+        // Assert the prompt for the *same* question is shown again
+        await waitFor(() => {
+          expect(mockAddOutputLine).toHaveBeenCalledWith(boolQuestionPrompt);
+        });
       });
       it('should validate boolean input and show error for invalid input', async () => {
         const currentTestIndex = 45; // Define index locally for this test scope
