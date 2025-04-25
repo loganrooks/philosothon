@@ -5,6 +5,7 @@ import { questions } from '@/app/register/data/registrationQuestions'; // Use co
 // import useLocalStorage from '@/lib/hooks/useLocalStorage'; // Will be mocked
 // import { checkEmailConfirmation } from '@/app/register/actions'; // Removed - Function does not exist
 import * as regActions from '@/app/register/actions'; // Keep for other mocks if needed
+import { checkCurrentUserConfirmationStatus } from '@/app/register/actions'; // Import the new server action
 import { initiateOtpSignIn } from '@/lib/data/auth'; // Import the correct OTP function
 // Removed resendConfirmationEmail as it's not used here and doesn't exist in auth DAL
 
@@ -88,13 +89,6 @@ export function useRegistrationReducer(initialDialogState?: Partial<Registration
   return { state, dispatch };
 }
 // --- End State Management Hook ---
-
-
-// Placeholder function - Replace with actual confirmation logic
-async function checkConfirmationStatus(userId: string): Promise<boolean> {
-  // In a real scenario, this would check the user's session or call a backend endpoint
-  return false; // Assume NOT confirmed for testing the error path
-}
 
 
 const RegistrationDialog: React.FC<DialogProps> = ({
@@ -220,9 +214,6 @@ const RegistrationDialog: React.FC<DialogProps> = ({
               addOutputLine(confirmationMessage);
               // NOTE: User ID is not available immediately after OTP initiation, but the test flow relies on it being set.
               // We'll set it based on the mock data for test purposes. Real implementation might differ.
-              if (data?.user?.id) {
-                  setDialogState('pendingUserId', data.user.id); // Reinstate setting pendingUserId
-              }
               // Dispatch internal state update instead of calling external prop
               dispatch({ type: 'SET_MODE', payload: 'awaiting_confirmation' });
           }
@@ -301,18 +292,12 @@ const RegistrationDialog: React.FC<DialogProps> = ({
     } else if (state.mode === 'awaiting_confirmation') {
        if (input.toLowerCase() === 'continue') {
            addOutputLine("Checking confirmation status...");
-           const pendingUserId = dialogState?.pendingUserId; // Retrieve stored user ID
-           if (!pendingUserId) {
-                addOutputLine("Error: Could not find user ID to check confirmation.", { type: 'error' });
-                // Potentially reset state or prompt again?
-                return; // Exit if no ID
-           }
            try {
-               // TODO: Replace checkConfirmationStatus with the actual function/logic to verify OTP/session status
-               const isConfirmed = await checkConfirmationStatus(pendingUserId); // Replaced placeholder
+               // Call the server action to check the current user's status
+               const isConfirmed = await checkCurrentUserConfirmationStatus();
                if (isConfirmed) {
-                   addOutputLine("Email confirmed. Starting registration questions..."); // Removed placeholder text
-                   clearDialogState(); // Clear the pending user ID
+                   addOutputLine("Email confirmed. Starting registration questions...");
+                   // No need to clear pendingUserId as it's no longer used
                    dispatch({ type: 'SET_MODE', payload: 'questioning' }); // Use internal dispatch to change mode
                    // useEffect will handle displaying the prompt based on new state
                } else {
@@ -323,7 +308,7 @@ const RegistrationDialog: React.FC<DialogProps> = ({
                    addOutputLine(confirmationPrompt);
                }
            } catch (error) {
-                addOutputLine(`Error during confirmation check (placeholder): ${error instanceof Error ? error.message : String(error)}`, { type: 'error' });
+                addOutputLine(`Error during confirmation check: ${error instanceof Error ? error.message : String(error)}`, { type: 'error' });
                 // Also re-display prompt on catch
                 const confirmationPrompt = `Account created. Please check your email (${state.answers.email}) for a confirmation link. Enter 'continue' here once confirmed, or 'resend' to request a new link.`;
                 addOutputLine(confirmationPrompt);
@@ -339,13 +324,15 @@ const RegistrationDialog: React.FC<DialogProps> = ({
            }
            addOutputLine("Resending confirmation email...");
            try {
-               // NOTE: resendConfirmationEmail logic was removed as the function doesn't exist in auth DAL.
-               // Need to implement OTP resend logic if required by spec.
-               // For now, just show a placeholder message.
-               addOutputLine("Resend functionality not implemented yet.", { type: 'system' });
-
+               // Call the initiateOtpSignIn function from the auth DAL
+               const { error } = await initiateOtpSignIn(email);
+               if (error) {
+                   addOutputLine(`Error resending confirmation: ${error.message || 'Unknown error'}`, { type: 'error' });
+               } else {
+                   addOutputLine("Confirmation email resent. Please check your inbox.");
+               }
            } catch (error) {
-               addOutputLine(`Error during resend attempt: ${error instanceof Error ? error.message : String(error)}`, { type: 'error' });
+               addOutputLine(`An unexpected error occurred during resend: ${error instanceof Error ? error.message : String(error)}`, { type: 'error' });
            } finally {
                // Always re-display the prompt after attempting resend
                const confirmationPrompt = `Account created. Please check your email (${email}) for a confirmation link. Enter 'continue' here once confirmed, or 'resend' to request a new link.`;

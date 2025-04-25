@@ -423,3 +423,33 @@ export async function logInterest(
     return { success: false, message: `Failed to record interest: ${error.message}` };
   }
 }
+
+
+
+/**
+ * Checks the email confirmation status of the currently authenticated user.
+ * @returns A Promise resolving to true if the email is confirmed, false otherwise.
+ */
+export async function checkCurrentUserConfirmationStatus(): Promise<boolean> {
+  try {
+    const supabase = await createClient();
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+    if (userError) {
+      console.error('Error fetching user for confirmation check:', userError);
+      return false;
+    }
+
+    if (!user) {
+      console.warn('No user found for confirmation check.');
+      return false;
+    }
+
+    // Check if the email_confirmed_at timestamp exists and is valid
+    return !!user.email_confirmed_at;
+
+  } catch (error) {
+    console.error('Unexpected error during confirmation status check:', error);
+    return false;
+  }
+}

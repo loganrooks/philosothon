@@ -295,6 +295,7 @@ describe('RegistrationDialog (V3.1)', () => {
     vi.mocked(regActions.updateRegistration).mockResolvedValue({ success: true, message: null });
     vi.mocked(regActions.deleteRegistration).mockResolvedValue({ success: true, message: null });
     // vi.mocked(regActions.checkEmailConfirmation).mockResolvedValue({ isConfirmed: false }); // Removed - Function does not exist
+    vi.mocked(regActions.checkCurrentUserConfirmationStatus).mockResolvedValue(false); // Mock the new server action, default to false
     vi.mocked(authActions.initiateOtpSignIn).mockResolvedValue({ data: {}, error: null }); // Replaced signUpUser with initiateOtpSignIn
     // vi.mocked(authActions.resendConfirmationEmail).mockResolvedValue({ success: true, message: 'Resent (placeholder)', data: {}, error: null }); // Removed - Function does not exist
   });
@@ -678,7 +679,7 @@ describe('RegistrationDialog (V3.1)', () => {
       await assertOutputLine(expect, mockAddOutputLine, expect.stringContaining("Please confirm your password:"));
       await simulateInputCommand(inputElement, testData.password);
       await waitFor(() => { expect(authActions.initiateOtpSignIn).toHaveBeenCalledTimes(1); });
-      await waitFor(() => { expect(mockSetDialogState).toHaveBeenCalledWith('pendingUserId', 'mock-unconfirmed-user-id'); });
+      // Removed check for mockSetDialogState('pendingUserId', ...)
       // Adjust confirmation prompt if OTP flow changes it
       const confirmationPrompt = `Account created. Please check your email (${testEmail}) for a confirmation link. Enter 'continue' here once confirmed, or 'resend' to request a new link.`;
       await assertOutputLine(expect, mockAddOutputLine, confirmationPrompt);
@@ -687,10 +688,10 @@ describe('RegistrationDialog (V3.1)', () => {
       // Simulate user entering 'continue'
       await simulateInputCommand(inputElement, 'continue');
 
-      // Assert checkEmailConfirmation is NOT called
-      // await waitFor(() => {
-      //   expect(regActions.checkEmailConfirmation).toHaveBeenCalledTimes(1);
-      // });
+      // Check that checkCurrentUserConfirmationStatus was called
+      await waitFor(() => {
+        expect(regActions.checkCurrentUserConfirmationStatus).toHaveBeenCalledTimes(1);
+      });
 
       // Assert mode did NOT change to questioning
       expect(mockChangeMode).not.toHaveBeenCalledWith('questioning');
@@ -703,7 +704,7 @@ describe('RegistrationDialog (V3.1)', () => {
       // Use toHaveBeenLastCalledWith to be more precise
       expect(mockAddOutputLine).toHaveBeenLastCalledWith(confirmationPrompt);
     });
-    it('should call resendConfirmationEmail and show message on "resend" command', async () => {
+    it('should call initiateOtpSignIn and show message on "resend" command', async () => {
       // Mock initiateOtpSignIn to return success
       const testEmail = 'resend-test@example.com';
       vi.mocked(authActions.initiateOtpSignIn).mockResolvedValue({
@@ -730,7 +731,7 @@ describe('RegistrationDialog (V3.1)', () => {
       await assertOutputLine(expect, mockAddOutputLine, expect.stringContaining("Please confirm your password:"));
       await simulateInputCommand(inputElement, testData.password);
       await waitFor(() => { expect(authActions.initiateOtpSignIn).toHaveBeenCalledTimes(1); });
-      await waitFor(() => { expect(mockSetDialogState).toHaveBeenCalledWith('pendingUserId', 'mock-resend-user-id'); });
+      // Removed check for mockSetDialogState('pendingUserId', ...)
       // Adjust confirmation prompt if OTP flow changes it
       const confirmationPrompt = `Account created. Please check your email (${testEmail}) for a confirmation link. Enter 'continue' here once confirmed, or 'resend' to request a new link.`;
       await assertOutputLine(expect, mockAddOutputLine, confirmationPrompt);
@@ -739,11 +740,11 @@ describe('RegistrationDialog (V3.1)', () => {
       // Simulate user entering 'resend'
       await simulateInputCommand(inputElement, 'resend');
 
-      // Assert resendConfirmationEmail is NOT called (logic likely changed)
-      // await waitFor(() => {
-      //   expect(authActions.resendConfirmationEmail).toHaveBeenCalledTimes(1);
-      //   expect(authActions.resendConfirmationEmail).toHaveBeenCalledWith(testEmail);
-      // });
+      // Check that initiateOtpSignIn was called again for the resend
+      await waitFor(() => {
+        expect(authActions.initiateOtpSignIn).toHaveBeenCalledTimes(2); // Once for signup, once for resend
+        expect(authActions.initiateOtpSignIn).toHaveBeenLastCalledWith(testEmail);
+      });
 
       // Assert success message was shown
       const expectedMessage = "Resending confirmation email..."; // Message shown *before* action completes
@@ -772,8 +773,8 @@ describe('RegistrationDialog (V3.1)', () => {
       vi.mocked(authActions.initiateOtpSignIn).mockResolvedValue({
         data: { user: { email: testEmail, id: 'mock-question-user-id' } }, error: null
       });
-      // Remove checkEmailConfirmation mock
-      // vi.mocked(regActions.checkEmailConfirmation).mockResolvedValue({ isConfirmed: true });
+      // Mock the confirmation check to return true for this test
+      vi.mocked(regActions.checkCurrentUserConfirmationStatus).mockResolvedValueOnce(true);
 
       const handleInput = vi.fn();
       // Capture rerender
@@ -794,15 +795,17 @@ describe('RegistrationDialog (V3.1)', () => {
       await waitFor(() => { expect(mockAddOutputLine).toHaveBeenCalledWith(expect.stringContaining("Please confirm your password:")); });
       await simulateInputCommand(inputElement, testData.password);
       await waitFor(() => { expect(authActions.initiateOtpSignIn).toHaveBeenCalledTimes(1); });
-      await waitFor(() => { expect(mockSetDialogState).toHaveBeenCalledWith('pendingUserId', 'mock-question-user-id'); });
+      // Removed check for mockSetDialogState('pendingUserId', ...)
       // Adjust confirmation prompt if OTP flow changes it
       const confirmationPrompt = `Account created. Please check your email (${testEmail}) for a confirmation link. Enter 'continue' here once confirmed, or 'resend' to request a new link.`;
       await waitFor(() => { expect(mockAddOutputLine).toHaveBeenCalledWith(confirmationPrompt); });
 
       // Enter 'continue' within act
       await simulateInputCommand(inputElement, 'continue');
-      // Remove checkEmailConfirmation assertion
-      // await waitFor(() => { expect(regActions.checkEmailConfirmation).toHaveBeenCalledTimes(1); });
+      // Check that checkCurrentUserConfirmationStatus was called
+      await waitFor(() => {
+        expect(regActions.checkCurrentUserConfirmationStatus).toHaveBeenCalledTimes(1);
+      });
 
       // Explicitly rerender after state change trigger
       rerender(<RegistrationDialog {...defaultProps} dialogState={currentDialogState} onInput={handleInput} />);
