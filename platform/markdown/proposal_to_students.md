@@ -39,6 +39,8 @@ Upper-year students can opt to mentor newer philosophy students (and we hope you
 
 Teams will be announced by Friday, April 25th, giving you time to connect before the event.
 
+**UPDATE:** Teams will be announced at opening.
+
 ## **Philosophical Themes**
 
 The exact theme will be selected through participant voting and revealed at the opening, but might include:
@@ -64,6 +66,8 @@ You'll also help us choose a workshop for Saturday evening, with options like:
 ## **How to Apply**
 
 This is a small trial event limited to 15-30 participants. Simply fill out the sign-up form by Thursday, April 24th at midnight. We'll ask about your interests, experience level, and preferences for teammates and topics. If more people apply than we can accommodate, we'll aim for a diverse mix of participants.
+
+**UPDATE:** Extending online registrations until 8AM morning of. Try to get them in the night before, but we will try to find you a team if you come between 8:30-9:00AM.
 
 ## **Questions?**
 
