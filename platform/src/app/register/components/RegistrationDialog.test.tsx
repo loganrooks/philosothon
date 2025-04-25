@@ -318,6 +318,7 @@ describe('RegistrationDialog (V3.1)', () => {
     it('should prompt for Last Name after First Name is entered', async () => {
         const handleInput = vi.fn();
         const { container } = render(<RegistrationDialog {...defaultProps} onInput={handleInput} />);
+        vi.spyOn(Storage.prototype, 'getItem').mockReturnValue(null);
         const inputElement = container.querySelector('input');
         expect(inputElement).not.toBeNull();
         if (!inputElement) return;
