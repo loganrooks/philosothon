@@ -104,6 +104,9 @@ export const __setMockMachineState = (
   } else if (newState.value === "earlyAuth.enteringLastName") {
      // Simulate entry action for earlyAuth.enteringLastName state
      mockAddOutputLine("Please enter your Last Name:");
+  } else if (newState.value === "earlyAuth.enteringEmail") {
+     // Simulate entry action for earlyAuth.enteringEmail state
+     mockAddOutputLine("Please enter your University Email Address:");
   }
   // Add more else if blocks here for other states as needed by tests
 };
@@ -511,14 +514,18 @@ await assertOutputLine(
       const lastNameInput = "User";
       await simulateInputCommand(inputElement, lastNameInput);
 
-      // 5. Assert the INPUT_RECEIVED event was sent
+      // 5. Assert the input echo
+      await assertOutputLine(expect, mockAddOutputLine, `> ${lastNameInput}`, { type: 'input' });
+
+      // 6. Assert the INPUT_RECEIVED event was sent
       expect(mockSend).toHaveBeenCalledTimes(1);
       expect(mockSend).toHaveBeenCalledWith({
         type: "INPUT_RECEIVED",
         value: lastNameInput,
       });
 
-      // 6. Set the mock state to the expected next state
+      // 7. Set the mock state to the expected next state
+      //    The helper will simulate the entry action.
       const updatedContext = {
         ...initialContext,
         answers: { ...initialContext.answers, lastName: lastNameInput },
@@ -528,7 +535,7 @@ await assertOutputLine(
         context: updatedContext,
       });
 
-      // 7. Assert the "Email" prompt (based on new state entry actions)
+      // 8. Assert the "Email" prompt (simulated by helper)
       await assertOutputLine(
         expect,
         mockAddOutputLine,
