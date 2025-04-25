@@ -1,3 +1,77 @@
+### Test Execution: RegistrationDialog (Post-Assertion Fixes) - [2025-04-25 08:39:50]
+- **Trigger**: Manual (Post-Assertion Fixes)
+- **Scope**: `platform/src/app/register/components/RegistrationDialog.test.tsx`
+- **Outcome**: FAIL / **Summary**: 65 tests passed, 3 failed, 1 skipped, 31 todo
+- **Failed Tests**:
+    - `should handle valid numeric input and advance state` (academicYear): Component logic error (skip logic).
+    - `should show error for invalid format (wrong separator)` (ranked-choice): Component logic error (advances state).
+    - `should show error for duplicate option` (ranked-choice): Component logic error (advances state).
+- **Notes**: Confirmed assertion fixes resolved 7 previous failures. Remaining 3 failures are due to component logic bugs, not test assertions.
+
+---
+
+
+
+### TDD Cycle: RegistrationDialog.test.tsx (Fix Incorrect Assertions) - [2025-04-25 08:39:50]
+- **Red**: N/A (Fixing existing failing tests post-implementation). 10 tests failed due to incorrect assertions about validation messages and command behavior.
+- **Green**: N/A (Fixing tests, not implementing code).
+- **Refactor**: Updated assertions in 7 tests (`should validate required text input...`, `should show error for duplicate rank`, `should handle "review" command...`, `should show error for invalid "edit" command format`, `should show error for "edit [number]" with out-of-range number`, `should show error for "edit [number]" attempting to edit future questions`, `should show error for out-of-range option` (ranked-choice)). Corrected expected error messages based on component/schema output. Refined `review` command assertion to check sequence. / Files Changed: `platform/src/app/register/components/RegistrationDialog.test.tsx` / Commit: `297e8e2`
+- **Outcome**: Cycle completed. 7 assertion-related failures fixed. 3 failures remain due to component logic bugs. Test suite status: 65 passed, 3 failed, 1 skipped, 31 todo.
+
+---
+
+
+
+### Test Execution: RegistrationDialog (Post-Partial Load Fix) - [2025-04-25 02:59:39]
+- **Trigger**: Manual (Post-Test Fixes)
+- **Scope**: `platform/src/app/register/components/RegistrationDialog.test.tsx`
+- **Outcome**: PASS / **Summary**: 68 tests passed, 1 skipped, 31 todo
+- **Failed Tests**: None
+- **Notes**: Confirmed that fixing assertions for error handling in 'edit' and 'register continue' commands resolved the 3 failures introduced by commit `9e6c918`. Tests now correctly expect the prompt/options to be re-displayed after an error message.
+
+---
+
+
+
+### TDD Cycle: RegistrationDialog.test.tsx (Fix Error Handling Assertions) - [2025-04-25 02:59:39]
+- **Red**: N/A (Fixing existing failing tests post-implementation). 3 tests failed after commit `9e6c918` due to incorrect assertions about error message output sequence.
+- **Green**: N/A (Fixing tests, not implementing code).
+- **Refactor**: Updated assertions in 3 tests (`should show error for "edit [number]" with out-of-range number`, `should show error for "edit [number]" attempting to edit future questions`, `should show an error message for "register continue" if saved data is corrupted`). Changed `assertOutputLine` to `toHaveBeenCalledWith` for error messages. Corrected expected error text for `edit` tests. Corrected final assertion for `edit` tests to expect options list instead of hint. / Files Changed: `platform/src/app/register/components/RegistrationDialog.test.tsx` / Commit: `17b0813`
+- **Outcome**: Cycle completed. The 3 failing tests now pass, aligning with component behavior and spec regarding error message display followed by prompt re-display. Test suite status: 68 passed, 1 skipped, 31 todo.
+
+---
+
+
+
+### Test Execution: RegistrationDialog (Refactor Verification - Batch 9) - [2025-04-25 01:53:47]
+- **Trigger**: Manual (Post-Refactor - assertOutputLine Batch 9)
+- **Scope**: `platform/src/app/register/components/RegistrationDialog.test.tsx`
+- **Outcome**: PASS / **Summary**: 63 tests passed, 1 skipped, 31 todo
+- **Failed Tests**: None
+- **Notes**: Verified tests pass after replacing 1 instance of waitFor/expect with assertOutputLine helper.
+
+---
+
+
+### TDD Cycle: RegistrationDialog.test.tsx (Refactor - assertOutputLine Helper) - [2025-04-25 01:54:03]
+- **Red**: N/A (Refactoring)
+- **Green**: N/A (Refactoring)
+- **Refactor**: Replaced 16 instances of `waitFor(() => expect(mockAddOutputLine)...)` with calls to the `assertOutputLine` helper function across multiple small batches. / Files Changed: `platform/src/app/register/components/RegistrationDialog.test.tsx` / Commits: `9ff767b`, `fee14af`, `a223c5a`, `01dc104`, `bc35699`, `dbd1cde`, `85912cd`, `d00ffbb`
+- **Outcome**: Refactoring using `assertOutputLine` helper completed incrementally. All tests pass after final batch.
+
+---
+
+
+### Test Execution: RegistrationDialog (Rec 5 & 6 Verification) - [2025-04-25 01:04:28]
+- **Trigger**: Manual (Post-Refactor Review)
+- **Scope**: `platform/src/app/register/components/RegistrationDialog.test.tsx`
+- **Outcome**: PASS / **Summary**: 56 tests passed, 1 skipped, 31 todo
+- **Failed Tests**: None
+- **Notes**: Verified tests pass after reviewing file for Holistic Review Recs 5 & 6. No code changes were made as comment already existed and structure was deemed reasonable.
+
+---
+
+
 ### Test Execution: RegistrationDialog (Validation Fix Verification) - [2025-04-25 00:13:28]
 - **Trigger**: Manual (Post-Code Change - Duplicate Rank Fix)
 - **Scope**: `platform/src/app/register/components/RegistrationDialog.test.tsx`

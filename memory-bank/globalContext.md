@@ -1,3 +1,24 @@
+- **[2025-04-25 09:39:56] - Code:** Refactored `RegistrationDialog.tsx` to use XState (`useMachine`), created `registrationDialogMachine.ts`, added `submitRegistrationFromMachine` server action. Commit `d5823a7`. Test updates deferred due to tooling issues. [See MB Active Log 2025-04-25 09:39:56, MB Code Log 2025-04-25 09:39:56]
+
+
+
+- **[2025-04-25 08:39:50] - TDD:** Corrected 7 failing assertions in `RegistrationDialog.test.tsx` related to validation messages and command behavior (commit `297e8e2`). Test suite status: 65 passed, 3 failed, 1 skipped, 31 todo. Remaining failures attributed to component logic bugs. [See MB Active Log 2025-04-25 08:39:50, MB TDD Log 2025-04-25 08:39:50]
+
+
+
+- **[2025-04-25 02:59:39] - TDD:** Fixed 3 failing tests in `RegistrationDialog.test.tsx` related to error handling assertions after partial load implementation. Updated tests to expect prompt re-display after errors. Commit `17b0813`. Test suite status: 68 passed, 1 skipped, 31 todo. [See MB Active Log 2025-04-25 02:59:39, MB TDD Log 2025-04-25 02:59:39]
+
+
+
+
+- **[2025-04-25 02:52:00] - Code:** Implemented partial registration loading (`register continue` command, mount check) in `RegistrationDialog.tsx` using localStorage. Restructured `handleSubmit` for global commands. Commit `9e6c918`. [See MB Active Log 2025-04-25 02:52:00, MB Code Log 2025-04-25 02:52:00]
+
+
+
+- **[2025-04-25 02:09:56] - Code:** Implemented email confirmation flow (`continue`/`resend` commands) in `RegistrationDialog.tsx` using a new server action (`checkCurrentUserConfirmationStatus`) and `initiateOtpSignIn`. Updated related tests. All 63 active tests pass. [See MB Active Log 2025-04-25 02:09:56]
+
+
+
 - **[2025-04-24 16:33:42] - DocsWriter:** Updated `docs/plans/phase_3_plan.md` based on holistic review recommendations. Added sections for Enhanced Testing Strategy and Risk Mitigation, integrated QA checkpoints into phases, refined dependency notes, and improved TDD anchor specificity. [See MB Active Log 2025-04-24 16:33:42]
 
 
@@ -251,6 +272,14 @@ This file consolidates less frequently updated global project information, inclu
 ---
 
 # System Patterns
+
+### [2025-04-25] System Pattern: XState for Complex Component State
+- **Description:** For components with complex, multi-step flows, numerous potential states, and intricate validation/side-effect logic (like `RegistrationDialog`), using XState provides a structured approach compared to `useReducer`.
+- **Implementation:** Define a state machine (`createMachine`) with explicit states, context, events, actions, services (for async/complex logic like validation), and guards. Use `@xstate/react`'s `useMachine` hook within the component to manage state and send events.
+- **Benefits:** Improved state clarity, better handling of side effects, visualization, testability (machine logic can be tested independently).
+- **Reference:** `platform/src/app/register/machines/registrationDialogMachine.ts`, `platform/src/app/register/components/RegistrationDialog.tsx` (commit `d5823a7`)
+
+
 
 ### [2025-04-23] System Pattern: Modular Terminal UI (V2)
 - **Description:** Evolves V1 architecture (`docs/architecture/terminal_component_v1.md`) to support expanded V3 scope. Retains `TerminalShell` / `ActiveDialog` pattern but recommends **XState** for core `TerminalShell` state management due to increased complexity (Chat, Gamification). Defines specific dialogs (`MainMenu`, `Auth`, `Registration`, `ViewStatus`, `Submission`, `Library`, `Chat`, `Gamification`). Defines file upload pattern via standard input triggered by `SubmissionDialog`.

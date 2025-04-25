@@ -1,3 +1,42 @@
+### [2025-04-25 09:39:56] RegistrationDialog XState Refactor
+- **Purpose**: Refactor internal state management of RegistrationDialog from `useReducer` to XState to handle complexity and improve maintainability, addressing persistent test failures.
+- **Files**:
+    - `platform/src/app/register/components/RegistrationDialog.tsx` (Rewritten)
+    - `platform/src/app/register/machines/registrationDialogMachine.ts` (Created)
+    - `platform/src/app/register/actions.ts` (Added `submitRegistrationFromMachine`)
+- **Status**: Implemented & Committed (`d5823a7`)
+- **Dependencies**: `xstate`, `@xstate/react`
+- **API Surface**: `RegistrationDialog` component interface largely unchanged externally, internal state management replaced. Added `submitRegistrationFromMachine` server action.
+- **Tests**: `platform/src/app/register/components/RegistrationDialog.test.tsx` (Updates deferred due to tooling issues; currently failing).
+- **Notes**: Replaced `useRegistrationReducer` with `useMachine`. Defined machine states, context, events, actions, and services based on spec V3.1 and architect plan. Moved validation and side-effect logic into the machine. Test file updates proved problematic due to file size/tooling limitations and are deferred.
+
+
+
+### [2025-04-25 02:52:00] RegistrationDialog Partial Load Implementation
+- **Purpose**: Implement loading saved registration state from localStorage.
+- **Files**: `platform/src/app/register/components/RegistrationDialog.tsx` (Modified)
+- **Status**: Implemented & Committed (`9e6c918`)
+- **Dependencies**: `localStorage` API, `atob`, `JSON.parse`
+- **API Surface**: None changed.
+- **Tests**: `platform/src/app/register/components/RegistrationDialog.test.tsx` (65/1/31 pass, 3 fail on error prompt sequence)
+- **Notes**: Added `register continue` command handling in `handleSubmit` (reads localStorage, decodes, parses, dispatches `LOAD_STATE`). Added `useEffect` hook to check localStorage on mount and display system message if data exists. Restructured `handleSubmit` to handle global commands first. Remaining test failures relate to prompt display sequence after errors.
+
+
+
+### [2025-04-25 02:09:56] RegistrationDialog Email Confirmation Flow
+- **Purpose**: Implement functional email confirmation logic (`continue`/`resend`) in the `awaiting_confirmation` state.
+- **Files**:
+    - `platform/src/app/register/components/RegistrationDialog.tsx` (Modified)
+    - `platform/src/app/register/actions.ts` (Added `checkCurrentUserConfirmationStatus`)
+    - `platform/src/app/register/components/RegistrationDialog.test.tsx` (Modified)
+- **Status**: Implemented & Tested (63/1/31 pass)
+- **Dependencies**: `@/lib/data/auth` (`initiateOtpSignIn`), `@/app/register/actions` (`checkCurrentUserConfirmationStatus`)
+- **API Surface**: Added `checkCurrentUserConfirmationStatus` server action.
+- **Tests**: `platform/src/app/register/components/RegistrationDialog.test.tsx` (Updated assertions for confirmation/resend logic).
+- **Notes**: Replaced placeholder `checkConfirmationStatus` with server action call. Removed `pendingUserId` logic. Implemented `resend` using `initiateOtpSignIn`.
+
+
+
 ### [2025-04-24 03:44:00] RegistrationDialog.test.tsx - multi-select-numbered
 - **Purpose**: Implement/fix tests for `multi-select-numbered` input.
 - **Files**: `platform/src/app/register/components/RegistrationDialog.test.tsx` (Modified)

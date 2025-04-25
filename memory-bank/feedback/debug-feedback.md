@@ -2,6 +2,22 @@
 
 This file tracks feedback received specifically for the Debug mode's performance and actions.
 
+### [2025-04-25 09:19:46] - Early Return: User Invoked Clause During Ranked-Choice Debugging
+- **Trigger**: User command after multiple failed attempts to fix ranked-choice validation.
+- **Context**: Debugging 2 failing tests (`out-of-range rank`, `duplicate option`) in `RegistrationDialog.test.tsx` related to `ranked-choice-numbered` validation logic in `RegistrationDialog.tsx`.
+- **Attempted Solutions**:
+    1.  Reordered error precedence block.
+    2.  Adjusted condition for sequence validation check.
+    3.  Added explicit `return` statements to prevent fallthrough.
+    4.  Corrected rank range check logic (`minRanked` vs `numOptions`).
+- **Observed Errors**: The two target tests continued to fail after fixes. Some fixes introduced new test failures (e.g., format validation tests started failing after adding explicit returns). The test runner also exhibited inconsistent behavior when targeting specific files.
+- **Blocker**: Intractable logic issues in the validation precedence and state advancement flow for `ranked-choice-numbered`. Potential interactions with test environment or subtle state management bugs. Context window growing (40%).
+- **Action Taken**: Reverted last set of changes per user command. Invoking Early Return Clause.
+- **Follow-up**: Recommend SPARC orchestrator review the component logic and test failures. Consider if a component refactor (potentially using XState as suggested in global context) is needed before further debugging attempts.
+
+---
+
+
 
 ### [2025-04-23 22:23:56] - User Intervention: Premature Log Removal Recommendation
 - **Trigger**: User feedback/denial after `attempt_completion` during REG-TEST-STATE-INIT-001 logging task.
@@ -74,3 +90,27 @@ This file tracks feedback received specifically for the Debug mode's performance
 - **Outcome**: Mocking error fixed. Component requires further debugging.
 - **Follow-up**: Recommend new task for `code` or `debug` mode to address the component logic failures.
 
+
+---
+
+### [2025-04-25 09:00:20] - Early Return: User Invoked Clause During Debugging
+
+-   **Trigger**: User invoked Early Return Clause.
+-   **Context**: Debugging 3 failing tests in `platform/src/app/register/components/RegistrationDialog.test.tsx` related to component logic in `RegistrationDialog.tsx`. Specifically targeting `academicYear` skip logic and `ranked-choice-numbered` validation (format, duplicates). Context window size ~42%.
+-   **Attempted Solutions**:
+    1.  Corrected `ranked-choice-numbered` input splitting regex.
+    2.  Made `NEXT_STEP` reducer skip logic mode-aware (fixed regressions).
+    3.  Corrected `PREV_STEP` reducer test assertion.
+    4.  Attempted to fix `ranked-choice-numbered` rank range check and sequence check logic.
+    5.  Attempted to reorder `ranked-choice-numbered` error precedence logic.
+    6.  Added logging to `NEXT_STEP` reducer and `ranked-choice-numbered` precedence block.
+-   **Observed Errors**:
+    *   Initial `execute_command` failures due to incorrect working directory/path.
+    *   Multiple `apply_diff` failures due to file corruption caused by `insert_content` misplacing logs, requiring reads and careful re-application of diffs.
+    *   Last successful test run showed 2 remaining failures (`ranked-choice-numbered`: out-of-range rank, duplicate option). The `academicYear` skip logic test passed.
+-   **Blocker**: User invoked Early Return Clause during attempts to fix the corrupted error precedence block caused by previous tool errors. The high context window likely contributed to the tool failures.
+-   **Code State**:
+    *   `platform/src/app/register/components/RegistrationDialog.tsx`: Contains fixes for `academicYear` skip logic (mode-aware reducer), `ranked-choice-numbered` input splitting, rank range check, sequence check, and added logging. The error precedence block might be corrupted or reverted by the user.
+    *   `platform/src/app/register/components/RegistrationDialog.test.tsx`: `PREV_STEP` reducer test assertion updated.
+-   **Outcome**: Task halted per user command. 2 tests likely still failing.
+-   **Follow-up**: Recommend SPARC orchestrator review the state and potentially delegate further debugging or refactoring, being mindful of the file state and previous tool issues.
