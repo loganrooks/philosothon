@@ -1637,9 +1637,7 @@ describe('RegistrationDialog (V3.1)', () => {
       if (!inputElement) return;
 
       // Wait for the initial prompt (Year of Study) to ensure component rendered correctly
-      await waitFor(() => {
-        expect(mockAddOutputLine).toHaveBeenCalledWith('Year of Study');
-      });
+      await assertOutputLine(expect, mockAddOutputLine, 'Year of Study');
 
       // Simulate user entering 'exit'
       await simulateInputCommand(inputElement, 'exit');
@@ -1683,10 +1681,8 @@ describe('RegistrationDialog (V3.1)', () => {
       if (!inputElement) return;
 
       // Wait for the prompt of the initial question (index 6) to ensure setup
-      await waitFor(() => {
-        // Expect the correct prompt for index 6
-        expect(mockAddOutputLine).toHaveBeenCalledWith('Program/Major(s)');
-      });
+      // Expect the correct prompt for index 6
+      await assertOutputLine(expect, mockAddOutputLine, 'Program/Major(s)');
 
       // --- Simulate entering 'back' command ---
       await simulateInputCommand(inputElement, 'back');
@@ -1694,10 +1690,8 @@ describe('RegistrationDialog (V3.1)', () => {
       // Removed outdated assertion checking mockSetDialogState
 
       // Assert that the prompt for the previous question (index 5) is shown
-      await waitFor(() => {
-         // Expect the correct prompt for index 5
-         expect(mockAddOutputLine).toHaveBeenCalledWith('University / Institution');
-      });
+      // Expect the correct prompt for index 5
+      await assertOutputLine(expect, mockAddOutputLine, 'University / Institution');
     });
     it('should handle "review" command to display summary of answers', async () => {
       const handleInput = vi.fn();
@@ -1736,9 +1730,7 @@ describe('RegistrationDialog (V3.1)', () => {
 
       // Wait for the prompt for index 6 to ensure initial state is rendered
       const currentQuestionPrompt = questions[6].label; // 'Program/Major(s)'
-      await waitFor(() => {
-        expect(mockAddOutputLine).toHaveBeenCalledWith(currentQuestionPrompt);
-      });
+      await assertOutputLine(expect, mockAddOutputLine, currentQuestionPrompt);
 
       await simulateInputCommand(inputElement, 'review');
 
