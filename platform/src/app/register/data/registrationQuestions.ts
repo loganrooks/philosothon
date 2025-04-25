@@ -543,7 +543,7 @@ export const questions: Question[] = [
       "required": "Theme ranking is required.",
       "minRanked": {
             "value": 3,
-            "message": "Please rank exactly 3 themes."
+            "message": "Please rank at least 3 themes."
       }
 },
     dbType: 'JSONB',
