@@ -65,6 +65,8 @@ You'll also help us choose a workshop for Saturday evening, with options like:
 
 This is a small trial event limited to 15-30 participants. Simply fill out the sign-up form by Thursday, April 24th at midnight. We'll ask about your interests, experience level, and preferences for teammates and topics. If more people apply than we can accommodate, we'll aim for a diverse mix of participants.
 
+**UPDATE:** Extending registrations, until 8AM morning of, try to get them in the night before, but we will try to find you a team if you come between 8:30-9:00AM.
+
 ## **Questions?**
 
 Reach out to logan.rooks@mail.utoronto.ca with any questions.
