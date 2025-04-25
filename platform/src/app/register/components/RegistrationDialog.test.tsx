@@ -329,9 +329,7 @@ describe('RegistrationDialog (V3.1)', () => {
         expect(mockAddOutputLine).toHaveBeenCalledWith('> Test', { type: 'input' });
         // Check for Last Name prompt
         // Need to wait for the state update and subsequent useEffect to run
-        await waitFor(() => {
-            expect(mockAddOutputLine).toHaveBeenCalledWith("Please enter your Last Name:");
-        });
+        await assertOutputLine(expect, mockAddOutputLine, "Please enter your Last Name:");
     });
 
     it('should prompt for Email after Last Name is entered', async () => {
