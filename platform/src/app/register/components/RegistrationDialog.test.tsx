@@ -376,9 +376,8 @@ describe('RegistrationDialog (V3.1)', () => {
         await simulateInputCommand(inputElement, 'invalid-email');
 
         // Check for error message
-        await waitFor(() => {
-            expect(mockAddOutputLine).toHaveBeenCalledWith("Invalid email format.", { type: 'error' });
-        });
+      
+        await assertOutputLine(expect, mockAddOutputLine, "Invalid email format.", { type: 'error' });
 
         // Check that the email prompt is displayed again (state didn't advance)
         expect(mockAddOutputLine).toHaveBeenLastCalledWith("Please enter your University Email Address:");
