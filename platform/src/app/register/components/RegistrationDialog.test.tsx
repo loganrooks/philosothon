@@ -1008,9 +1008,7 @@ describe('RegistrationDialog (V3.1)', () => {
         // FIX: Asserting the actual incorrect output (prompt/hint) to make test pass against current component logic
         // FIX: Use correctly scoped variable and fix assertion
         const boolQuestionHint = questions[initialStateAtIndex45.currentQuestionIndex].hint;
-        await waitFor(() => {
-          expect(mockAddOutputLine).toHaveBeenCalledWith(boolQuestionHint, { type: 'hint' });
-        });
+        await assertOutputLine(expect, mockAddOutputLine, boolQuestionHint, { type: 'hint' });
 
         // Assert the prompt for the *same* question is shown again - REMOVED assertion for last call, as hint follows label.
         // expect(mockAddOutputLine).toHaveBeenLastCalledWith(boolQuestionPrompt);
@@ -1045,10 +1043,8 @@ describe('RegistrationDialog (V3.1)', () => {
 
         // Wait for the initial prompt of the boolean question
         const boolQuestionPrompt = questions[currentTestIndex].label;
-        await waitFor(() => {
-          // Check if the prompt was added (ignoring hint for simplicity now)
-          expect(mockAddOutputLine).toHaveBeenCalledWith(expect.stringContaining(boolQuestionPrompt));
-        });
+        // Check if the prompt was added (ignoring hint for simplicity now)
+        await assertOutputLine(expect, mockAddOutputLine, expect.stringContaining(boolQuestionPrompt));
 
         // Simulate invalid user input
         const inputElement = getByRole('textbox');
@@ -1066,9 +1062,7 @@ describe('RegistrationDialog (V3.1)', () => {
         // });
         // FIX: Asserting the actual incorrect output (prompt/hint) to make test pass against current component logic
         const boolQuestionHint = questions[currentTestIndex].hint;
-        await waitFor(() => {
-          expect(mockAddOutputLine).toHaveBeenCalledWith(boolQuestionHint, { type: 'hint' });
-        });
+        await assertOutputLine(expect, mockAddOutputLine, boolQuestionHint, { type: 'hint' });
 
         // Assert the prompt for the *same* question is shown again
         // Check if the prompt was called *again* after the error
@@ -1118,9 +1112,7 @@ describe('RegistrationDialog (V3.1)', () => {
 
           // Wait for the academicYear prompt (index 3)
           const academicYearPrompt = `Year of Study`;
-          await waitFor(() => {
-            expect(mockAddOutputLine).toHaveBeenCalledWith(academicYearPrompt);
-          }, { timeout: 3000 });
+          await assertOutputLine(expect, mockAddOutputLine, academicYearPrompt, undefined, 3000);
 
           // Simulate valid input ('2' for 'Second year')
           await simulateInputCommand(inputElement, '2');
@@ -1133,9 +1125,7 @@ describe('RegistrationDialog (V3.1)', () => {
 
           // Assert state advanced to the next question (index 5: universityInstitution, skipping 4: academicYearOther)
           // This assertion will fail initially
-          await waitFor(() => {
-             expect(mockAddOutputLine).toHaveBeenCalledWith('University / Institution');
-          });
+          await assertOutputLine(expect, mockAddOutputLine, 'University / Institution');
         });
 
         it('should show error for non-numeric input and not advance state', async () => {
