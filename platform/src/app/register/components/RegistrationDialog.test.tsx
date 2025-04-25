@@ -879,21 +879,16 @@ describe('RegistrationDialog (V3.1)', () => {
 
         // Wait for the programOfStudy prompt (index 6) to ensure component has rendered with initial state
         const programPrompt = `Program/Major(s)`;
-        await waitFor(() => {
-          // Expect the correct prompt for index 6
-          expect(mockAddOutputLine).toHaveBeenCalledWith(programPrompt);
-        }, { timeout: 3000 });
+        await assertOutputLine(expect, mockAddOutputLine, programPrompt, undefined, 3000);
 
 
         // --- Submit empty input ---
         await simulateInputCommand(inputElement, '');
 
         // Assert error message is shown
-        await waitFor(() => {
-          expect(mockAddOutputLine).toHaveBeenCalledWith("Input cannot be empty.", { type: 'error' });
-          // Attempt to reinstate assertion for prompt re-display
-          expect(mockAddOutputLine).toHaveBeenCalledWith(programPrompt);
-        });
+        await assertOutputLine(expect, mockAddOutputLine, "Input cannot be empty.", { type: 'error' });
+        // Attempt to reinstate assertion for prompt re-display
+        await assertOutputLine(expect, mockAddOutputLine, programPrompt);
 
         // Assertion for prompt re-display removed as hint/options might be displayed after the prompt label.
         // Relying on error message assertion and check that state didn't advance.
@@ -938,23 +933,18 @@ describe('RegistrationDialog (V3.1)', () => {
 
         // Wait for the correct boolean question prompt (index 44)
         const boolQuestionPrompt = `By submitting this form, I confirm that I understand the time commitment required for the Philosothon (all day April 26 and morning of April 27) and will make arrangements to fully participate and provide feedback on my experience.`;
-        await waitFor(() => {
-          // Check if the correct initial prompt is displayed now
-          expect(mockAddOutputLine).toHaveBeenCalledWith(boolQuestionPrompt);
-        });
+        await assertOutputLine(expect, mockAddOutputLine, boolQuestionPrompt);
 
         // --- Submit 'y' input ---
         await simulateInputCommand(inputElement, 'y');
 
         // Assert that the component indicates completion or next step after final answer
-        await waitFor(() => {
-          // Check for a message indicating the next step (e.g., review or submission)
-          // This assertion assumes the component outputs a message upon completion of the final question.
-          // Adjust the expected string based on the actual implementation's output.
-          expect(mockAddOutputLine).toHaveBeenCalledWith(expect.stringContaining("Registration complete"));
-          // Alternative if it goes to review:
-          // expect(mockAddOutputLine).toHaveBeenCalledWith(expect.stringContaining("Review your answers"));
-        });
+        // Check for a message indicating the next step (e.g., review or submission)
+        // This assertion assumes the component outputs a message upon completion of the final question.
+        // Adjust the expected string based on the actual implementation's output.
+        await assertOutputLine(expect, mockAddOutputLine, expect.stringContaining("Registration complete"));
+        // Alternative if it goes to review:
+        // await assertOutputLine(expect, mockAddOutputLine, expect.stringContaining("Review your answers"));
 
          // Assert state advanced (check setDialogState for index update)
          // Since this is the last question, it might transition to 'review' or 'submitting' instead of incrementing index
