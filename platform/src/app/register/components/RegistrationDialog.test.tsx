@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor, act, renderHook } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach, MockInstance } from 'vitest'; // Import MockInstance
+import { describe, it, expect, vi, beforeEach, MockInstance, ExpectStatic } from 'vitest'; // Import MockInstance and ExpectStatic
 import { QuestionType } from '@/../config/registrationSchema'; // Import QuestionType
 // import useLocalStorage from '@/lib/hooks/useLocalStorage'; // TODO: Verify path or existence
 import * as regActions from '@/app/register/actions'; // Import for typed mock
@@ -209,6 +209,73 @@ async function simulateFlowToQuestion(
    }
 }
 
+
+// --- Test Helper Functions ---
+
+// TODO: Implement assertOutputLine helper function
+async function assertOutputLine(
+  expect: ExpectStatic, // Pass expect instance
+  mockFn: ReturnType<typeof vi.fn>, // Use ReturnType for mock function
+  expectedText: string | ReturnType<typeof expect.stringContaining>, // Use ReturnType for StringContaining
+  options?: { type?: string },
+  waitForTimeout: number = 2000
+) {
+  await waitFor(() => { // Added waitFor wrapper
+    if (options) {
+      // Use objectContaining for options to allow extra properties if needed
+      expect(mockFn).toHaveBeenCalledWith(expectedText, expect.objectContaining(options));
+    } else {
+      expect(mockFn).toHaveBeenCalledWith(expectedText);
+    }
+  }, { timeout: waitForTimeout });
+}
+
+describe('assertOutputLine helper', () => {
+  let mockFn: ReturnType<typeof vi.fn>; // Use ReturnType for mock function
+
+  beforeEach(() => {
+    mockFn = vi.fn();
+  });
+
+  it('should pass if the mock is called with the exact string', async () => {
+    mockFn('Hello there');
+    await expect(assertOutputLine(expect, mockFn, 'Hello there')).resolves.toBeUndefined();
+  });
+
+  it('should pass if the mock is called with stringContaining', async () => {
+    mockFn('Error: Something went wrong');
+    await expect(assertOutputLine(expect, mockFn, expect.stringContaining('Something went wrong'))).resolves.toBeUndefined();
+  });
+
+  it('should pass if the mock is called with string and options', async () => {
+    mockFn('Error message', { type: 'error' });
+    await expect(assertOutputLine(expect, mockFn, 'Error message', { type: 'error' })).resolves.toBeUndefined();
+  });
+
+  it('should pass if the mock is called with stringContaining and options', async () => {
+    mockFn('Warning: Check input', { type: 'warning' });
+    await expect(assertOutputLine(expect, mockFn, expect.stringContaining('Check input'), { type: 'warning' })).resolves.toBeUndefined();
+  });
+
+  it('should fail if the mock is not called within the timeout', async () => {
+    // Don't call mockFn
+    await expect(assertOutputLine(expect, mockFn, 'Expected text', undefined, 50)).rejects.toThrow();
+  });
+
+  it('should fail if the mock is called with the wrong string', async () => {
+    mockFn('Actual text');
+    await expect(assertOutputLine(expect, mockFn, 'Expected text')).rejects.toThrow();
+  });
+
+  it('should fail if the mock is called with the wrong options', async () => {
+    mockFn('Some text', { type: 'info' });
+    await expect(assertOutputLine(expect, mockFn, 'Some text', { type: 'error' })).rejects.toThrow();
+  });
+});
+
+// --- End Test Helper Functions ---
+
+
 describe('RegistrationDialog (V3.1)', () => {
 
   // Variable to hold dialog state within test scope
@@ -236,9 +303,7 @@ describe('RegistrationDialog (V3.1)', () => {
     render(<RegistrationDialog {...defaultProps} onInput={vi.fn()} />);
 
     // Wait for the initial useEffect to run and add output lines
-    await waitFor(() => {
-      expect(mockAddOutputLine).toHaveBeenCalledWith("Welcome to the Philosothon Registration!");
-    });
+    await assertOutputLine(expect, mockAddOutputLine, "Welcome to the Philosothon Registration!");
     expect(mockAddOutputLine).toHaveBeenCalledWith("We need to collect some information to get you started.");
     // TODO: Add assertion for full intro text if specified by tests/spec
     expect(mockAddOutputLine).toHaveBeenCalledWith("Please enter your First Name:");
@@ -254,9 +319,7 @@ describe('RegistrationDialog (V3.1)', () => {
         const { container } = render(<RegistrationDialog {...defaultProps} onInput={handleInput} />);
 
         // Wait for initial prompt
-        await waitFor(() => {
-          expect(mockAddOutputLine).toHaveBeenCalledWith("Please enter your First Name:");
-        });
+        await assertOutputLine(expect, mockAddOutputLine, "Please enter your First Name:");
 
         // Simulate entering first name using helper
         const inputElement = container.querySelector('input');
