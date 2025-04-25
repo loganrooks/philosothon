@@ -275,6 +275,8 @@ describe('RegistrationDialog (V3.1)', () => {
   // beforeEach should be inside describe
   beforeEach(() => {
     vi.clearAllMocks();
+    // Mock localStorage for all tests in this suite to prevent "No saved data" errors
+    vi.spyOn(Storage.prototype, 'getItem').mockReturnValue(null);
     currentDialogState = {}; // Reset dialog state for each test
     // Removed mockSetDialogState implementation
     // Reset other mock implementations using imported modules
@@ -288,8 +290,11 @@ describe('RegistrationDialog (V3.1)', () => {
     // vi.mocked(authActions.resendConfirmationEmail).mockResolvedValue({ success: true, message: 'Resent (placeholder)', data: {}, error: null }); // Removed - Function does not exist
   });
 
+  afterEach(() => {
+    vi.restoreAllMocks(); // Restore mocks after each test
+  });
+
   it('should render initial messages, handle "register new", and prompt for First Name', async () => {
-    vi.spyOn(Storage.prototype, 'getItem').mockReturnValue(null);
     const { container } = render(<RegistrationDialog {...defaultProps} onInput={vi.fn()} />);
     const inputElement = container.querySelector('input');
     expect(inputElement).not.toBeNull();
@@ -318,7 +323,6 @@ describe('RegistrationDialog (V3.1)', () => {
     it('should prompt for Last Name after First Name is entered', async () => {
         const handleInput = vi.fn();
         const { container } = render(<RegistrationDialog {...defaultProps} onInput={handleInput} />);
-        vi.spyOn(Storage.prototype, 'getItem').mockReturnValue(null);
         const inputElement = container.querySelector('input');
         expect(inputElement).not.toBeNull();
         if (!inputElement) return;
@@ -547,15 +551,41 @@ describe('RegistrationDialog (V3.1)', () => {
         const handleInput = vi.fn();
         const { container } = render(<RegistrationDialog {...defaultProps} onInput={handleInput} />);
 
-        // Simulate flow up to the confirm password prompt (index 4)
-        // Pass the initial password so the helper can use it for the password step
-        await simulateFlowToQuestion(4, container, { password: 'password123' });
-        const inputElement = container.querySelector('input'); // Re-select input element after simulation
+        const inputElement = container.querySelector('input');
         expect(inputElement).not.toBeNull();
         if (!inputElement) return;
 
+        // --- Manual Simulation to confirm password prompt ---
+        // Wait for initial machine output
+        await assertOutputLine(expect, mockAddOutputLine, "Checking for saved progress...");
+        await assertOutputLine(expect, mockAddOutputLine, "Welcome to the Philosothon Registration!");
+        await assertOutputLine(expect, mockAddOutputLine, "We need to collect some information to get you started.");
+
+        // Simulate 'register new' command
+        await simulateInputCommand(inputElement, 'register new');
+        await assertOutputLine(expect, mockAddOutputLine, "Starting new registration...");
+
+        // Simulate early auth steps
+        await assertOutputLine(expect, mockAddOutputLine, "Please enter your First Name:");
+        await simulateInputCommand(inputElement, 'Test');
+        await assertOutputLine(expect, mockAddOutputLine, "Please enter your Last Name:");
+        await simulateInputCommand(inputElement, 'User');
+        await assertOutputLine(expect, mockAddOutputLine, "Please enter your University Email Address:");
+        await simulateInputCommand(inputElement, 'test@example.com');
+        await assertOutputLine(expect, mockAddOutputLine, "Please create a password (min. 8 characters):");
+        await simulateInputCommand(inputElement, 'password123'); // Use the password we'll mismatch against
+
+        // Wait for Confirm Password prompt
+        await assertOutputLine(expect, mockAddOutputLine, "Please confirm your password:");
+        // --- End Manual Simulation ---
+
+        // Re-select input element just in case (though simulation helper should handle it)
+        const currentInputElement = container.querySelector('input');
+        expect(inputElement).not.toBeNull();
+        if (!currentInputElement) return;
+
         // Enter non-matching password using helper
-        await simulateInputCommand(inputElement, 'password456');
+        await simulateInputCommand(currentInputElement, 'password456'); // Enter non-matching password
 
         // Check for error message
         await assertOutputLine(expect, mockAddOutputLine, "Passwords do not match.", { type: 'error' });
@@ -732,8 +762,8 @@ describe('RegistrationDialog (V3.1)', () => {
         data: { user: { email: testEmail, id: 'mock-confirmed-user-id' } },
         error: null
       });
-      // Remove checkEmailConfirmation mock - logic likely changed
-      // vi.mocked(regActions.checkEmailConfirmation).mockResolvedValue({ isConfirmed: true });
+      // Mock confirmation success for this specific test
+      vi.mocked(regActions.checkCurrentUserConfirmationStatus).mockResolvedValue(true);
 
       const handleInput = vi.fn();
       // Pass the mutable currentDialogState object as the prop and capture rerender
@@ -896,6 +926,23 @@ describe('RegistrationDialog (V3.1)', () => {
       const confirmationPrompt = `Account created. Please check your email (${testEmail}) for a confirmation link. Enter 'continue' here once confirmed, or 'resend' to request a new link.`;
       await assertOutputLine(expect, mockAddOutputLine, confirmationPrompt);
       // --- End Manual Simulation ---
+
+
+      // Simulate user entering 'resend'
+      await simulateInputCommand(inputElement, 'resend');
+
+      // Check that initiateOtpSignIn was called AGAIN (for the resend)
+      await waitFor(() => {
+        // Expect 2 calls total: 1 during signup, 1 for resend
+        expect(authActions.initiateOtpSignIn).toHaveBeenCalledTimes(2);
+      });
+
+      // Check for resend message
+      await assertOutputLine(expect, mockAddOutputLine, `Sending new confirmation link to ${testEmail}...`);
+      await assertOutputLine(expect, mockAddOutputLine, `Confirmation link sent. Please check your email.`);
+
+      // Check still in awaiting_confirmation (by checking for confirmation prompt again)
+      await assertOutputLine(expect, mockAddOutputLine, confirmationPrompt);
 
       // Simulate user entering 'resend'
       await simulateInputCommand(inputElement, 'resend');
