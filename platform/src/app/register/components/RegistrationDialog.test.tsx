@@ -1402,12 +1402,10 @@ describe('RegistrationDialog (V3.1)', () => {
           if (!inputElement) throw new Error("Input element not found");
 
           // Initial render verification
-          await waitFor(() => {
-            // Check for label, hint, and options individually as they might appear in separate calls
-            expect(mockAddOutputLine).toHaveBeenCalledWith(initialQuestion.label);
-            expect(mockAddOutputLine).toHaveBeenCalledWith(expect.stringContaining('Enter rank (1, 2, 3)'), { type: 'hint' });
-            expect(mockAddOutputLine).toHaveBeenCalledWith(expect.stringContaining('1: Language Models as Philosophical Objects')); // Check options display
-          });
+          // Check for label, hint, and options individually as they might appear in separate calls
+          await assertOutputLine(expect, mockAddOutputLine, initialQuestion.label);
+          await assertOutputLine(expect, mockAddOutputLine, expect.stringContaining('Enter rank (1, 2, 3)'), { type: 'hint' });
+          await assertOutputLine(expect, mockAddOutputLine, expect.stringContaining('1: Language Models as Philosophical Objects')); // Check options display
           mockAddOutputLine.mockClear();
 
           // Simulate valid input (ranking top 3)
@@ -1450,9 +1448,7 @@ describe('RegistrationDialog (V3.1)', () => {
             if (!inputElement) throw new Error("Input element not found");
 
             // Initial render verification
-            await waitFor(() => {
-              expect(mockAddOutputLine).toHaveBeenCalledWith(initialQuestion.label);
-            });
+            await assertOutputLine(expect, mockAddOutputLine, initialQuestion.label);
             mockAddOutputLine.mockClear();
             return { inputElement };
           };
@@ -1472,30 +1468,24 @@ describe('RegistrationDialog (V3.1)', () => {
              const { inputElement } = await setupValidationTest();
              const invalidFormatInput = '5 1, 2:2, 8:3';
              await simulateInputCommand(inputElement, invalidFormatInput);
-             await waitFor(() => {
-               expect(mockAddOutputLine).toHaveBeenCalledWith(expect.stringContaining('Invalid format. Use format "OptionNumber:Rank" separated by commas'), expect.objectContaining({ type: 'error' })); // Revert to original spec expectation
-               expect(mockAddOutputLine).not.toHaveBeenCalledWith(nextQuestionPrompt);
-             });
+             await assertOutputLine(expect, mockAddOutputLine, expect.stringContaining('Invalid format. Use format "OptionNumber:Rank" separated by commas'), { type: 'error' }); // Revert to original spec expectation
+             expect(mockAddOutputLine).not.toHaveBeenCalledWith(nextQuestionPrompt);
            });
 
            it('should show error for invalid format (wrong separator)', async () => {
              const { inputElement } = await setupValidationTest();
              const invalidFormatInput = '5:1; 2:2; 8:3';
              await simulateInputCommand(inputElement, invalidFormatInput);
-             await waitFor(() => {
-               expect(mockAddOutputLine).toHaveBeenCalledWith(expect.stringContaining('Invalid format. Use format "OptionNumber:Rank" separated by commas'), expect.objectContaining({ type: 'error' })); // Revert to original spec expectation
-               expect(mockAddOutputLine).not.toHaveBeenCalledWith(nextQuestionPrompt);
-             });
+             await assertOutputLine(expect, mockAddOutputLine, expect.stringContaining('Invalid format. Use format "OptionNumber:Rank" separated by commas'), { type: 'error' }); // Revert to original spec expectation
+             expect(mockAddOutputLine).not.toHaveBeenCalledWith(nextQuestionPrompt);
            });
 
           it('should show error for non-numeric option', async () => {
             const { inputElement } = await setupValidationTest();
             const nonNumericOptionInput = 'abc:1, 2:2, 8:3';
             await simulateInputCommand(inputElement, nonNumericOptionInput);
-            await waitFor(() => {
-              expect(mockAddOutputLine).toHaveBeenCalledWith(expect.stringContaining('Invalid option number'), expect.objectContaining({ type: 'error' })); // Revert to original spec expectation
-              expect(mockAddOutputLine).not.toHaveBeenCalledWith(nextQuestionPrompt);
-            });
+            await assertOutputLine(expect, mockAddOutputLine, expect.stringContaining('Invalid option number'), { type: 'error' }); // Revert to original spec expectation
+            expect(mockAddOutputLine).not.toHaveBeenCalledWith(nextQuestionPrompt);
           });
 
           it('should show error for non-numeric rank', async () => {
