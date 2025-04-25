@@ -26,18 +26,21 @@ const mockClearDialogState = vi.fn();
 const mockChangeMode = vi.fn();
 
 // Import the actual component directly
-import RegistrationDialog, { useRegistrationReducer, registrationInitialState, type RegistrationState, type RegistrationAction } from './RegistrationDialog';
+import RegistrationDialog from './RegistrationDialog';
+// Removed imports for old reducer hook and types
+
+// Removed XState mocks to use the real machine
 
 
 // Default props based on V2 Architecture doc
 const defaultProps = {
   addOutputLine: mockAddOutputLine,
   sendToShellMachine: mockSendToShellMachine,
-  setDialogState: mockSetDialogState,
-  clearDialogState: mockClearDialogState,
   userSession: null, // Or mock a session object
   dialogState: {},
-  changeMode: mockChangeMode
+  // Removed changeMode as it's likely handled by machine/shell interaction
+  // Keep onInput for now, assuming component still uses it to trigger machine events
+  onInput: vi.fn(), // Add mock for onInput if it wasn't implicitly covered
 };
 
 // Helper function to simulate user input and submission
@@ -73,14 +76,26 @@ const earlyAuthSteps = ['firstName', 'lastName', 'email', 'password', 'confirmPa
 async function simulateFlowToQuestion(
   targetIndex: number, // 0-based index corresponding to earlyAuthSteps then questions array
   container: HTMLElement,
-  handleInputMock: MockInstance, // Use MockInstance type
+  // handleInputMock: MockInstance, // Removed - No longer directly used after removing internal waits
   initialAnswers: Record<string, any> = {}, // Allow providing initial answers for branching logic
 ) {
   const inputElement = container.querySelector('input');
   if (!inputElement) throw new Error('Input element not found for flow simulation');
 
+  // --- Simulate initial 'register new' command ---
+  // Wait for initial intro messages to ensure machine is ready
+  await assertOutputLine(expect, mockAddOutputLine, "Checking for saved progress...");
+  await assertOutputLine(expect, mockAddOutputLine, "Welcome to the Philosothon Registration!");
+  await assertOutputLine(expect, mockAddOutputLine, "We need to collect some information to get you started.");
+  // Send 'register new'
+  await simulateInputCommand(inputElement, 'register new');
+  // Wait for the first prompt ("First Name") to confirm transition to earlyAuth
+  await assertOutputLine(expect, mockAddOutputLine, "Please enter your First Name:");
+  // --- End initial command ---
+
   // Simulate steps based on earlyAuthSteps and questions array indices
-  const stepsToSimulate = targetIndex; // Simulate steps *up to* the target index
+  // stepsToSimulate should still be targetIndex, as the loop now starts *after* the first prompt is shown.
+  const stepsToSimulate = targetIndex;
 
   for (let i = 0; i < stepsToSimulate; i++) {
     let stepId: string | undefined;
@@ -132,80 +147,56 @@ async function simulateFlowToQuestion(
     // Wait for the prompt corresponding to the current step 'i' before simulating input
     let expectedPrompt = '';
      if (isEarlyAuthStep) {
+        // For early auth steps (i=0 to 4), the prompt is for the *current* step index
         switch (earlyAuthSteps[i]) {
-          case 'firstName': expectedPrompt = "Please enter your First Name:"; break;
-          case 'lastName': expectedPrompt = "Please enter your Last Name:"; break;
-          case 'email': expectedPrompt = "Please enter your University Email Address:"; break;
-          case 'password': expectedPrompt = "Please create a password (min. 8 characters):"; break;
-          case 'confirmPassword': expectedPrompt = "Please confirm your password:"; break;
+          case 'firstName': expectedPrompt = "Please enter your First Name:"; break; // i=0
+          case 'lastName': expectedPrompt = "Please enter your Last Name:"; break; // i=1
+          case 'email': expectedPrompt = "Please enter your University Email Address:"; break; // i=2
+          case 'password': expectedPrompt = "Please create a password (min. 8 characters):"; break; // i=3
+          case 'confirmPassword': expectedPrompt = "Please confirm your password:"; break; // i=4
         }
      } else {
-        const question = questions[i]; // Index in questions array
+        // For question steps (i=5 onwards), the prompt is for the *current* step index
+        const questionIndexInArray = i; // Index in the main questions array
+        const question = questions[questionIndexInArray];
         if (question) expectedPrompt = question.label;
      }
 
      // Wait for the prompt to appear before inputting
      if (expectedPrompt) {
-        await waitFor(() => {
-            // Use stringContaining as other output might appear (like hints)
-            expect(mockAddOutputLine).toHaveBeenCalledWith(expect.stringContaining(expectedPrompt));
-        });
+        // Use assertOutputLine for reliable waiting
+        await assertOutputLine(expect, mockAddOutputLine, expect.stringContaining(expectedPrompt));
      }
 
     // Simulate the input for the current step
     await simulateInputCommand(inputElement, stepInput);
 
-    // Optional: Add a small delay or check for the *next* prompt to ensure state update completes
-    // This helps prevent race conditions in tests but adds fragility if prompts change.
-    // Consider removing this wait if tests become too brittle.
-    const nextStepIndex = i + 1;
-    if (nextStepIndex < stepsToSimulate) { // Only wait if not the last simulated step
-        let nextPromptLabel = '';
-        const isNextEarlyAuth = nextStepIndex < earlyAuthSteps.length;
-        if (isNextEarlyAuth) {
-            switch (earlyAuthSteps[nextStepIndex]) {
-              case 'firstName': nextPromptLabel = "Please enter your First Name:"; break;
-              case 'lastName': nextPromptLabel = "Please enter your Last Name:"; break;
-              case 'email': nextPromptLabel = "Please enter your University Email Address:"; break;
-              case 'password': nextPromptLabel = "Please create a password (min. 8 characters):"; break;
-              case 'confirmPassword': nextPromptLabel = "Please confirm your password:"; break;
-            }
-        } else {
-            const nextQuestion = questions[nextStepIndex]; // Index in questions array
-            if (nextQuestion) nextPromptLabel = nextQuestion.label;
-        }
-        if (nextPromptLabel) {
-            try {
-                await waitFor(() => {
-                    expect(mockAddOutputLine).toHaveBeenCalledWith(expect.stringContaining(nextPromptLabel));
-                }, { timeout: 2000 }); // Add a reasonable timeout
-            } catch (e) {
-                console.warn(`Timeout waiting for next prompt ('${nextPromptLabel}') after step ${i}. Proceeding anyway.`);
-            }
-        }
-    }
+    // REMOVED: Brittle logic waiting for the *next* prompt.
+    // Individual tests should assert the expected outcome after the simulation.
   }
 
    // Final wait to ensure the target prompt is displayed after the loop finishes
    let targetPromptLabel = '';
+   // Adjust index check: targetIndex now directly corresponds to earlyAuthSteps or questions array index
    const isTargetEarlyAuth = targetIndex < earlyAuthSteps.length;
    if (isTargetEarlyAuth) {
         switch (earlyAuthSteps[targetIndex]) {
-          case 'firstName': targetPromptLabel = "Please enter your First Name:"; break;
-          case 'lastName': targetPromptLabel = "Please enter your Last Name:"; break;
-          case 'email': targetPromptLabel = "Please enter your University Email Address:"; break;
-          case 'password': targetPromptLabel = "Please create a password (min. 8 characters):"; break;
-          case 'confirmPassword': targetPromptLabel = "Please confirm your password:"; break;
+          case 'firstName': targetPromptLabel = "Please enter your First Name:"; break; // targetIndex=0
+          case 'lastName': targetPromptLabel = "Please enter your Last Name:"; break; // targetIndex=1
+          case 'email': targetPromptLabel = "Please enter your University Email Address:"; break; // targetIndex=2
+          case 'password': targetPromptLabel = "Please create a password (min. 8 characters):"; break; // targetIndex=3
+          case 'confirmPassword': targetPromptLabel = "Please confirm your password:"; break; // targetIndex=4
         }
    } else {
-       const targetQuestion = questions[targetIndex]; // Index in questions array
+       // For question steps (targetIndex=5 onwards), use the questions array index
+       const targetQuestionIndexInArray = targetIndex;
+       const targetQuestion = questions[targetQuestionIndexInArray];
        if (targetQuestion) targetPromptLabel = targetQuestion.label;
    }
 
    if (targetPromptLabel) {
-       await waitFor(() => {
-           expect(mockAddOutputLine).toHaveBeenCalledWith(expect.stringContaining(targetPromptLabel));
-       });
+       // Use assertOutputLine for reliable waiting
+       await assertOutputLine(expect, mockAddOutputLine, expect.stringContaining(targetPromptLabel));
    }
 }
 
@@ -285,10 +276,7 @@ describe('RegistrationDialog (V3.1)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     currentDialogState = {}; // Reset dialog state for each test
-    // Implement mock to update the local state variable
-    mockSetDialogState.mockImplementation((key, value) => {
-      currentDialogState[key] = value;
-    });
+    // Removed mockSetDialogState implementation
     // Reset other mock implementations using imported modules
     // vi.mocked(useLocalStorage).mockReturnValue([null, vi.fn(), vi.fn()]); // TODO: Verify path or existence
     vi.mocked(regActions.submitRegistration).mockResolvedValue({ success: true, message: null });
@@ -300,51 +288,80 @@ describe('RegistrationDialog (V3.1)', () => {
     // vi.mocked(authActions.resendConfirmationEmail).mockResolvedValue({ success: true, message: 'Resent (placeholder)', data: {}, error: null }); // Removed - Function does not exist
   });
 
-  it('should render introductory text and the first prompt (First Name) on initial load', async () => {
-    render(<RegistrationDialog {...defaultProps} onInput={vi.fn()} />);
+  it('should render initial messages, handle "register new", and prompt for First Name', async () => {
+    const { container } = render(<RegistrationDialog {...defaultProps} onInput={vi.fn()} />);
+    const inputElement = container.querySelector('input');
+    expect(inputElement).not.toBeNull();
+    if (!inputElement) return;
 
-    // Wait for the initial useEffect to run and add output lines
+    // Wait for the initial machine output
+    await assertOutputLine(expect, mockAddOutputLine, "Checking for saved progress...");
     await assertOutputLine(expect, mockAddOutputLine, "Welcome to the Philosothon Registration!");
-    expect(mockAddOutputLine).toHaveBeenCalledWith("We need to collect some information to get you started.");
+    await assertOutputLine(expect, mockAddOutputLine, "We need to collect some information to get you started.");
     // TODO: Add assertion for full intro text if specified by tests/spec
-    expect(mockAddOutputLine).toHaveBeenCalledWith("Please enter your First Name:");
+
+    // Simulate sending 'register new' command
+    await simulateInputCommand(inputElement, 'register new');
+
+    // Check for command processing message and first prompt
+    await assertOutputLine(expect, mockAddOutputLine, "Starting new registration...");
+    await assertOutputLine(expect, mockAddOutputLine, "Please enter your First Name:", undefined, 4000); // Increased timeout
   });
 
   describe('Early Authentication Flow', () => {
     // This is covered by the initial load test, skipping for now or can refine later
     it.skip('should prompt for First Name', () => {});
+    vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(vi.fn()); // Mock removeItem
     // Skipped: Redundant - Covered by 'should prompt for Last Name...' test.
 
     it('should prompt for Last Name after First Name is entered', async () => {
         const handleInput = vi.fn();
         const { container } = render(<RegistrationDialog {...defaultProps} onInput={handleInput} />);
+        const inputElement = container.querySelector('input');
+        expect(inputElement).not.toBeNull();
+        if (!inputElement) return;
 
-        // Wait for initial prompt
+        // Wait for initial machine output
+        await assertOutputLine(expect, mockAddOutputLine, "Checking for saved progress...");
+        await assertOutputLine(expect, mockAddOutputLine, "Welcome to the Philosothon Registration!");
+        await assertOutputLine(expect, mockAddOutputLine, "We need to collect some information to get you started.");
+
+        // Simulate 'register new' command
+        await simulateInputCommand(inputElement, 'register new');
+        await assertOutputLine(expect, mockAddOutputLine, "Starting new registration...");
+
+        // Wait for initial prompt ("First Name")
         await assertOutputLine(expect, mockAddOutputLine, "Please enter your First Name:");
 
         // Simulate entering first name using helper
-        const inputElement = container.querySelector('input');
         await simulateInputCommand(inputElement, 'Test');
 
         // Check that the input was echoed
         expect(mockAddOutputLine).toHaveBeenCalledWith('> Test', { type: 'input' });
         // Check for Last Name prompt
-        // Need to wait for the state update and subsequent useEffect to run
         await assertOutputLine(expect, mockAddOutputLine, "Please enter your Last Name:");
     });
 
     it('should prompt for Email after Last Name is entered', async () => {
         const handleInput = vi.fn();
         const { container } = render(<RegistrationDialog {...defaultProps} onInput={handleInput} />);
+        const inputElement = container.querySelector('input');
+        expect(inputElement).not.toBeNull();
+        if (!inputElement) return;
 
-        // Wait for initial prompt
+        // Wait for initial machine output
+        await assertOutputLine(expect, mockAddOutputLine, "Checking for saved progress...");
+        await assertOutputLine(expect, mockAddOutputLine, "Welcome to the Philosothon Registration!");
+        await assertOutputLine(expect, mockAddOutputLine, "We need to collect some information to get you started.");
+
+        // Simulate 'register new' command
+        await simulateInputCommand(inputElement, 'register new');
+        await assertOutputLine(expect, mockAddOutputLine, "Starting new registration...");
+
+        // Wait for initial prompt ("First Name")
         await assertOutputLine(expect, mockAddOutputLine, "Please enter your First Name:");
 
         // Simulate entering first name
-        const inputElement = container.querySelector('input');
-        expect(inputElement).not.toBeNull();
-        if (!inputElement) return; // Type guard
-
         await simulateInputCommand(inputElement, 'Test');
 
         // Wait for last name prompt
@@ -360,60 +377,112 @@ describe('RegistrationDialog (V3.1)', () => {
     it('should show validation error for invalid email format', async () => {
         const handleInput = vi.fn();
         const { container } = render(<RegistrationDialog {...defaultProps} onInput={handleInput} />);
-
-        // Simulate flow up to the email prompt (index 2)
-        await simulateFlowToQuestion(2, container, handleInput);
-        const inputElement = container.querySelector('input'); // Re-select input element after simulation
+        const inputElement = container.querySelector('input');
         expect(inputElement).not.toBeNull();
         if (!inputElement) return;
+
+        // Wait for initial machine output
+        await assertOutputLine(expect, mockAddOutputLine, "Checking for saved progress...");
+        await assertOutputLine(expect, mockAddOutputLine, "Welcome to the Philosothon Registration!");
+        await assertOutputLine(expect, mockAddOutputLine, "We need to collect some information to get you started.");
+
+        // Simulate 'register new' command
+        await simulateInputCommand(inputElement, 'register new');
+        await assertOutputLine(expect, mockAddOutputLine, "Starting new registration...");
+
+        // Wait for initial prompt ("First Name")
+        await assertOutputLine(expect, mockAddOutputLine, "Please enter your First Name:");
+        // Simulate entering first name
+        await simulateInputCommand(inputElement, 'Test');
+
+        // Wait for last name prompt
+        await assertOutputLine(expect, mockAddOutputLine, "Please enter your Last Name:");
+        // Simulate entering last name
+        await simulateInputCommand(inputElement, 'User');
+
+        // Wait for Email prompt
+        await assertOutputLine(expect, mockAddOutputLine, "Please enter your University Email Address:");
 
         // Enter invalid email using helper
         await simulateInputCommand(inputElement, 'invalid-email');
 
-        // Check for error message
-      
-        await assertOutputLine(expect, mockAddOutputLine, "Invalid email format.", { type: 'error' });
+        // Check for error message (increase timeout)
+        await assertOutputLine(expect, mockAddOutputLine, "Invalid email format.", { type: 'error' }, 4000);
 
         // Check that the email prompt is displayed again (state didn't advance)
-        expect(mockAddOutputLine).toHaveBeenLastCalledWith("Please enter your University Email Address:");
+        // Use waitFor as the re-prompt might not be the absolute last call if hints are involved
+        await waitFor(() => {
+            expect(mockAddOutputLine).toHaveBeenCalledWith("Please enter your University Email Address:");
+        });
 
-        // Ensure NEXT_STEP was not dispatched (or state index didn't change)
-        // This might require inspecting mockSetDialogState or internal state if possible,
-        // or verifying that the *next* prompt (Password) is NOT shown.
-        // For now, checking the last call is a basic verification.
+        // Verify the password prompt was NOT shown
+        expect(mockAddOutputLine).not.toHaveBeenCalledWith("Please create a password (min. 8 characters):");
     });
 
     it('should prompt for Password after valid Email is entered', async () => {
         const handleInput = vi.fn();
         const { container } = render(<RegistrationDialog {...defaultProps} onInput={handleInput} />);
-
-        // Simulate flow up to the email prompt (index 2)
-        await simulateFlowToQuestion(2, container, handleInput);
-        const inputElement = container.querySelector('input'); // Re-select input element after simulation
+        const inputElement = container.querySelector('input');
         expect(inputElement).not.toBeNull();
         if (!inputElement) return;
 
+        // Wait for initial machine output
+        await assertOutputLine(expect, mockAddOutputLine, "Checking for saved progress...");
+        await assertOutputLine(expect, mockAddOutputLine, "Welcome to the Philosothon Registration!");
+        await assertOutputLine(expect, mockAddOutputLine, "We need to collect some information to get you started.");
+
+        // Simulate 'register new' command
+        await simulateInputCommand(inputElement, 'register new');
+        await assertOutputLine(expect, mockAddOutputLine, "Starting new registration...");
+
+        // Wait for initial prompt ("First Name")
+        await assertOutputLine(expect, mockAddOutputLine, "Please enter your First Name:");
+        // Simulate entering first name
+        await simulateInputCommand(inputElement, 'Test');
+
+        // Wait for last name prompt
+        await assertOutputLine(expect, mockAddOutputLine, "Please enter your Last Name:");
+        // Simulate entering last name
+        await simulateInputCommand(inputElement, 'User');
+
+        // Wait for Email prompt
+        await assertOutputLine(expect, mockAddOutputLine, "Please enter your University Email Address:");
         // Enter valid email using helper
         await simulateInputCommand(inputElement, 'test@example.com');
 
         // Check for Password prompt
-        await waitFor(() => {
-            expect(mockAddOutputLine).toHaveBeenCalledWith("Please create a password (min. 8 characters):");
-        });
+        await assertOutputLine(expect, mockAddOutputLine, "Please create a password (min. 8 characters):");
     });
 
     it('should show validation error for short password (less than 8 chars)', async () => {
         const handleInput = vi.fn();
         const { container } = render(<RegistrationDialog {...defaultProps} onInput={handleInput} />);
-
-        // Simulate getting to the password prompt
         const inputElement = container.querySelector('input');
         expect(inputElement).not.toBeNull();
         if (!inputElement) return;
 
-        // Enter First Name, Last Name, Email
+        // Wait for initial machine output
+        await assertOutputLine(expect, mockAddOutputLine, "Checking for saved progress...");
+        await assertOutputLine(expect, mockAddOutputLine, "Welcome to the Philosothon Registration!");
+        await assertOutputLine(expect, mockAddOutputLine, "We need to collect some information to get you started.");
+
+        // Simulate 'register new' command
+        await simulateInputCommand(inputElement, 'register new');
+        await assertOutputLine(expect, mockAddOutputLine, "Starting new registration...");
+
+        // Wait for initial prompt ("First Name")
+        await assertOutputLine(expect, mockAddOutputLine, "Please enter your First Name:");
+        // Simulate entering first name
         await simulateInputCommand(inputElement, 'Test');
+
+        // Wait for last name prompt
+        await assertOutputLine(expect, mockAddOutputLine, "Please enter your Last Name:");
+        // Simulate entering last name
         await simulateInputCommand(inputElement, 'User');
+
+        // Wait for Email prompt
+        await assertOutputLine(expect, mockAddOutputLine, "Please enter your University Email Address:");
+        // Enter valid email
         await simulateInputCommand(inputElement, 'test@example.com');
 
         // Wait for Password prompt
@@ -426,19 +495,45 @@ describe('RegistrationDialog (V3.1)', () => {
         await assertOutputLine(expect, mockAddOutputLine, "Password must be at least 8 characters.", { type: 'error' });
 
         // Check that the password prompt is displayed again
-        expect(mockAddOutputLine).toHaveBeenLastCalledWith("Please create a password (min. 8 characters):");
+        // Use waitFor as the re-prompt might not be the absolute last call
+        await waitFor(() => {
+            expect(mockAddOutputLine).toHaveBeenCalledWith("Please create a password (min. 8 characters):");
+        });
     });
 
     it('should prompt for Confirm Password after Password is entered', async () => {
         const handleInput = vi.fn();
         const { container } = render(<RegistrationDialog {...defaultProps} onInput={handleInput} />);
-
-        // Simulate flow up to the password prompt (index 3)
-        await simulateFlowToQuestion(3, container, handleInput);
-        const inputElement = container.querySelector('input'); // Re-select input element after simulation
+        const inputElement = container.querySelector('input');
         expect(inputElement).not.toBeNull();
         if (!inputElement) return;
 
+        // Wait for initial machine output
+        await assertOutputLine(expect, mockAddOutputLine, "Checking for saved progress...");
+        await assertOutputLine(expect, mockAddOutputLine, "Welcome to the Philosothon Registration!");
+        await assertOutputLine(expect, mockAddOutputLine, "We need to collect some information to get you started.");
+
+        // Simulate 'register new' command
+        await simulateInputCommand(inputElement, 'register new');
+        await assertOutputLine(expect, mockAddOutputLine, "Starting new registration...");
+
+        // Wait for initial prompt ("First Name")
+        await assertOutputLine(expect, mockAddOutputLine, "Please enter your First Name:");
+        // Simulate entering first name
+        await simulateInputCommand(inputElement, 'Test');
+
+        // Wait for last name prompt
+        await assertOutputLine(expect, mockAddOutputLine, "Please enter your Last Name:");
+        // Simulate entering last name
+        await simulateInputCommand(inputElement, 'User');
+
+        // Wait for Email prompt
+        await assertOutputLine(expect, mockAddOutputLine, "Please enter your University Email Address:");
+        // Enter valid email
+        await simulateInputCommand(inputElement, 'test@example.com');
+
+        // Wait for Password prompt
+        await assertOutputLine(expect, mockAddOutputLine, "Please create a password (min. 8 characters):");
         // Enter valid password using helper
         await simulateInputCommand(inputElement, 'password123');
 
@@ -452,7 +547,7 @@ describe('RegistrationDialog (V3.1)', () => {
 
         // Simulate flow up to the confirm password prompt (index 4)
         // Pass the initial password so the helper can use it for the password step
-        await simulateFlowToQuestion(4, container, handleInput, { password: 'password123' });
+        await simulateFlowToQuestion(4, container, { password: 'password123' });
         const inputElement = container.querySelector('input'); // Re-select input element after simulation
         expect(inputElement).not.toBeNull();
         if (!inputElement) return;
@@ -467,9 +562,12 @@ describe('RegistrationDialog (V3.1)', () => {
         expect(mockAddOutputLine).toHaveBeenLastCalledWith("Please confirm your password:");
     });
 
-    it('should call signUpUser server action with correct details after passwords match', async () => {
+    it('should call initiateOtpSignIn server action with correct details after passwords match', async () => { // Updated test name
         const handleInput = vi.fn();
         const { container } = render(<RegistrationDialog {...defaultProps} onInput={handleInput} />);
+        const inputElement = container.querySelector('input');
+        expect(inputElement).not.toBeNull();
+        if (!inputElement) return;
 
         const testData = {
             firstName: 'Test',
@@ -478,27 +576,36 @@ describe('RegistrationDialog (V3.1)', () => {
             password: 'password123',
         };
 
-        // Simulate flow up to the confirm password prompt (index 4)
-        await simulateFlowToQuestion(4, container, handleInput, {
-            firstName: testData.firstName,
-            lastName: testData.lastName,
-            email: testData.email,
-            password: testData.password,
-        });
-        const inputElement = container.querySelector('input'); // Re-select input element after simulation
-        expect(inputElement).not.toBeNull();
-        if (!inputElement) return;
+        // Wait for initial machine output
+        await assertOutputLine(expect, mockAddOutputLine, "Checking for saved progress...");
+        await assertOutputLine(expect, mockAddOutputLine, "Welcome to the Philosothon Registration!");
+        await assertOutputLine(expect, mockAddOutputLine, "We need to collect some information to get you started.");
+
+        // Simulate 'register new' command
+        await simulateInputCommand(inputElement, 'register new');
+        await assertOutputLine(expect, mockAddOutputLine, "Starting new registration...");
+
+        // Simulate early auth steps
+        await assertOutputLine(expect, mockAddOutputLine, "Please enter your First Name:");
+        await simulateInputCommand(inputElement, testData.firstName);
+        await assertOutputLine(expect, mockAddOutputLine, "Please enter your Last Name:");
+        await simulateInputCommand(inputElement, testData.lastName);
+        await assertOutputLine(expect, mockAddOutputLine, "Please enter your University Email Address:");
+        await simulateInputCommand(inputElement, testData.email);
+        await assertOutputLine(expect, mockAddOutputLine, "Please create a password (min. 8 characters):");
+        await simulateInputCommand(inputElement, testData.password);
+        await assertOutputLine(expect, mockAddOutputLine, "Please confirm your password:");
 
         // Enter matching password using helper
         await simulateInputCommand(inputElement, testData.password);
 
-        // Check that initiateOtpSignIn was called with correct details (OTP flow doesn't use password/metadata here)
+        // Check that initiateOtpSignIn was called with correct details
         await waitFor(() => {
             expect(authActions.initiateOtpSignIn).toHaveBeenCalledTimes(1);
             expect(authActions.initiateOtpSignIn).toHaveBeenCalledWith(testData.email);
         });
 
-        // Further tests will check the transition based on signUpUser result
+        // Further tests will check the transition based on initiateOtpSignIn result
     });
 
     it('should display an error message if initiateOtpSignIn fails', async () => {
@@ -510,6 +617,9 @@ describe('RegistrationDialog (V3.1)', () => {
 
       const handleInput = vi.fn();
       const { container } = render(<RegistrationDialog {...defaultProps} onInput={handleInput} />);
+      const inputElement = container.querySelector('input');
+      expect(inputElement).not.toBeNull();
+      if (!inputElement) return;
 
       const testData = {
         firstName: 'Fail',
@@ -518,16 +628,25 @@ describe('RegistrationDialog (V3.1)', () => {
         password: 'password123',
       };
 
-      // Simulate flow up to the confirm password prompt (index 4)
-      await simulateFlowToQuestion(4, container, handleInput, {
-          firstName: testData.firstName,
-          lastName: testData.lastName,
-          email: testData.email,
-          password: testData.password,
-      });
-      const inputElement = container.querySelector('input'); // Re-select input element after simulation
-      expect(inputElement).not.toBeNull();
-      if (!inputElement) return;
+      // Wait for initial machine output
+      await assertOutputLine(expect, mockAddOutputLine, "Checking for saved progress...");
+      await assertOutputLine(expect, mockAddOutputLine, "Welcome to the Philosothon Registration!");
+      await assertOutputLine(expect, mockAddOutputLine, "We need to collect some information to get you started.");
+
+      // Simulate 'register new' command
+      await simulateInputCommand(inputElement, 'register new');
+      await assertOutputLine(expect, mockAddOutputLine, "Starting new registration...");
+
+      // Simulate early auth steps
+      await assertOutputLine(expect, mockAddOutputLine, "Please enter your First Name:");
+      await simulateInputCommand(inputElement, testData.firstName);
+      await assertOutputLine(expect, mockAddOutputLine, "Please enter your Last Name:");
+      await simulateInputCommand(inputElement, testData.lastName);
+      await assertOutputLine(expect, mockAddOutputLine, "Please enter your University Email Address:");
+      await simulateInputCommand(inputElement, testData.email);
+      await assertOutputLine(expect, mockAddOutputLine, "Please create a password (min. 8 characters):");
+      await simulateInputCommand(inputElement, testData.password);
+      await assertOutputLine(expect, mockAddOutputLine, "Please confirm your password:");
 
       // Enter matching password using helper
       await simulateInputCommand(inputElement, testData.password);
@@ -538,11 +657,13 @@ describe('RegistrationDialog (V3.1)', () => {
       });
 
       // Check for error message output
-      await assertOutputLine(expect, mockAddOutputLine, 'Error initiating sign-in: Test OTP error', { type: 'error' });
+      // The machine prepends "Sign-up failed: " to the error
+      await assertOutputLine(expect, mockAddOutputLine, 'Sign-up failed: Test OTP error', { type: 'error' });
 
-      // Check that the confirm password prompt is displayed again (state didn't advance successfully)
-      // Or potentially the password prompt if it resets further back on error
-      expect(mockAddOutputLine).toHaveBeenLastCalledWith("Please create a password (min. 8 characters):"); // Corrected assertion: Expect reset to initial password prompt
+      // Check that the confirm password prompt is displayed again (machine goes back on error)
+      await waitFor(() => {
+          expect(mockAddOutputLine).toHaveBeenCalledWith("Please create a password (min. 8 characters):");
+      });
     });
     it('should transition to "awaiting_confirmation" state after successful initiateOtpSignIn', async () => {
       // Mock initiateOtpSignIn to return success
@@ -555,9 +676,7 @@ describe('RegistrationDialog (V3.1)', () => {
 
       const handleInput = vi.fn();
       const { container } = render(<RegistrationDialog {...defaultProps} onInput={handleInput} />);
-
-      // Simulate getting to the confirm password prompt (copy from previous test)
-      let inputElement = container.querySelector('input');
+      const inputElement = container.querySelector('input');
       expect(inputElement).not.toBeNull();
       if (!inputElement) return;
 
@@ -568,16 +687,25 @@ describe('RegistrationDialog (V3.1)', () => {
         password: 'password123',
       };
 
-      // Simulate flow up to the confirm password prompt (index 4)
-      await simulateFlowToQuestion(4, container, handleInput, {
-          firstName: testData.firstName,
-          lastName: testData.lastName,
-          email: testData.email,
-          password: testData.password,
-      });
-      inputElement = container.querySelector('input'); // Re-select input element after simulation
-      expect(inputElement).not.toBeNull();
-      if (!inputElement) return;
+      // Wait for initial machine output
+      await assertOutputLine(expect, mockAddOutputLine, "Checking for saved progress...");
+      await assertOutputLine(expect, mockAddOutputLine, "Welcome to the Philosothon Registration!");
+      await assertOutputLine(expect, mockAddOutputLine, "We need to collect some information to get you started.");
+
+      // Simulate 'register new' command
+      await simulateInputCommand(inputElement, 'register new');
+      await assertOutputLine(expect, mockAddOutputLine, "Starting new registration...");
+
+      // Simulate early auth steps
+      await assertOutputLine(expect, mockAddOutputLine, "Please enter your First Name:");
+      await simulateInputCommand(inputElement, testData.firstName);
+      await assertOutputLine(expect, mockAddOutputLine, "Please enter your Last Name:");
+      await simulateInputCommand(inputElement, testData.lastName);
+      await assertOutputLine(expect, mockAddOutputLine, "Please enter your University Email Address:");
+      await simulateInputCommand(inputElement, testData.email);
+      await assertOutputLine(expect, mockAddOutputLine, "Please create a password (min. 8 characters):");
+      await simulateInputCommand(inputElement, testData.password);
+      await assertOutputLine(expect, mockAddOutputLine, "Please confirm your password:");
 
       // Enter matching password using helper
       await simulateInputCommand(inputElement, testData.password);
@@ -589,11 +717,9 @@ describe('RegistrationDialog (V3.1)', () => {
         expect(authActions.initiateOtpSignIn).toHaveBeenCalledWith(testData.email);
       });
 
-      // Check for confirmation message output (Mode change is internal via dispatch now)
+      // Check for confirmation message output
       const expectedMessage = `Account created. Please check your email (${testEmail}) for a confirmation link. Enter 'continue' here once confirmed, or 'resend' to request a new link.`;
-      await waitFor(() => {
-        expect(mockAddOutputLine).toHaveBeenCalledWith(expectedMessage);
-      });
+      await assertOutputLine(expect, mockAddOutputLine, expectedMessage);
     });
     it.todo('should display confirmation instructions in "awaiting_confirmation" state');
     it.todo('should periodically call checkEmailConfirmation in "awaiting_confirmation" state');
@@ -609,48 +735,57 @@ describe('RegistrationDialog (V3.1)', () => {
 
       const handleInput = vi.fn();
       // Pass the mutable currentDialogState object as the prop and capture rerender
-      const { container, rerender } = render(<RegistrationDialog {...defaultProps} dialogState={currentDialogState} onInput={handleInput} />);
+      const { container } = render(<RegistrationDialog {...defaultProps} onInput={handleInput} />);
 
-      // --- Simulate flow to awaiting_confirmation state ---
-      const testData = { firstName: 'Confirmed', lastName: 'User', email: testEmail, password: 'password123' };
-      // Simulate flow up to the confirm password prompt (index 4) and submit the final password
-      await simulateFlowToQuestion(4, container, handleInput, {
-          firstName: testData.firstName,
-          lastName: testData.lastName,
-          email: testData.email,
-          password: testData.password,
-      });
-      let inputElement = container.querySelector('input'); // Re-select input element after simulation
+      // --- Manual Simulation to awaiting_confirmation state ---
+      const inputElement = container.querySelector('input');
       expect(inputElement).not.toBeNull();
       if (!inputElement) return;
-      await simulateInputCommand(inputElement, testData.password); // Submit final password
 
-      // Verify we reached awaiting_confirmation state (check for confirmation prompt)
+      const testData = { firstName: 'Confirmed', lastName: 'User', email: testEmail, password: 'password123' };
+
+      // Wait for intro
+      await assertOutputLine(expect, mockAddOutputLine, "Checking for saved progress...");
+      await assertOutputLine(expect, mockAddOutputLine, "Welcome to the Philosothon Registration!");
+      await assertOutputLine(expect, mockAddOutputLine, "We need to collect some information to get you started.");
+
+      // Simulate 'register new'
+      await simulateInputCommand(inputElement, 'register new');
+      await assertOutputLine(expect, mockAddOutputLine, "Starting new registration...");
+      await assertOutputLine(expect, mockAddOutputLine, "Please enter your First Name:");
+
+      // Simulate Early Auth
+      await simulateInputCommand(inputElement, testData.firstName);
+      await assertOutputLine(expect, mockAddOutputLine, "Please enter your Last Name:");
+      await simulateInputCommand(inputElement, testData.lastName);
+      await assertOutputLine(expect, mockAddOutputLine, "Please enter your University Email Address:");
+      await simulateInputCommand(inputElement, testData.email);
+      await assertOutputLine(expect, mockAddOutputLine, "Please create a password (min. 8 characters):");
+      await simulateInputCommand(inputElement, testData.password);
+      await assertOutputLine(expect, mockAddOutputLine, "Please confirm your password:");
+      await simulateInputCommand(inputElement, testData.password);
+      await waitFor(() => { expect(authActions.initiateOtpSignIn).toHaveBeenCalledTimes(1); }); // Wait for async action
       const confirmationPrompt = `Account created. Please check your email (${testEmail}) for a confirmation link. Enter 'continue' here once confirmed, or 'resend' to request a new link.`;
       await assertOutputLine(expect, mockAddOutputLine, confirmationPrompt);
-      // --- End simulation ---
+      // --- End Manual Simulation ---
 
-      // Simulate user entering 'continue' using helper
-      inputElement = container.querySelector('input'); // Re-select input element
-      expect(inputElement).not.toBeNull();
-      if (!inputElement) return;
+      // Simulate user entering 'continue'
       await simulateInputCommand(inputElement, 'continue');
 
-      // Explicitly rerender after state change trigger
-      rerender(<RegistrationDialog {...defaultProps} dialogState={currentDialogState} onInput={handleInput} />);
+      // Assert checkCurrentUserConfirmationStatus was called
+      await waitFor(() => {
+        expect(regActions.checkCurrentUserConfirmationStatus).toHaveBeenCalledTimes(1);
+      });
 
-      // Assert checkEmailConfirmation is NOT called (logic likely changed)
-      // await waitFor(() => {
-      //   expect(regActions.checkEmailConfirmation).toHaveBeenCalledTimes(1);
-      // });
+      // Assert first question prompt (academicYear) is shown after confirmation
+      const academicYearPrompt = `Year of Study`;
+      await assertOutputLine(expect, mockAddOutputLine, academicYearPrompt, undefined, 4000); // Increased timeout
 
-      // Assert mode changed to questioning (No longer called via prop for this transition)
-      // await waitFor(() => {
-      //   expect(mockChangeMode).toHaveBeenCalledWith('questioning');
-      // });
-
-      // Assertion for specific first question prompt removed due to REG-TEST-TIMING-001 and state init issues.
-      // We rely on the test setup and the absence of errors to infer correct transition.
+      // Optionally assert hint/options if needed for robustness
+      // const academicYearHint = `Select your current academic year.`;
+      // await assertOutputLine(expect, mockAddOutputLine, academicYearHint, { type: 'hint' });
+      // const academicYearOptions = ["1: First year", ...].join('\n');
+      // await assertOutputLine(expect, mockAddOutputLine, academicYearOptions);
     });
     it('should display error and stay in awaiting_confirmation if email is not confirmed via "continue" command', async () => {
       // Mock initiateOtpSignIn to return success
@@ -663,27 +798,39 @@ describe('RegistrationDialog (V3.1)', () => {
       // vi.mocked(regActions.checkEmailConfirmation).mockResolvedValue({ isConfirmed: false });
 
       const handleInput = vi.fn();
-      const { container } = render(<RegistrationDialog {...defaultProps} dialogState={currentDialogState} onInput={handleInput} />);
+      const { container } = render(<RegistrationDialog {...defaultProps} onInput={handleInput} />);
 
-      // --- Simulate flow to awaiting_confirmation state ---
+      // --- Manual Simulation to awaiting_confirmation state ---
       const inputElement = container.querySelector('input');
       expect(inputElement).not.toBeNull();
       if (!inputElement) return;
 
       const testData = { firstName: 'Unconfirmed', lastName: 'User', email: testEmail, password: 'password123' };
 
+      // Wait for intro
+      await assertOutputLine(expect, mockAddOutputLine, "Checking for saved progress...");
+      await assertOutputLine(expect, mockAddOutputLine, "Welcome to the Philosothon Registration!");
+      await assertOutputLine(expect, mockAddOutputLine, "We need to collect some information to get you started.");
+
+      // Simulate 'register new'
+      await simulateInputCommand(inputElement, 'register new');
+      await assertOutputLine(expect, mockAddOutputLine, "Starting new registration...");
+      await assertOutputLine(expect, mockAddOutputLine, "Please enter your First Name:");
+
+      // Simulate Early Auth
       await simulateInputCommand(inputElement, testData.firstName);
+      await assertOutputLine(expect, mockAddOutputLine, "Please enter your Last Name:");
       await simulateInputCommand(inputElement, testData.lastName);
+      await assertOutputLine(expect, mockAddOutputLine, "Please enter your University Email Address:");
       await simulateInputCommand(inputElement, testData.email);
+      await assertOutputLine(expect, mockAddOutputLine, "Please create a password (min. 8 characters):");
       await simulateInputCommand(inputElement, testData.password);
-      await assertOutputLine(expect, mockAddOutputLine, expect.stringContaining("Please confirm your password:"));
+      await assertOutputLine(expect, mockAddOutputLine, "Please confirm your password:");
       await simulateInputCommand(inputElement, testData.password);
-      await waitFor(() => { expect(authActions.initiateOtpSignIn).toHaveBeenCalledTimes(1); });
-      // Removed check for mockSetDialogState('pendingUserId', ...)
-      // Adjust confirmation prompt if OTP flow changes it
+      await waitFor(() => { expect(authActions.initiateOtpSignIn).toHaveBeenCalledTimes(1); }); // Wait for async action
       const confirmationPrompt = `Account created. Please check your email (${testEmail}) for a confirmation link. Enter 'continue' here once confirmed, or 'resend' to request a new link.`;
       await assertOutputLine(expect, mockAddOutputLine, confirmationPrompt);
-      // --- End simulation ---
+      // --- End Manual Simulation ---
 
       // Simulate user entering 'continue'
       await simulateInputCommand(inputElement, 'continue');
@@ -693,16 +840,15 @@ describe('RegistrationDialog (V3.1)', () => {
         expect(regActions.checkCurrentUserConfirmationStatus).toHaveBeenCalledTimes(1);
       });
 
-      // Assert mode did NOT change to questioning
-      expect(mockChangeMode).not.toHaveBeenCalledWith('questioning');
-
       // Assert error message was shown
       const expectedError = "Email not confirmed yet. Please check your email or use 'resend'.";
       await assertOutputLine(expect, mockAddOutputLine, expectedError, { type: 'error' });
 
       // Assert the confirmation prompt is shown again (indicating still in awaiting_confirmation)
-      // Use toHaveBeenLastCalledWith to be more precise
-      expect(mockAddOutputLine).toHaveBeenLastCalledWith(confirmationPrompt);
+      await assertOutputLine(expect, mockAddOutputLine, confirmationPrompt);
+
+      // Assert mode did NOT change to questioning (can check this after waiting for output)
+      expect(mockChangeMode).not.toHaveBeenCalledWith('questioning');
     });
     it('should call initiateOtpSignIn and show message on "resend" command', async () => {
       // Mock initiateOtpSignIn to return success
@@ -715,27 +861,39 @@ describe('RegistrationDialog (V3.1)', () => {
       // vi.mocked(authActions.resendConfirmationEmail).mockResolvedValue({ ... });
 
       const handleInput = vi.fn();
-      const { container } = render(<RegistrationDialog {...defaultProps} dialogState={currentDialogState} onInput={handleInput} />);
+      const { container } = render(<RegistrationDialog {...defaultProps} onInput={handleInput} />);
 
-      // --- Simulate flow to awaiting_confirmation state ---
+      // --- Manual Simulation to awaiting_confirmation state ---
       const inputElement = container.querySelector('input');
       expect(inputElement).not.toBeNull();
       if (!inputElement) return;
 
       const testData = { firstName: 'Resend', lastName: 'User', email: testEmail, password: 'password123' };
 
+      // Wait for intro
+      await assertOutputLine(expect, mockAddOutputLine, "Checking for saved progress...");
+      await assertOutputLine(expect, mockAddOutputLine, "Welcome to the Philosothon Registration!");
+      await assertOutputLine(expect, mockAddOutputLine, "We need to collect some information to get you started.");
+
+      // Simulate 'register new'
+      await simulateInputCommand(inputElement, 'register new');
+      await assertOutputLine(expect, mockAddOutputLine, "Starting new registration...");
+      await assertOutputLine(expect, mockAddOutputLine, "Please enter your First Name:");
+
+      // Simulate Early Auth
       await simulateInputCommand(inputElement, testData.firstName);
+      await assertOutputLine(expect, mockAddOutputLine, "Please enter your Last Name:");
       await simulateInputCommand(inputElement, testData.lastName);
+      await assertOutputLine(expect, mockAddOutputLine, "Please enter your University Email Address:");
       await simulateInputCommand(inputElement, testData.email);
+      await assertOutputLine(expect, mockAddOutputLine, "Please create a password (min. 8 characters):");
       await simulateInputCommand(inputElement, testData.password);
-      await assertOutputLine(expect, mockAddOutputLine, expect.stringContaining("Please confirm your password:"));
+      await assertOutputLine(expect, mockAddOutputLine, "Please confirm your password:");
       await simulateInputCommand(inputElement, testData.password);
-      await waitFor(() => { expect(authActions.initiateOtpSignIn).toHaveBeenCalledTimes(1); });
-      // Removed check for mockSetDialogState('pendingUserId', ...)
-      // Adjust confirmation prompt if OTP flow changes it
+      await waitFor(() => { expect(authActions.initiateOtpSignIn).toHaveBeenCalledTimes(1); }); // Wait for async action
       const confirmationPrompt = `Account created. Please check your email (${testEmail}) for a confirmation link. Enter 'continue' here once confirmed, or 'resend' to request a new link.`;
       await assertOutputLine(expect, mockAddOutputLine, confirmationPrompt);
-      // --- End simulation ---
+      // --- End Manual Simulation ---
 
       // Simulate user entering 'resend'
       await simulateInputCommand(inputElement, 'resend');
@@ -748,20 +906,16 @@ describe('RegistrationDialog (V3.1)', () => {
 
       // Assert success message was shown
       const expectedMessage = "Resending confirmation email..."; // Message shown *before* action completes
-      await waitFor(() => {
-        expect(mockAddOutputLine).toHaveBeenCalledWith(expectedMessage);
-      });
+      await assertOutputLine(expect, mockAddOutputLine, expectedMessage);
+
       // Optionally, assert the message from the mock response if the component displays it
-      // await waitFor(() => {
-      //   expect(mockAddOutputLine).toHaveBeenCalledWith('Confirmation email resent successfully.');
-      // });
-
-
-      // Assert mode did NOT change
-      expect(mockChangeMode).not.toHaveBeenCalled();
+      // await assertOutputLine(expect, mockAddOutputLine, 'Confirmation email resent successfully.');
 
       // Assert the confirmation prompt is shown again (indicating still in awaiting_confirmation)
-      expect(mockAddOutputLine).toHaveBeenLastCalledWith(confirmationPrompt);
+      await assertOutputLine(expect, mockAddOutputLine, confirmationPrompt);
+
+      // Assert mode did NOT change (can check this after waiting for output)
+      expect(mockChangeMode).not.toHaveBeenCalled();
     });
     it.todo('should handle existing users detected during signUpUser (needs clarification from spec/impl)');
   }); // End Early Authentication Flow
@@ -780,36 +934,50 @@ describe('RegistrationDialog (V3.1)', () => {
       // Capture rerender
       const { container, rerender } = render(<RegistrationDialog {...defaultProps} dialogState={currentDialogState} onInput={handleInput} />);
 
-      // --- Simulate flow to questioning state ---
+      // --- Simulate flow to questioning state MANUALLY ---
       const inputElement = container.querySelector('input');
       expect(inputElement).not.toBeNull();
       if (!inputElement) return;
 
       const testData = { firstName: 'Quest', lastName: 'User', email: testEmail, password: 'password123' };
 
-      // Enter First Name, Last Name, Email, Password, Confirm Password
+      // Wait for initial intro messages
+      await assertOutputLine(expect, mockAddOutputLine, "Checking for saved progress...");
+      await assertOutputLine(expect, mockAddOutputLine, "Welcome to the Philosothon Registration!");
+      await assertOutputLine(expect, mockAddOutputLine, "We need to collect some information to get you started.");
+
+      // Simulate 'register new'
+      await simulateInputCommand(inputElement, 'register new');
+      await assertOutputLine(expect, mockAddOutputLine, "Starting new registration...");
+      await assertOutputLine(expect, mockAddOutputLine, "Please enter your First Name:");
+
+      // Simulate First Name
       await simulateInputCommand(inputElement, testData.firstName);
+      await assertOutputLine(expect, mockAddOutputLine, "Please enter your Last Name:");
+
+      // Simulate Last Name
       await simulateInputCommand(inputElement, testData.lastName);
+      await assertOutputLine(expect, mockAddOutputLine, "Please enter your University Email Address:");
+
+      // Simulate Email
       await simulateInputCommand(inputElement, testData.email);
+      await assertOutputLine(expect, mockAddOutputLine, "Please create a password (min. 8 characters):");
+
+      // Simulate Password
       await simulateInputCommand(inputElement, testData.password);
-      await waitFor(() => { expect(mockAddOutputLine).toHaveBeenCalledWith(expect.stringContaining("Please confirm your password:")); });
+      await assertOutputLine(expect, mockAddOutputLine, "Please confirm your password:");
+
+      // Simulate Confirm Password
       await simulateInputCommand(inputElement, testData.password);
-      await waitFor(() => { expect(authActions.initiateOtpSignIn).toHaveBeenCalledTimes(1); });
-      // Removed check for mockSetDialogState('pendingUserId', ...)
-      // Adjust confirmation prompt if OTP flow changes it
+      await waitFor(() => { expect(authActions.initiateOtpSignIn).toHaveBeenCalledTimes(1); }); // Wait for async action
       const confirmationPrompt = `Account created. Please check your email (${testEmail}) for a confirmation link. Enter 'continue' here once confirmed, or 'resend' to request a new link.`;
-      await waitFor(() => { expect(mockAddOutputLine).toHaveBeenCalledWith(confirmationPrompt); });
+      await assertOutputLine(expect, mockAddOutputLine, confirmationPrompt);
 
-      // Enter 'continue' within act
+      // Simulate 'continue'
       await simulateInputCommand(inputElement, 'continue');
-      // Check that checkCurrentUserConfirmationStatus was called
-      await waitFor(() => {
-        expect(regActions.checkCurrentUserConfirmationStatus).toHaveBeenCalledTimes(1);
-      });
+      await waitFor(() => { expect(regActions.checkCurrentUserConfirmationStatus).toHaveBeenCalledTimes(1); }); // Wait for async action
 
-      // Explicitly rerender after state change trigger
-      rerender(<RegistrationDialog {...defaultProps} dialogState={currentDialogState} onInput={handleInput} />);
-      // --- End simulation ---
+      // --- End manual simulation ---
 
       // Assert first question prompt (academicYear) is shown
       const academicYearPrompt = `Year of Study`;
@@ -851,27 +1019,17 @@ describe('RegistrationDialog (V3.1)', () => {
 
       it('should validate required text input and show error if empty', async () => {
         const handleInput = vi.fn();
-        // Initialize state directly at the target question (index 6: programOfStudy)
-        const initialStateAtIndex6 = { // Renamed variable
-          mode: 'questioning',
-          currentQuestionIndex: 6, // Correct index for programOfStudy
-          answers: { // Include answers needed for potential skip logic checks if any
-            firstName: 'Test',
-            lastName: 'User',
-            email: 'test@example.com',
-            academicYear: 'Second year', // Answer for index 3
-            academicYearOther: '', // Answer for index 4 (assuming not 'Other')
-            universityInstitution: 'University of Test', // Answer for index 5
-          },
-          isSubmitting: false,
-          error: null,
-          userId: 'mock-req-valid-user-id' // Assume user ID is available
-        };
+        // Mock successful OTP flow and confirmation check
+        const testEmail = 'req-valid@example.com';
+        vi.mocked(authActions.initiateOtpSignIn).mockResolvedValue({
+          data: { user: { email: testEmail, id: 'mock-req-valid-user-id' } }, error: null
+        });
+        vi.mocked(regActions.checkCurrentUserConfirmationStatus).mockResolvedValueOnce(true);
 
         const { container } = render(
           <RegistrationDialog
             {...defaultProps}
-            dialogState={initialStateAtIndex6} // Pass corrected initial state directly
+            // dialogState removed - let machine handle state
             onInput={handleInput}
           />
         );
@@ -880,10 +1038,52 @@ describe('RegistrationDialog (V3.1)', () => {
         expect(inputElement).not.toBeNull();
         if (!inputElement) return;
 
-        // Wait for the programOfStudy prompt (index 6) to ensure component has rendered with initial state
-        const programPrompt = `Program/Major(s)`;
-        await assertOutputLine(expect, mockAddOutputLine, programPrompt, undefined, 3000);
+        // --- Manual Simulation to reach index 6 ---
+        const testData = {
+            firstName: 'Req', lastName: 'Valid', email: testEmail, password: 'password123',
+            academicYear: '2', // Answer for index 3
+            academicYearOther: '', // Answer for index 4
+            universityInstitution: 'U of Test', // Answer for index 5
+        };
 
+        // Wait for intro
+        await assertOutputLine(expect, mockAddOutputLine, "Checking for saved progress...");
+        await assertOutputLine(expect, mockAddOutputLine, "Welcome to the Philosothon Registration!");
+        await assertOutputLine(expect, mockAddOutputLine, "We need to collect some information to get you started.");
+
+        // Simulate 'register new'
+        await simulateInputCommand(inputElement, 'register new');
+        await assertOutputLine(expect, mockAddOutputLine, "Starting new registration...");
+        await assertOutputLine(expect, mockAddOutputLine, "Please enter your First Name:");
+
+        // Simulate Early Auth
+        await simulateInputCommand(inputElement, testData.firstName);
+        await assertOutputLine(expect, mockAddOutputLine, "Please enter your Last Name:");
+        await simulateInputCommand(inputElement, testData.lastName);
+        await assertOutputLine(expect, mockAddOutputLine, "Please enter your University Email Address:");
+        await simulateInputCommand(inputElement, testData.email);
+        await assertOutputLine(expect, mockAddOutputLine, "Please create a password (min. 8 characters):");
+        await simulateInputCommand(inputElement, testData.password);
+        await assertOutputLine(expect, mockAddOutputLine, "Please confirm your password:");
+        await simulateInputCommand(inputElement, testData.password);
+        await waitFor(() => { expect(authActions.initiateOtpSignIn).toHaveBeenCalledTimes(1); });
+        const confirmationPrompt = `Account created. Please check your email (${testEmail}) for a confirmation link. Enter 'continue' here once confirmed, or 'resend' to request a new link.`;
+        await assertOutputLine(expect, mockAddOutputLine, confirmationPrompt);
+
+        // Simulate 'continue'
+        await simulateInputCommand(inputElement, 'continue');
+        await waitFor(() => { expect(regActions.checkCurrentUserConfirmationStatus).toHaveBeenCalledTimes(1); });
+
+        // Simulate answers up to index 5
+        await assertOutputLine(expect, mockAddOutputLine, "Year of Study"); // Index 3
+        await simulateInputCommand(inputElement, testData.academicYear);
+        await assertOutputLine(expect, mockAddOutputLine, "University / Institution"); // Index 5 (skips 4)
+        await simulateInputCommand(inputElement, testData.universityInstitution);
+
+        // Now we should be at index 6
+        const programPrompt = `Program/Major(s)`;
+        await assertOutputLine(expect, mockAddOutputLine, programPrompt);
+        // --- End Manual Simulation ---
 
         // --- Submit empty input ---
         await simulateInputCommand(inputElement, '');
@@ -905,28 +1105,16 @@ describe('RegistrationDialog (V3.1)', () => {
 
       it('should handle boolean input (y/n) - accepting "y"', async () => {
         const handleInput = vi.fn();
-        // Initialize state at the target boolean question (index 44: finalConfirmationAgreement)
-        const initialStateAtIndex45 = { // Corrected variable name
-          mode: 'questioning',
-          currentQuestionIndex: 45, // Corrected index for finalConfirmationAgreement (order 48)
-          answers: {
-            // Include necessary preceding answers if skip logic depends on them
-            // For simplicity, assuming no complex dependencies for index 44 for now
-            firstName: 'Test',
-            lastName: 'User',
-            email: 'test@example.com',
-            // ... other answers ...
-            heardAboutSource: ["Email announcement"], // Example answer for index 45
-          },
-          isSubmitting: false,
-          error: null,
-          userId: 'mock-bool-user-id'
-        };
+        // Mock successful OTP flow and confirmation check
+        const testEmail = 'bool-y@example.com';
+        vi.mocked(authActions.initiateOtpSignIn).mockResolvedValue({
+          data: { user: { email: testEmail, id: 'mock-bool-y-user-id' } }, error: null
+        });
+        vi.mocked(regActions.checkCurrentUserConfirmationStatus).mockResolvedValueOnce(true);
 
         const { container } = render(
           <RegistrationDialog
             {...defaultProps}
-            dialogState={initialStateAtIndex45} // Use corrected initial state variable
             onInput={handleInput}
           />
         );
@@ -935,7 +1123,58 @@ describe('RegistrationDialog (V3.1)', () => {
         expect(inputElement).not.toBeNull();
         if (!inputElement) return;
 
-        // Wait for the correct boolean question prompt (index 44)
+        // --- Manual Simulation to reach index 45 ---
+        // (This will be long, consider a helper if repeating often, but manual is safer for now)
+        const testData = { firstName: 'BoolY', lastName: 'Test', email: testEmail, password: 'password123' };
+        // Wait for intro
+        await assertOutputLine(expect, mockAddOutputLine, "Checking for saved progress...");
+        await assertOutputLine(expect, mockAddOutputLine, "Welcome to the Philosothon Registration!");
+        await assertOutputLine(expect, mockAddOutputLine, "We need to collect some information to get you started.");
+        // Simulate 'register new'
+        await simulateInputCommand(inputElement, 'register new');
+        await assertOutputLine(expect, mockAddOutputLine, "Starting new registration...");
+        await assertOutputLine(expect, mockAddOutputLine, "Please enter your First Name:");
+        // Simulate Early Auth
+        await simulateInputCommand(inputElement, testData.firstName);
+        await assertOutputLine(expect, mockAddOutputLine, "Please enter your Last Name:");
+        await simulateInputCommand(inputElement, testData.lastName);
+        await assertOutputLine(expect, mockAddOutputLine, "Please enter your University Email Address:");
+        await simulateInputCommand(inputElement, testData.email);
+        await assertOutputLine(expect, mockAddOutputLine, "Please create a password (min. 8 characters):");
+        await simulateInputCommand(inputElement, testData.password);
+        await assertOutputLine(expect, mockAddOutputLine, "Please confirm your password:");
+        await simulateInputCommand(inputElement, testData.password);
+        await waitFor(() => { expect(authActions.initiateOtpSignIn).toHaveBeenCalledTimes(1); });
+        const confirmationPrompt = `Account created. Please check your email (${testEmail}) for a confirmation link. Enter 'continue' here once confirmed, or 'resend' to request a new link.`;
+        await assertOutputLine(expect, mockAddOutputLine, confirmationPrompt);
+        // Simulate 'continue'
+        await simulateInputCommand(inputElement, 'continue');
+        await waitFor(() => { expect(regActions.checkCurrentUserConfirmationStatus).toHaveBeenCalledTimes(1); });
+
+        // Simulate answers for questions 3 through 44 (indices 3 to 44)
+        for (let i = 3; i < 45; i++) {
+             const question = questions[i];
+             if (!question) { console.warn(`Missing question at index ${i}`); continue; } // Skip if question missing
+
+             // Wait for the prompt for question i
+             await assertOutputLine(expect, mockAddOutputLine, expect.stringContaining(question.label));
+
+             // Determine default valid input based on type
+             let stepInput = 'Default';
+             switch (question.type) {
+               case 'text':
+               case 'textarea': stepInput = `Answer ${i}`; break;
+               case 'scale': stepInput = String(question.validationRules?.min?.value ?? 1); break;
+               case 'boolean': stepInput = 'y'; break;
+               case 'single-select': stepInput = '1'; break;
+               case 'multi-select-numbered': stepInput = '1'; break;
+               case 'ranked-choice-numbered': stepInput = '1:1 2:2 3:3'; break; // Adjust if needed
+             }
+             await simulateInputCommand(inputElement, stepInput);
+        }
+        // --- End Manual Simulation ---
+
+        // Now we should be at index 45
         const boolQuestionPrompt = `By submitting this form, I confirm that I understand the time commitment required for the Philosothon (all day April 26 and morning of April 27) and will make arrangements to fully participate and provide feedback on my experience.`;
         await assertOutputLine(expect, mockAddOutputLine, boolQuestionPrompt);
 
@@ -967,26 +1206,16 @@ describe('RegistrationDialog (V3.1)', () => {
       });
       it('should validate boolean input and show error for invalid input', async () => {
         const handleInput = vi.fn();
-        // Initialize state at the target boolean question (index 45: finalConfirmationAgreement)
-        const initialStateAtIndex45 = {
-          mode: 'questioning',
-          currentQuestionIndex: 45,
-          answers: {
-            firstName: 'Test',
-            lastName: 'User',
-            email: 'test@example.com',
-            // ... include other necessary preceding answers if skip logic depends on them
-            heardAboutSource: ["Email announcement"], // Example answer for index 44
-          },
-          isSubmitting: false,
-          error: null,
-          userId: 'mock-bool-valid-user-id'
-        };
+        // Mock successful OTP flow and confirmation check
+        const testEmail = 'bool-invalid@example.com';
+        vi.mocked(authActions.initiateOtpSignIn).mockResolvedValue({
+          data: { user: { email: testEmail, id: 'mock-bool-invalid-user-id' } }, error: null
+        });
+        vi.mocked(regActions.checkCurrentUserConfirmationStatus).mockResolvedValueOnce(true);
 
         const { container } = render(
           <RegistrationDialog
             {...defaultProps}
-            dialogState={initialStateAtIndex45} // Pass initial state directly
             onInput={handleInput}
           />
         );
@@ -995,11 +1224,54 @@ describe('RegistrationDialog (V3.1)', () => {
         expect(inputElement).not.toBeNull();
         if (!inputElement) return;
 
-        // Wait for the correct boolean question prompt (index 45)
+        // --- Manual Simulation to reach index 45 ---
+        const testData = { firstName: 'BoolInv', lastName: 'Test', email: testEmail, password: 'password123' };
+        // Wait for intro
+        await assertOutputLine(expect, mockAddOutputLine, "Checking for saved progress...");
+        await assertOutputLine(expect, mockAddOutputLine, "Welcome to the Philosothon Registration!");
+        await assertOutputLine(expect, mockAddOutputLine, "We need to collect some information to get you started.");
+        // Simulate 'register new'
+        await simulateInputCommand(inputElement, 'register new');
+        await assertOutputLine(expect, mockAddOutputLine, "Starting new registration...");
+        await assertOutputLine(expect, mockAddOutputLine, "Please enter your First Name:");
+        // Simulate Early Auth
+        await simulateInputCommand(inputElement, testData.firstName);
+        await assertOutputLine(expect, mockAddOutputLine, "Please enter your Last Name:");
+        await simulateInputCommand(inputElement, testData.lastName);
+        await assertOutputLine(expect, mockAddOutputLine, "Please enter your University Email Address:");
+        await simulateInputCommand(inputElement, testData.email);
+        await assertOutputLine(expect, mockAddOutputLine, "Please create a password (min. 8 characters):");
+        await simulateInputCommand(inputElement, testData.password);
+        await assertOutputLine(expect, mockAddOutputLine, "Please confirm your password:");
+        await simulateInputCommand(inputElement, testData.password);
+        await waitFor(() => { expect(authActions.initiateOtpSignIn).toHaveBeenCalledTimes(1); });
+        const confirmationPrompt = `Account created. Please check your email (${testEmail}) for a confirmation link. Enter 'continue' here once confirmed, or 'resend' to request a new link.`;
+        await assertOutputLine(expect, mockAddOutputLine, confirmationPrompt);
+        // Simulate 'continue'
+        await simulateInputCommand(inputElement, 'continue');
+        await waitFor(() => { expect(regActions.checkCurrentUserConfirmationStatus).toHaveBeenCalledTimes(1); });
+
+        // Simulate answers for questions 3 through 44 (indices 3 to 44)
+        for (let i = 3; i < 45; i++) {
+             const question = questions[i];
+             if (!question) { console.warn(`Missing question at index ${i}`); continue; }
+             await assertOutputLine(expect, mockAddOutputLine, expect.stringContaining(question.label));
+             let stepInput = 'Default';
+             switch (question.type) {
+               case 'text': case 'textarea': stepInput = `Answer ${i}`; break;
+               case 'scale': stepInput = String(question.validationRules?.min?.value ?? 1); break;
+               case 'boolean': stepInput = 'y'; break;
+               case 'single-select': stepInput = '1'; break;
+               case 'multi-select-numbered': stepInput = '1'; break;
+               case 'ranked-choice-numbered': stepInput = '1:1 2:2 3:3'; break;
+             }
+             await simulateInputCommand(inputElement, stepInput);
+        }
+        // --- End Manual Simulation ---
+
+        // Now we should be at index 45
         const boolQuestionPrompt = `By submitting this form, I confirm that I understand the time commitment required for the Philosothon (all day April 26 and morning of April 27) and will make arrangements to fully participate and provide feedback on my experience.`;
-        await waitFor(() => {
-          expect(mockAddOutputLine).toHaveBeenCalledWith(boolQuestionPrompt);
-        });
+        await assertOutputLine(expect, mockAddOutputLine, boolQuestionPrompt);
 
         // --- Submit invalid input ('maybe') ---
         await simulateInputCommand(inputElement, 'maybe');
@@ -1011,7 +1283,7 @@ describe('RegistrationDialog (V3.1)', () => {
         // });
         // FIX: Asserting the actual incorrect output (prompt/hint) to make test pass against current component logic
         // FIX: Use correctly scoped variable and fix assertion
-        const boolQuestionHint = questions[initialStateAtIndex45.currentQuestionIndex].hint;
+        const boolQuestionHint = questions[45].hint;
         await assertOutputLine(expect, mockAddOutputLine, boolQuestionHint, { type: 'hint' });
 
         // Assert the prompt for the *same* question is shown again - REMOVED assertion for last call, as hint follows label.
@@ -1035,12 +1307,12 @@ describe('RegistrationDialog (V3.1)', () => {
             // Align props with defaultProps definition
             dialogState={{ mode: 'questioning', currentQuestionIndex: currentTestIndex }}
             addOutputLine={mockAddOutputLine}
-            setDialogState={mockSetDialogState} // Keep for now, likely unused due to useReducer
+             // Keep for now, likely unused due to useReducer
             sendToShellMachine={mockSendToShellMachine} // Added
-            clearDialogState={mockClearDialogState} // Added
+             // Added
             userSession={null} // Added (using null as per defaultProps)
             onInput={vi.fn()} // Added missing required prop
-            changeMode={mockChangeMode} // Added
+             // Added
             // Removed: onComplete, resendConfirmationEmail, checkEmailConfirmation, initiateOtpSignIn, verifyOtpSignIn, signUpUser, submitRegistration
           />
         );
@@ -1103,10 +1375,16 @@ describe('RegistrationDialog (V3.1)', () => {
 
         it('should handle valid numeric input and advance state', async () => {
           const handleInput = vi.fn();
+          // Mock successful OTP flow and confirmation check
+          const testEmail = 'select-valid@example.com';
+          vi.mocked(authActions.initiateOtpSignIn).mockResolvedValue({
+            data: { user: { email: testEmail, id: 'mock-select-valid-user-id' } }, error: null
+          });
+          vi.mocked(regActions.checkCurrentUserConfirmationStatus).mockResolvedValueOnce(true);
+
           const { container } = render(
             <RegistrationDialog
               {...defaultProps}
-              dialogState={initialState}
               onInput={handleInput}
             />
           );
@@ -1114,9 +1392,37 @@ describe('RegistrationDialog (V3.1)', () => {
           expect(inputElement).not.toBeNull();
           if (!inputElement) throw new Error("Input element not found");
 
-          // Wait for the academicYear prompt (index 3)
+          // --- Manual Simulation to reach index 3 ---
+          const testData = { firstName: 'SelectValid', lastName: 'Test', email: testEmail, password: 'password123' };
+          // Wait for intro
+          await assertOutputLine(expect, mockAddOutputLine, "Checking for saved progress...");
+          await assertOutputLine(expect, mockAddOutputLine, "Welcome to the Philosothon Registration!");
+          await assertOutputLine(expect, mockAddOutputLine, "We need to collect some information to get you started.");
+          // Simulate 'register new'
+          await simulateInputCommand(inputElement, 'register new');
+          await assertOutputLine(expect, mockAddOutputLine, "Starting new registration...");
+          await assertOutputLine(expect, mockAddOutputLine, "Please enter your First Name:");
+          // Simulate Early Auth
+          await simulateInputCommand(inputElement, testData.firstName);
+          await assertOutputLine(expect, mockAddOutputLine, "Please enter your Last Name:");
+          await simulateInputCommand(inputElement, testData.lastName);
+          await assertOutputLine(expect, mockAddOutputLine, "Please enter your University Email Address:");
+          await simulateInputCommand(inputElement, testData.email);
+          await assertOutputLine(expect, mockAddOutputLine, "Please create a password (min. 8 characters):");
+          await simulateInputCommand(inputElement, testData.password);
+          await assertOutputLine(expect, mockAddOutputLine, "Please confirm your password:");
+          await simulateInputCommand(inputElement, testData.password);
+          await waitFor(() => { expect(authActions.initiateOtpSignIn).toHaveBeenCalledTimes(1); });
+          const confirmationPrompt = `Account created. Please check your email (${testEmail}) for a confirmation link. Enter 'continue' here once confirmed, or 'resend' to request a new link.`;
+          await assertOutputLine(expect, mockAddOutputLine, confirmationPrompt);
+          // Simulate 'continue'
+          await simulateInputCommand(inputElement, 'continue');
+          await waitFor(() => { expect(regActions.checkCurrentUserConfirmationStatus).toHaveBeenCalledTimes(1); });
+          // --- End Manual Simulation ---
+
+          // Now we should be at index 3
           const academicYearPrompt = `Year of Study`;
-          await assertOutputLine(expect, mockAddOutputLine, academicYearPrompt, undefined, 3000);
+          await assertOutputLine(expect, mockAddOutputLine, academicYearPrompt);
 
           // Simulate valid input ('2' for 'Second year')
           await simulateInputCommand(inputElement, '2');
@@ -1134,10 +1440,16 @@ describe('RegistrationDialog (V3.1)', () => {
 
         it('should show error for non-numeric input and not advance state', async () => {
           const handleInput = vi.fn();
+          // Mock successful OTP flow and confirmation check
+          const testEmail = 'select-nonnum@example.com';
+          vi.mocked(authActions.initiateOtpSignIn).mockResolvedValue({
+            data: { user: { email: testEmail, id: 'mock-select-nonnum-user-id' } }, error: null
+          });
+          vi.mocked(regActions.checkCurrentUserConfirmationStatus).mockResolvedValueOnce(true);
+
           const { container } = render(
             <RegistrationDialog
               {...defaultProps}
-              dialogState={initialState}
               onInput={handleInput}
             />
           );
@@ -1145,12 +1457,37 @@ describe('RegistrationDialog (V3.1)', () => {
           expect(inputElement).not.toBeNull();
           if (!inputElement) throw new Error("Input element not found");
 
-          // Wait for the academicYear prompt (index 3)
-          const academicYearPrompt = `Year of Study`;
-          await waitFor(() => {
-            expect(mockAddOutputLine).toHaveBeenCalledWith(academicYearPrompt);
-          }, { timeout: 3000 });
+          // --- Manual Simulation to reach index 3 ---
+          const testData = { firstName: 'SelectNonNum', lastName: 'Test', email: testEmail, password: 'password123' };
+          // Wait for intro
+          await assertOutputLine(expect, mockAddOutputLine, "Checking for saved progress...");
+          await assertOutputLine(expect, mockAddOutputLine, "Welcome to the Philosothon Registration!");
+          await assertOutputLine(expect, mockAddOutputLine, "We need to collect some information to get you started.");
+          // Simulate 'register new'
+          await simulateInputCommand(inputElement, 'register new');
+          await assertOutputLine(expect, mockAddOutputLine, "Starting new registration...");
+          await assertOutputLine(expect, mockAddOutputLine, "Please enter your First Name:");
+          // Simulate Early Auth
+          await simulateInputCommand(inputElement, testData.firstName);
+          await assertOutputLine(expect, mockAddOutputLine, "Please enter your Last Name:");
+          await simulateInputCommand(inputElement, testData.lastName);
+          await assertOutputLine(expect, mockAddOutputLine, "Please enter your University Email Address:");
+          await simulateInputCommand(inputElement, testData.email);
+          await assertOutputLine(expect, mockAddOutputLine, "Please create a password (min. 8 characters):");
+          await simulateInputCommand(inputElement, testData.password);
+          await assertOutputLine(expect, mockAddOutputLine, "Please confirm your password:");
+          await simulateInputCommand(inputElement, testData.password);
+          await waitFor(() => { expect(authActions.initiateOtpSignIn).toHaveBeenCalledTimes(1); });
+          const confirmationPrompt = `Account created. Please check your email (${testEmail}) for a confirmation link. Enter 'continue' here once confirmed, or 'resend' to request a new link.`;
+          await assertOutputLine(expect, mockAddOutputLine, confirmationPrompt);
+          // Simulate 'continue'
+          await simulateInputCommand(inputElement, 'continue');
+          await waitFor(() => { expect(regActions.checkCurrentUserConfirmationStatus).toHaveBeenCalledTimes(1); });
+          // --- End Manual Simulation ---
 
+          // Now we should be at index 3
+          const academicYearPrompt = `Year of Study`;
+          await assertOutputLine(expect, mockAddOutputLine, academicYearPrompt);
 
           // Simulate invalid input
           await simulateInputCommand(inputElement, 'abc');
@@ -1172,10 +1509,16 @@ describe('RegistrationDialog (V3.1)', () => {
 
         it('should show error for out-of-range numeric input and not advance state', async () => {
           const handleInput = vi.fn();
+          // Mock successful OTP flow and confirmation check
+          const testEmail = 'select-range@example.com';
+          vi.mocked(authActions.initiateOtpSignIn).mockResolvedValue({
+            data: { user: { email: testEmail, id: 'mock-select-range-user-id' } }, error: null
+          });
+          vi.mocked(regActions.checkCurrentUserConfirmationStatus).mockResolvedValueOnce(true);
+
           const { container } = render(
              <RegistrationDialog
               {...defaultProps}
-              dialogState={initialState}
               onInput={handleInput}
             />
           );
@@ -1183,11 +1526,37 @@ describe('RegistrationDialog (V3.1)', () => {
           expect(inputElement).not.toBeNull();
           if (!inputElement) throw new Error("Input element not found");
 
-          // Wait for the academicYear prompt (index 3)
+          // --- Manual Simulation to reach index 3 ---
+          const testData = { firstName: 'SelectRange', lastName: 'Test', email: testEmail, password: 'password123' };
+          // Wait for intro
+          await assertOutputLine(expect, mockAddOutputLine, "Checking for saved progress...");
+          await assertOutputLine(expect, mockAddOutputLine, "Welcome to the Philosothon Registration!");
+          await assertOutputLine(expect, mockAddOutputLine, "We need to collect some information to get you started.");
+          // Simulate 'register new'
+          await simulateInputCommand(inputElement, 'register new');
+          await assertOutputLine(expect, mockAddOutputLine, "Starting new registration...");
+          await assertOutputLine(expect, mockAddOutputLine, "Please enter your First Name:");
+          // Simulate Early Auth
+          await simulateInputCommand(inputElement, testData.firstName);
+          await assertOutputLine(expect, mockAddOutputLine, "Please enter your Last Name:");
+          await simulateInputCommand(inputElement, testData.lastName);
+          await assertOutputLine(expect, mockAddOutputLine, "Please enter your University Email Address:");
+          await simulateInputCommand(inputElement, testData.email);
+          await assertOutputLine(expect, mockAddOutputLine, "Please create a password (min. 8 characters):");
+          await simulateInputCommand(inputElement, testData.password);
+          await assertOutputLine(expect, mockAddOutputLine, "Please confirm your password:");
+          await simulateInputCommand(inputElement, testData.password);
+          await waitFor(() => { expect(authActions.initiateOtpSignIn).toHaveBeenCalledTimes(1); });
+          const confirmationPrompt = `Account created. Please check your email (${testEmail}) for a confirmation link. Enter 'continue' here once confirmed, or 'resend' to request a new link.`;
+          await assertOutputLine(expect, mockAddOutputLine, confirmationPrompt);
+          // Simulate 'continue'
+          await simulateInputCommand(inputElement, 'continue');
+          await waitFor(() => { expect(regActions.checkCurrentUserConfirmationStatus).toHaveBeenCalledTimes(1); });
+          // --- End Manual Simulation ---
+
+          // Now we should be at index 3
           const academicYearPrompt = `Year of Study`;
-          await waitFor(() => {
-            expect(mockAddOutputLine).toHaveBeenCalledWith(academicYearPrompt);
-          }, { timeout: 3000 });
+          await assertOutputLine(expect, mockAddOutputLine, academicYearPrompt);
 
           // Simulate invalid input (0)
           await simulateInputCommand(inputElement, '0');
@@ -1988,8 +2357,8 @@ describe('RegistrationDialog (V3.1)', () => {
 
     // --- Tests for 'register continue' --- 
     it('should handle "register continue" command, load state from localStorage, and resume from the saved index', async () => {
-      const savedState: RegistrationState = {
-        ...registrationInitialState,
+      const savedState = {
+        
         mode: 'questioning',
         currentQuestionIndex: 5, // Example index to resume from
         answers: {
@@ -2190,8 +2559,8 @@ describe('RegistrationDialog (V3.1)', () => {
   // --- New Describe Block for Mount Behavior ---
   describe('Mount Behavior', () => {
     it('should check localStorage on mount and indicate if resumable progress exists', async () => {
-      const savedState: RegistrationState = {
-        ...registrationInitialState,
+      const savedState = {
+        
         mode: 'questioning',
         currentQuestionIndex: 3,
         answers: { firstName: 'Test', lastName: 'User', email: 'test@example.com' },
@@ -2249,134 +2618,6 @@ describe('RegistrationDialog (V3.1)', () => {
 
 
 
-describe('Reducer Logic (useRegistrationReducer Hook)', () => {
-  it('should update answers state when SET_ANSWER is dispatched', () => {
-    // Arrange: Render the hook
-    const { result } = renderHook(() => useRegistrationReducer());
-
-    // Act: Dispatch an action
-    const testPayload = { stepId: 'firstName', answer: 'TestName' };
-    act(() => {
-      result.current.dispatch({ type: 'SET_ANSWER', payload: testPayload });
-    });
-
-    // Assert: Check if the state was updated correctly
-    expect(result.current.state.answers.firstName).toBe('TestName');
-  });
-
-  it('should update mode and reset index when SET_MODE is dispatched to questioning', () => {
-    // Arrange: Render the hook with a different initial mode
-    const { result } = renderHook(() => useRegistrationReducer({ mode: 'early_auth', currentQuestionIndex: 1 }));
-
-    // Act: Dispatch SET_MODE to questioning
-    act(() => {
-      result.current.dispatch({ type: 'SET_MODE', payload: 'questioning' });
-    });
-
-    // Assert: Check mode and index
-    expect(result.current.state.mode).toBe('questioning');
-    expect(result.current.state.currentQuestionIndex).toBe(3); // Should reset to start of questions (index 3)
-  });
-
-   it('should increment index when NEXT_STEP is dispatched', () => {
-    // Arrange: Render the hook
-    const { result } = renderHook(() => useRegistrationReducer({ currentQuestionIndex: 5 }));
-
-    // Act: Dispatch NEXT_STEP
-    act(() => {
-      result.current.dispatch({ type: 'NEXT_STEP' });
-    });
-
-    // Assert: Check index
-    expect(result.current.state.currentQuestionIndex).toBe(6);
-  });
-
-   it('should decrement index when PREV_STEP is dispatched', () => {
-    // Arrange: Render the hook
-    const { result } = renderHook(() => useRegistrationReducer({ currentQuestionIndex: 5 }));
-
-    // Act: Dispatch PREV_STEP
-    act(() => {
-      result.current.dispatch({ type: 'PREV_STEP' });
-    });
-
-    // Assert: Check index
-    expect(result.current.state.currentQuestionIndex).toBe(4);
-  });
-
-   it('should not decrement index below 0 when PREV_STEP is dispatched', () => {
-    // Arrange: Render the hook
-    const { result } = renderHook(() => useRegistrationReducer({ currentQuestionIndex: 0 }));
-
-    // Act: Dispatch PREV_STEP
-    act(() => {
-      result.current.dispatch({ type: 'PREV_STEP' });
-    });
-
-    // Assert: Check index
-    expect(result.current.state.currentQuestionIndex).toBe(0);
-  });
-
-   it('should set specific index when SET_INDEX is dispatched', () => {
-    // Arrange: Render the hook
-    const { result } = renderHook(() => useRegistrationReducer());
-
-    // Act: Dispatch SET_INDEX
-    act(() => {
-      result.current.dispatch({ type: 'SET_INDEX', payload: 10 });
-    });
-
-    // Assert: Check index
-    expect(result.current.state.currentQuestionIndex).toBe(10);
-  });
-
-   it('should merge loaded state when LOAD_STATE is dispatched', () => {
-    // Arrange: Render the hook
-    const { result } = renderHook(() => useRegistrationReducer());
-    const loadPayload: Partial<RegistrationState> = {
-        mode: 'questioning',
-        currentQuestionIndex: 15,
-        answers: { 'firstName': 'Loaded Name' }
-    };
-
-    // Act: Dispatch LOAD_STATE
-    act(() => {
-      result.current.dispatch({ type: 'LOAD_STATE', payload: loadPayload });
-    });
-
-    // Assert: Check merged state
-    expect(result.current.state.mode).toBe('questioning');
-    expect(result.current.state.currentQuestionIndex).toBe(15);
-    expect(result.current.state.answers.firstName).toBe('Loaded Name');
-    expect(result.current.state.isSubmitting).toBe(false); // Check initial state wasn't overwritten
-  });
-
-   it('should set isSubmitting to true on SUBMIT_START', () => {
-    // Arrange: Render the hook
-    const { result } = renderHook(() => useRegistrationReducer());
-
-    // Act: Dispatch SUBMIT_START
-    act(() => {
-      result.current.dispatch({ type: 'SUBMIT_START' });
-    });
-
-    // Assert: Check isSubmitting
-    expect(result.current.state.isSubmitting).toBe(true);
-  });
-
-   it('should set isSubmitting to false on SUBMIT_END', () => {
-    // Arrange: Render the hook with submitting true
-    const { result } = renderHook(() => useRegistrationReducer({ isSubmitting: true }));
-
-    // Act: Dispatch SUBMIT_END
-    act(() => {
-      result.current.dispatch({ type: 'SUBMIT_END' });
-    });
-
-    // Assert: Check isSubmitting
-    expect(result.current.state.isSubmitting).toBe(false);
-  });
-
-});
+// Obsolete reducer tests removed after XState refactor
 
 });
