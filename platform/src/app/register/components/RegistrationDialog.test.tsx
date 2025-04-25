@@ -416,17 +416,13 @@ describe('RegistrationDialog (V3.1)', () => {
         await simulateInputCommand(inputElement, 'test@example.com');
 
         // Wait for Password prompt
-        await waitFor(() => {
-            expect(mockAddOutputLine).toHaveBeenCalledWith("Please create a password (min. 8 characters):");
-        });
+        await assertOutputLine(expect, mockAddOutputLine, "Please create a password (min. 8 characters):");
 
         // Enter short password using helper
         await simulateInputCommand(inputElement, 'short');
 
         // Check for error message
-        await waitFor(() => {
-            expect(mockAddOutputLine).toHaveBeenCalledWith("Password must be at least 8 characters.", { type: 'error' });
-        });
+        await assertOutputLine(expect, mockAddOutputLine, "Password must be at least 8 characters.", { type: 'error' });
 
         // Check that the password prompt is displayed again
         expect(mockAddOutputLine).toHaveBeenLastCalledWith("Please create a password (min. 8 characters):");
@@ -446,9 +442,7 @@ describe('RegistrationDialog (V3.1)', () => {
         await simulateInputCommand(inputElement, 'password123');
 
         // Check for Confirm Password prompt
-        await waitFor(() => {
-            expect(mockAddOutputLine).toHaveBeenCalledWith("Please confirm your password:");
-        });
+        await assertOutputLine(expect, mockAddOutputLine, "Please confirm your password:");
     });
 
     it('should show validation error for non-matching passwords', async () => {
@@ -466,9 +460,7 @@ describe('RegistrationDialog (V3.1)', () => {
         await simulateInputCommand(inputElement, 'password456');
 
         // Check for error message
-        await waitFor(() => {
-            expect(mockAddOutputLine).toHaveBeenCalledWith("Passwords do not match.", { type: 'error' });
-        });
+        await assertOutputLine(expect, mockAddOutputLine, "Passwords do not match.", { type: 'error' });
 
         // Check that the confirm password prompt is displayed again
         expect(mockAddOutputLine).toHaveBeenLastCalledWith("Please confirm your password:");
@@ -545,10 +537,7 @@ describe('RegistrationDialog (V3.1)', () => {
       });
 
       // Check for error message output
-      await waitFor(() => {
-        // Adjust expected error message based on initiateOtpSignIn failure
-        expect(mockAddOutputLine).toHaveBeenCalledWith('Error initiating sign-in: Test OTP error', { type: 'error' });
-      });
+      await assertOutputLine(expect, mockAddOutputLine, 'Error initiating sign-in: Test OTP error', { type: 'error' });
 
       // Check that the confirm password prompt is displayed again (state didn't advance successfully)
       // Or potentially the password prompt if it resets further back on error
