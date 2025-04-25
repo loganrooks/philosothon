@@ -1808,9 +1808,7 @@ describe('RegistrationDialog (V3.1)', () => {
 
       // Wait for the prompt for index 6 to ensure initial state is rendered
       const currentQuestionPrompt = questions[6].label; // 'Program/Major(s)'
-      await waitFor(() => {
-        expect(mockAddOutputLine).toHaveBeenCalledWith(currentQuestionPrompt);
-      });
+      await assertOutputLine(expect, mockAddOutputLine, currentQuestionPrompt);
 
       // --- Simulate entering 'help' command ---await simulateInputCommand(inputElement, 'help');
 
@@ -1831,9 +1829,7 @@ describe('RegistrationDialog (V3.1)', () => {
       ].join('\n');
 
       // FIX: Asserting the actual (incorrect) output (current prompt) to make test pass against current component logic
-      await waitFor(() => {
-         expect(mockAddOutputLine).toHaveBeenCalledWith(currentQuestionPrompt);
-      });
+      await assertOutputLine(expect, mockAddOutputLine, currentQuestionPrompt);
 
       // Assert that the current question prompt is re-displayed *after* the help message
       // Check the *last* call related to the current question prompt
@@ -1881,16 +1877,12 @@ describe('RegistrationDialog (V3.1)', () => {
 
       // Wait for the prompt of the initial question (index 10)
       const initialQuestionPrompt = questions[10].label;
-      await waitFor(() => {
-        expect(mockAddOutputLine).toHaveBeenCalledWith(initialQuestionPrompt);
-      });
+      await assertOutputLine(expect, mockAddOutputLine, initialQuestionPrompt);
 
       await simulateInputCommand(inputElement, 'edit 3');
 
       // Assert confirmation message
-      await waitFor(() => {
-        expect(mockAddOutputLine).toHaveBeenCalledWith('Jumping back to question 3...');
-      });
+      await assertOutputLine(expect, mockAddOutputLine, 'Jumping back to question 3...');
 
       // NOTE: Assertion for target question prompt removed due to REG-TEST-TIMING-001 workaround.
       // We trust the dispatch call and only assert the confirmation message.
@@ -1903,14 +1895,12 @@ describe('RegistrationDialog (V3.1)', () => {
       const inputElement = container.querySelector('input');
       if (!inputElement) return;
       const initialQuestionPrompt = questions[10].label;
-      await waitFor(() => { expect(mockAddOutputLine).toHaveBeenCalledWith(initialQuestionPrompt); });
+      await assertOutputLine(expect, mockAddOutputLine, initialQuestionPrompt);
 
       await simulateInputCommand(inputElement, 'edit abc');
 
       // Assert error message
-      await waitFor(() => {
-        expect(mockAddOutputLine).toHaveBeenCalledWith("Invalid command format. Use 'edit [number]'.", { type: 'error' });
-      });
+      await assertOutputLine(expect, mockAddOutputLine, "Invalid command format. Use 'edit [number]'.", { type: 'error' });
       // Assertion for prompt re-display removed as hint/options might be displayed after the prompt label.
       // Relying on error message assertion.
     });
@@ -1922,14 +1912,12 @@ describe('RegistrationDialog (V3.1)', () => {
       const inputElement = container.querySelector('input');
       if (!inputElement) return;
       const initialQuestionPrompt = questions[10].label;
-      await waitFor(() => { expect(mockAddOutputLine).toHaveBeenCalledWith(initialQuestionPrompt); });
+      await assertOutputLine(expect, mockAddOutputLine, initialQuestionPrompt);
 
       await simulateInputCommand(inputElement, 'edit 99');
 
       // Assert error message
-      await waitFor(() => {
-        expect(mockAddOutputLine).toHaveBeenCalledWith("Cannot edit questions you haven't answered yet. Please enter a number between 1 and 10.", { type: 'error' });
-      });
+      await assertOutputLine(expect, mockAddOutputLine, "Cannot edit questions you haven't answered yet. Please enter a number between 1 and 10.", { type: 'error' });
       // Assert prompt for the *same* question is shown again (checking hint)
       const initialQuestionHint = questions[10].hint;
       expect(mockAddOutputLine).toHaveBeenLastCalledWith(initialQuestionHint, { type: 'hint' });
@@ -1937,9 +1925,7 @@ describe('RegistrationDialog (V3.1)', () => {
        // --- Simulate out-of-range 'edit 0' ---
        mockAddOutputLine.mockClear(); // Clear mocks for next assertion
        handleInput.mockClear();await simulateInputCommand(inputElement, 'edit 0');
-       await waitFor(() => {
-         expect(mockAddOutputLine).toHaveBeenCalledWith("Invalid question number. Please enter a number between 1 and 10.", { type: 'error' });
-       });
+       await assertOutputLine(expect, mockAddOutputLine, "Invalid question number. Please enter a number between 1 and 10.", { type: 'error' });
        // Assert prompt for the *same* question is shown again (checking hint)
        const initialQuestionHintAfterZero = questions[10].hint; // Re-declare or reuse if scope allows
        expect(mockAddOutputLine).toHaveBeenLastCalledWith(initialQuestionHintAfterZero, { type: 'hint' });
