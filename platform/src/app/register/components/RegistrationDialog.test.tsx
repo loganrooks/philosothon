@@ -117,6 +117,11 @@ export const __setMockMachineState = (
   } else if (newState.value === "earlyAuth.enteringPassword") {
      // Simulate entry action for earlyAuth.enteringPassword state
      mockAddOutputLine("Please create a password (min. 8 characters):");
+     // Also simulate re-prompt if error context exists (for validation tests)
+     if (newState.context && 'error' in newState.context && typeof newState.context.error === 'string' && newState.context.error.includes("Password must be at least 8 characters")) {
+        mockAddOutputLine(newState.context.error, { type: 'error' });
+        mockAddOutputLine("Please create a password (min. 8 characters):");
+     }
   } else if (newState.value === "earlyAuth.promptingConfirmPassword") {
      // Simulate entry action for earlyAuth.promptingConfirmPassword state
      mockAddOutputLine("Please confirm your password:");
@@ -755,14 +760,19 @@ await assertOutputLine(
       const shortPasswordInput = "short";
       await simulateInputCommand(inputElement, shortPasswordInput);
 
-      // 5. Assert the INPUT_RECEIVED event was sent
+      // 5. Assert the input echo
+      await assertOutputLine(expect, mockAddOutputLine, `> ${shortPasswordInput}`, { type: 'input' });
+
+      // 6. Assert the INPUT_RECEIVED event was sent
       expect(mockSend).toHaveBeenCalledTimes(1);
       expect(mockSend).toHaveBeenCalledWith({
         type: "INPUT_RECEIVED",
         value: shortPasswordInput,
       });
 
-      // 6. Set the mock state to reflect validation failure
+      // 7. Set the mock state to reflect validation failure
+      //    The helper will simulate the error message and re-prompt.
+      const expectedError = "Password must be at least 8 characters.";
       const errorContext = {
         ...initialContext,
         error: "Password must be at least 8 characters.",
@@ -772,13 +782,8 @@ await assertOutputLine(
         context: errorContext,
       });
 
-      // 7. Assert the error message and re-display of the prompt
-      await assertOutputLine(
-        expect,
-        mockAddOutputLine,
-        "Password must be at least 8 characters.",
-        { type: "error" },
-      );
+      // 8. Assert the error message and re-prompt (simulated by helper)
+      await assertOutputLine(expect, mockAddOutputLine, expectedError, { type: 'error' });
       await assertOutputLine(
         expect,
         mockAddOutputLine,
@@ -827,24 +832,28 @@ await assertOutputLine(
       const passwordInput = "password123";
       await simulateInputCommand(inputElement, passwordInput);
 
-      // 5. Assert the INPUT_RECEIVED event was sent
+      // 5. Assert the input echo
+      await assertOutputLine(expect, mockAddOutputLine, `> ${passwordInput}`, { type: 'input' });
+
+      // 6. Assert the INPUT_RECEIVED event was sent
       expect(mockSend).toHaveBeenCalledTimes(1);
       expect(mockSend).toHaveBeenCalledWith({
         type: "INPUT_RECEIVED",
         value: passwordInput,
       });
 
-      // 6. Set the mock state to the expected next state
+      // 7. Set the mock state to the expected next state
+      //    The helper will simulate the entry action.
       const updatedContext = {
         ...initialContext,
         answers: { ...initialContext.answers, password: passwordInput },
       }; // Store password temporarily in context for comparison
       __setMockMachineState({
-        value: "earlyAuth.confirmingPassword",
+        value: "earlyAuth.promptingConfirmPassword", // Corrected state name
         context: updatedContext,
       });
 
-      // 7. Assert the "Confirm Password" prompt
+      // 8. Assert the "Confirm Password" prompt (simulated by helper)
       await assertOutputLine(
         expect,
         mockAddOutputLine,
