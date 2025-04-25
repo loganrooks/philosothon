@@ -3066,54 +3066,68 @@ await assertOutputLine(
         });
       });
       it('should handle "back" command to go to the previous question', async () => {
-        const handleInput = vi.fn();
-        // Initialize state at index 6 (programOfStudy)
-        const initialStateAtIndex6 = {
-          // Renamed variable
-          mode: "questioning",
-          currentQuestionIndex: 6, // Correct index for Program/Major(s)
+        // 1. Set initial mock state to questioning at index 4 (Program/Major(s))
+        const initialContext = {
           answers: {
-            firstName: "Test",
-            lastName: "User",
-            email: "test@example.com",
-            academicYear: "Second year", // Answer for index 3
-            academicYearOther: "", // Answer for index 4 (assuming not 'Other')
-            universityInstitution: "University of Test", // Answer for index 5
+            [questions[3].id]: "1", // Academic Year
           },
-          isSubmitting: false,
-          error: null,
-          userId: "mock-back-cmd-user-id",
+          userEmail: "back-test@example.com",
+          currentQuestionIndex: 4,
+          questions: questions,
         };
-        // Removed obsolete currentDialogState update
+        __setMockMachineState({
+          value: "questioning.prompting",
+          context: initialContext,
+        });
+
+        // 2. Render the component
         const { container } = render(
           <RegistrationDialog
             {...defaultProps}
             dialogState={{}}
-            // Removed duplicate dialogState={currentDialogState}
-            onInput={handleInput}
+            onInput={vi.fn()}
           />,
         );
-
         const inputElement = container.querySelector("input");
         expect(inputElement).not.toBeNull();
         if (!inputElement) return;
 
-        // Wait for the prompt of the initial question (index 6) to ensure setup
-        // Expect the correct prompt for index 6
-        await assertOutputLine(expect, mockAddOutputLine, "Program/Major(s)");
+        // 3. Assert the initial prompt (index 4, simulated by helper)
+        await assertOutputLine(expect, mockAddOutputLine, questions[4].label);
+        // Clear mocks
+        mockAddOutputLine.mockClear();
+        const mockSend = __getMockMachineSend();
+        mockSend.mockClear();
 
-        // --- Simulate entering 'back' command ---
+        // 4. Simulate user entering 'back'
         await simulateInputCommand(inputElement, "back");
 
-        // Removed outdated assertion checking mockSetDialogState
+        // 5. Assert the input echo
+        await assertOutputLine(expect, mockAddOutputLine, "> back", { type: 'input' });
 
-        // Assert that the prompt for the previous question (index 5) is shown
-        // Expect the correct prompt for index 5
-        await assertOutputLine(
-          expect,
-          mockAddOutputLine,
-          "University / Institution",
-        );
+        // 6. Assert the COMMAND_RECEIVED event was sent to the dialog machine
+        expect(mockSend).toHaveBeenCalledTimes(1);
+        expect(mockSend).toHaveBeenCalledWith({
+          type: "COMMAND_RECEIVED",
+          command: "back",
+          args: [],
+        });
+
+        // 7. Set state back to previous question (index 3)
+        //    The helper will simulate the prompt output.
+        const prevContext = {
+          ...initialContext,
+          currentQuestionIndex: 3, // Machine logic should go back to index 3
+          // Answers might be cleared depending on machine logic, assume not for now
+          questions: questions, // Ensure questions remain in context
+        };
+        __setMockMachineState({
+          value: "questioning.prompting",
+          context: prevContext,
+        });
+
+        // 8. Assert the prompt for the previous question (index 3, simulated by helper)
+        await assertOutputLine(expect, mockAddOutputLine, questions[3].label);
       });
       it('should handle "review" command to display summary of answers', async () => {
         const handleInput = vi.fn();
