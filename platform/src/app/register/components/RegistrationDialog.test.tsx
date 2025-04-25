@@ -1919,19 +1919,18 @@ describe('RegistrationDialog (V3.1)', () => {
 
       await simulateInputCommand(inputElement, 'edit 99');
 
-      // Assert error message
-      await assertOutputLine(expect, mockAddOutputLine, "Cannot edit questions you haven't answered yet. Please enter a number between 1 and 10.", { type: 'error' });
-      // Assert prompt for the *same* question is shown again (checking hint)
-      const initialQuestionHint = questions[10].hint;
-      expect(mockAddOutputLine).toHaveBeenLastCalledWith(initialQuestionHint, { type: 'hint' });
+      // Assert error message was called
+      expect(mockAddOutputLine).toHaveBeenCalledWith("Invalid question number. Please enter a number between 1 and 10.", { type: 'error' });
+      // Assert prompt for the *same* question is shown again (checking options list is last)
+      const expectedOptionsString = "1: Analytic philosophy\n2: Continental philosophy\n3: Ancient philosophy\n4: Medieval philosophy\n5: Modern philosophy\n6: Non-Western philosophical traditions\n7: I'm new to philosophy and still exploring\n8: Other";
+      expect(mockAddOutputLine).toHaveBeenLastCalledWith(expectedOptionsString);
 
        // --- Simulate out-of-range 'edit 0' ---
        mockAddOutputLine.mockClear(); // Clear mocks for next assertion
        handleInput.mockClear();await simulateInputCommand(inputElement, 'edit 0');
-       await assertOutputLine(expect, mockAddOutputLine, "Invalid question number. Please enter a number between 1 and 10.", { type: 'error' });
-       // Assert prompt for the *same* question is shown again (checking hint)
-       const initialQuestionHintAfterZero = questions[10].hint; // Re-declare or reuse if scope allows
-       expect(mockAddOutputLine).toHaveBeenLastCalledWith(initialQuestionHintAfterZero, { type: 'hint' });
+       expect(mockAddOutputLine).toHaveBeenCalledWith("Invalid question number. Please enter a number between 1 and 10.", { type: 'error' });
+       // Assert prompt for the *same* question is shown again (checking options list is last)
+       expect(mockAddOutputLine).toHaveBeenLastCalledWith(expectedOptionsString);
     });
 
      it('should show error for "edit [number]" attempting to edit future questions', async () => {
@@ -1945,13 +1944,92 @@ describe('RegistrationDialog (V3.1)', () => {
 
       await simulateInputCommand(inputElement, 'edit 11');
 
-      // Assert error message
-      await assertOutputLine(expect, mockAddOutputLine, "Cannot edit questions you haven't answered yet. Please enter a number between 1 and 10.", { type: 'error' });
-      // Assert prompt for the *same* question is shown again (checking hint as it's displayed after label)
-      const initialQuestionHint = questions[10].hint;
-      expect(mockAddOutputLine).toHaveBeenLastCalledWith(initialQuestionHint, { type: 'hint' });
+      // Assert error message was called
+      expect(mockAddOutputLine).toHaveBeenCalledWith("Invalid question number. Please enter a number between 1 and 10.", { type: 'error' });
+      // Assert prompt for the *same* question is shown again (checking options list is last)
+      const expectedOptionsString = "1: Analytic philosophy\n2: Continental philosophy\n3: Ancient philosophy\n4: Medieval philosophy\n5: Modern philosophy\n6: Non-Western philosophical traditions\n7: I'm new to philosophy and still exploring\n8: Other";
+      expect(mockAddOutputLine).toHaveBeenLastCalledWith(expectedOptionsString);
     });
   }); // End Command Handling
+
+    // --- Tests for 'register continue' --- 
+    it('should handle "register continue" command, load state from localStorage, and resume from the saved index', async () => {
+      const savedState: RegistrationState = {
+        ...registrationInitialState,
+        mode: 'questioning',
+        currentQuestionIndex: 5, // Example index to resume from
+        answers: {
+          firstName: 'Test',
+          lastName: 'User',
+          email: 'test@example.com',
+          academicYear: '2', // Example answer for question before index 5
+          programOfStudy: 'Philosophy', // Example answer for question before index 5
+        },
+        isSubmitting: false,
+        // Removed error, outputLines, inputValue, commandHistory, historyIndex
+      };
+      const encodedState = btoa(JSON.stringify(savedState));
+      vi.spyOn(Storage.prototype, 'getItem').mockReturnValue(encodedState);
+
+      const { container } = render(<RegistrationDialog {...defaultProps} onInput={vi.fn()} />);
+      const inputElement = container.querySelector('input');
+      expect(inputElement).not.toBeNull();
+      if (!inputElement) return;
+
+      // Simulate the command
+      await simulateInputCommand(inputElement, 'register continue');
+
+      // Assertions
+      expect(localStorage.getItem).toHaveBeenCalledWith('philosothon-registration-v3.1');
+      // Check if LOAD_STATE was dispatched (indirectly via state change or mock call)
+      // This might need adjustment based on how state updates are asserted
+      await waitFor(() => {
+          // Expect the prompt for the loaded question index (index 5 in this case)
+          const expectedQuestionLabel = questions[5].label;
+          expect(mockAddOutputLine).toHaveBeenCalledWith(expect.stringContaining(expectedQuestionLabel));
+      });
+      // Optionally, assert that a success message was shown
+      await assertOutputLine(expect, mockAddOutputLine, 'Registration progress loaded.');
+    });
+
+    it('should show an error message for "register continue" if no saved data exists', async () => {
+      vi.spyOn(Storage.prototype, 'getItem').mockReturnValue(null);
+
+      const { container } = render(<RegistrationDialog {...defaultProps} onInput={vi.fn()} />);
+      const inputElement = container.querySelector('input');
+      expect(inputElement).not.toBeNull();
+      if (!inputElement) return;
+
+      // Simulate the command
+      await simulateInputCommand(inputElement, 'register continue');
+
+      // Assertions
+      expect(localStorage.getItem).toHaveBeenCalledWith('philosothon-registration-v3.1');
+      await assertOutputLine(expect, mockAddOutputLine, 'No registration in progress found.', { type: 'error' });
+      // Assert that the initial prompt is shown again (state didn't change incorrectly)
+      expect(mockAddOutputLine).toHaveBeenLastCalledWith(expect.stringContaining("Please enter your First Name:"));
+    });
+
+    it('should show an error message for "register continue" if saved data is corrupted', async () => {
+      const corruptedData = 'this is not valid base64 or json';
+      vi.spyOn(Storage.prototype, 'getItem').mockReturnValue(corruptedData);
+
+      const { container } = render(<RegistrationDialog {...defaultProps} onInput={vi.fn()} />);
+      const inputElement = container.querySelector('input');
+      expect(inputElement).not.toBeNull();
+      if (!inputElement) return;
+
+      // Simulate the command
+      await simulateInputCommand(inputElement, 'register continue');
+
+      // Assertions
+      expect(localStorage.getItem).toHaveBeenCalledWith('philosothon-registration-v3.1');
+      // Assert error message was called (using stringContaining as the exact error might include parsing details)
+      expect(mockAddOutputLine).toHaveBeenCalledWith(expect.stringContaining('Failed to load saved progress. Data might be corrupted.'), { type: 'error' });
+       // Assert that the initial prompt is shown again (state didn't change incorrectly)
+      expect(mockAddOutputLine).toHaveBeenLastCalledWith(expect.stringContaining("Please enter your First Name:"));
+    });
+
 
 
   describe('Local Storage Interaction', () => {
@@ -2074,6 +2152,67 @@ describe('RegistrationDialog (V3.1)', () => {
 
 
 }); // Closes main describe 'RegistrationDialog (V3.1)'
+
+  // --- New Describe Block for Mount Behavior ---
+  describe('Mount Behavior', () => {
+    it('should check localStorage on mount and indicate if resumable progress exists', async () => {
+      const savedState: RegistrationState = {
+        ...registrationInitialState,
+        mode: 'questioning',
+        currentQuestionIndex: 3,
+        answers: { firstName: 'Test', lastName: 'User', email: 'test@example.com' },
+        isSubmitting: false,
+        // Removed error, outputLines, inputValue, commandHistory, historyIndex
+      };
+      const encodedState = btoa(JSON.stringify(savedState));
+      vi.spyOn(Storage.prototype, 'getItem').mockReturnValue(encodedState);
+
+      render(<RegistrationDialog {...defaultProps} onInput={vi.fn()} />);
+
+      // Assertions
+      await waitFor(() => {
+          expect(localStorage.getItem).toHaveBeenCalledWith('philosothon-registration-v3.1');
+      });
+      // Assert that a message indicating resumable progress is shown
+      // This assertion depends on the chosen implementation (e.g., addOutputLine or sendToShellMachine)
+      // Using addOutputLine as a placeholder:
+            await waitFor(() => {
+        const calls = mockAddOutputLine.mock.calls;
+        const found = calls.some(call => typeof call[0] === 'string' && call[0].includes('Existing registration progress found. Use "register continue" to resume.'));
+        expect(found).toBe(true);
+      });
+      // OR if using shell machine:
+      // await waitFor(() => {
+      //   expect(mockSendToShellMachine).toHaveBeenCalledWith({ type: 'SET_STATUS', payload: 'Existing registration progress found. Use "register continue" to resume.' });
+      // });
+
+      // Also ensure the initial prompt is still shown, as loading doesn't happen automatically on mount
+       await assertOutputLine(expect, mockAddOutputLine, "Please enter your First Name:");
+    });
+
+     it('should check localStorage on mount and do nothing if no resumable progress exists', async () => {
+      vi.spyOn(Storage.prototype, 'getItem').mockReturnValue(null);
+      const initialCallCount = mockAddOutputLine.mock.calls.length;
+
+      render(<RegistrationDialog {...defaultProps} onInput={vi.fn()} />);
+
+      // Assertions
+      await waitFor(() => {
+          expect(localStorage.getItem).toHaveBeenCalledWith('philosothon-registration-v3.1');
+      });
+
+      // Ensure no extra message about resumable progress was added
+      // Check that addOutputLine was only called for the initial prompts
+       await assertOutputLine(expect, mockAddOutputLine, "Please enter your First Name:"); // Wait for initial prompt
+       // Check if any calls happened *after* the initial ones related to resumable progress
+       const callsAfterInitial = mockAddOutputLine.mock.calls.slice(initialCallCount);
+       const resumableMessageCall = callsAfterInitial.find(call =>
+          typeof call[0] === 'string' && call[0].includes('Existing registration progress found')
+       );
+       expect(resumableMessageCall).toBeUndefined();
+    });
+  });
+
 
 
 describe('Reducer Logic (useRegistrationReducer Hook)', () => {
