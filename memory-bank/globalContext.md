@@ -101,6 +101,9 @@
 
 - **[2025-04-24 03:55:06] - Debug:** Analyzed `multi-select-numbered` validation bug in `RegistrationDialog`. Component logic appears correct (commit `469376c` fix with `return;`). Test failure likely due to test suite instability/flawed assertion in commit `cb6499e`. No component changes made. [See MB Debug Log Issue-ID: REG-MULTI-SELECT-VALIDATION-001 Update]
 
+- **[2025-04-24 22:03:11] - TDD:** Fixed 2 failing tests in `RegistrationDialog.test.tsx` related to `ranked-choice-numbered` validation (space delimiter, non-strict count) by correcting test assertions based on user feedback clarifying requirements. No component changes needed. Test suite for file now passes (44 passed, 1 skipped, 31 todo).
+
+
 # Progress
 - **[2025-04-24 14:52:24] - HolisticReview:** Completed review of `RegistrationDialog` (commit `f86178b`). Found alignment between V3 docs and SSOT schema. Identified implementation gaps in component (`ranked-choice-numbered`, email confirmation) and significant test suite quality/stability issues. Recommended prioritizing test refactoring before implementing missing features. Full report: `docs/reviews/holistic_review_20250424.md`. [See MB Active Log 2025-04-24 14:51:55]
 

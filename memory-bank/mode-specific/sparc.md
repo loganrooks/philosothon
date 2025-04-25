@@ -1,6 +1,15 @@
 # SPARC Orchestrator Specific Memory
 <!-- Entries below should be added reverse chronologically (newest first) -->
 
+### [2025-04-25 00:48:41] Intervention: CRITICAL - Repeated Context Failure & Incorrect Delegation (Delegate Clause Invoked)
+- **Trigger**: User feedback and Delegate Clause invocation after SPARC attempted to delegate debugging for already passing tests.
+- **Context**: SPARC received user confirmation that all tests passed but failed to process this information, instead relying on outdated Early Return summary from `tdd` mode and attempting to delegate debugging for non-existent failures. Context window at 57%.
+- **Action Taken**: Halted incorrect debug delegation. Acknowledged critical failure. Initiating handover to new SPARC instance.
+- **Rationale**: Repeated failure to process current state accurately, disregard for user confirmation, and high context window necessitate immediate handover.
+- **Outcome**: Handover initiated.
+- **Follow-up**: New SPARC instance must carefully verify current state and proceed with next logical step based on *passing* tests (likely Holistic Review Rec 1 or 5/6).
+
+
 ### [2025-04-24 18:15:00] Intervention: Repeated Handover Message Errors (Line Numbers, Clauses)
 - **Trigger**: User feedback denying `new_task` handover (Attempt 5), pointing out continued lack of specific line numbers for `globalContext.md` sections and incorrect Mandatory Clause explanations.
 - **Context**: SPARC attempted handover again but still failed to provide precise line numbers for reading `globalContext.md` and did not use the user-provided text for the clauses.
@@ -383,11 +392,11 @@
 - Link to Progress Entry: [See Debug completion message 2025-04-20 02:42:29]
 
 # Workflow State (Current - Overwrite this section)
-- Current phase: Refinement (Test Suite Stabilization)
-- Phase start: 2025-04-24 19:04:33
-- Current focus: User intervened, cancelled revert task, and fixed `RegistrationDialog.test.tsx` (uncommented helper calls). 35 tests passing. Proceeding with next refactoring steps from holistic review.
-- Next actions: Delegate task to `tdd` mode to improve state assertions and address timing issues/reinstate assertions per holistic review (Sec 4, Rec 2, 3, 4).
-- Last Updated: 2025-04-24 19:04:33
+- Current phase: Refinement (Test Suite Stabilization - Handover)
+- Phase start: 2025-04-24 19:57:09
+- Current focus: User intervention corrected test status (all 56 active tests pass). Holistic Review Recs 3 & 4 complete. Handover initiated due to high context (57%) and repeated context processing failures.
+- Next actions: Delegate next refactoring step (Holistic Review Rec 1 or 5/6) to new SPARC instance.
+- Last Updated: 2025-04-25 00:48:41
 
 
 - Current phase: Security Review

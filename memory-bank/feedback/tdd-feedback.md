@@ -1,3 +1,72 @@
+### Feedback Log - [2025-04-24 22:35:53]
+- **Source**: User Intervention / TDD Mode - Early Return Clause Invoked
+- **Issue**: Task 'Fix Final 2 Failing Validation Tests' halted. After multiple `apply_diff` failures and file state confusion due to partial applications/reverts, the test file (`RegistrationDialog.test.tsx`) was brought to a state where format/numeric assertions were reverted to spec, the duplicate rank assertion was generalized, and the non-strict count input was corrected. Task was halted by user invoking Early Return Clause before adding new requested tests (skipped ranks, multiple errors) or proceeding to the Green phase (component modification).
+- **Analysis**: Repeated tool failures and file state confusion significantly hindered progress. Context window reached 55%.
+- **Action**: Invoking Early Return Clause per user command.
+- **Recommendation**: Delegate the remaining work (adding new tests, implementing component changes for failing tests) to a new TDD instance with fresh context.
+
+---
+
+
+### Feedback Log - [2025-04-24 20:44:22]
+- **Source**: TDD Mode - Early Return Clause Invoked (User Command)
+- **Issue**: Task 'Address Validation & Timing Assertions...' halted. After successfully refactoring tests (Red phase) and applying initial format validation logic (Green phase) for `ranked-choice-numbered` in `RegistrationDialog.tsx`, subsequent attempts to refine the validation logic (comma split, specific error messages) using `apply_diff` failed repeatedly. Failures persisted even after re-reading file content and targeting the entire `else if` block, indicating potential file state issues or tool limitations with this code structure. Context window reached 41%.
+- **Analysis**: Repeated `apply_diff` failures make further progress unreliable with this tool for the target code block. The exact cause of the mismatch is unclear.
+- **Action**: Invoking Early Return Clause per user instruction.
+- **Recommendation**: Delegate the task to `debug` mode to investigate the `apply_diff` failures, or to `code` mode to implement the remaining validation logic using alternative methods (e.g., `insert_content`, careful manual construction if `write_to_file` remains forbidden).
+
+---
+
+
+### Feedback Log - [2025-04-24 20:26:24]
+- **Source**: User Intervention / TDD Mode - Early Return Clause Invoked (Clarification)
+- **Issue**: Task 'Address Timing Issues & Reinstate Assertions in RegistrationDialog.test.tsx' halted by user invoking Early Return Clause. User forcefully clarified several points: 
+    1.  Misunderstanding of the current TDD phase: I incorrectly attempted Green phase logic before properly establishing the Red phase by refactoring the large `ranked-choice-numbered` validation test into smaller, focused sub-tests.
+    2.  Confusion regarding 'Timing Issues' (Rec 3) vs. 'Validation Assertions' (Rec 4): User questioned the reality of timing issues in this session and emphasized the need to focus on the commented-out validation assertions first.
+    3.  Context Window Size: User reiterated concerns about high context (51%).
+    4.  Command: Explicitly commanded Early Return and delegation.
+- **Analysis**: Failed to adhere strictly to TDD principles by not refining the failing test (breaking it down) before attempting implementation. Incorrectly conflated the investigation of potential timing issues (Rec 3) with the immediate need to address concrete, commented-out validation assertions (Rec 4). Context window growth exacerbated the issue, leading to perceived repetition and inefficiency.
+- **Action**: Invoking Early Return Clause per user command. Halted before applying test refactoring diff.
+- **Recommendation**: Delegate the task 'Address Timing Issues & Reinstate Assertions in RegistrationDialog.test.tsx (Refactor Steps 3 & 4)' to a **new instance of TDD mode** with fresh context. The new instance must:
+    1.  **Prioritize Rec 4 (Validation Assertions):** Focus on the `ranked-choice-numbered` tests first.
+    2.  **Refactor Tests (Red Phase):** Break down the large `should validate ranked-choice-numbered input...` test into individual `it(...)` blocks for each validation case (format, numeric option, numeric rank, range, uniqueness, count) and add a test for space delimiters.
+    3.  **Confirm Red:** Run the refactored/new tests to ensure they fail correctly for the right reasons.
+    4.  **Proceed Incrementally (Green/Refactor):** Address each failing validation test one by one with minimal component changes.
+    5.  **Defer Rec 3 (Timing):** Address timing issues and next-prompt assertions only *after* validation logic is correctly implemented and tested.
+
+---
+
+
+### Feedback Log - [2025-04-24 20:22:59]
+- **Source**: User Intervention / TDD Mode - Early Return Clause Invoked (Corrected)
+- **Issue**: Task 'Address Timing Issues & Reinstate Assertions in RegistrationDialog.test.tsx' halted by user invoking Early Return Clause. User clarified that the Red phase for `ranked-choice-numbered` validation is incomplete, as the large multi-case test needs refactoring into smaller, focused sub-tests *before* proceeding to the Green phase. User also reiterated concerns about context window size (currently 48%) and perceived repetition.
+- **Analysis**: Misunderstood the TDD workflow step. Attempted Green phase implementation based on the existing large test case instead of first refining the test structure (Red phase refinement) as required by TDD best practices and user direction. The large context window likely contributed to the difficulty in managing the complex test case and component logic iteratively.
+- **Action**: Invoking Early Return Clause per user command.
+- **Recommendation**: Delegate the task 'Address Timing Issues & Reinstate Assertions in RegistrationDialog.test.tsx (Refactor Steps 3 & 4)' to a **new instance of TDD mode** with fresh context. The new instance should **first refactor the `should validate ranked-choice-numbered input...` test into smaller sub-tests** (one per validation case: format, numeric option, numeric rank, range, uniqueness, count) and add a test for space delimiters. It should then confirm these new/refactored tests fail correctly (Red Phase) before proceeding to implement the component logic (Green Phase) for each failing test incrementally.
+
+---
+
+
+### Feedback Log - [2025-04-24 20:21:31]
+- **Source**: User Intervention / TDD Mode - Early Return Clause Invoked
+- **Issue**: Task 'Address Timing Issues & Reinstate Assertions in RegistrationDialog.test.tsx' halted by user invoking Early Return Clause. User cited concerns about context window size (46%) and perceived repetition during the process of refactoring the `ranked-choice-numbered` validation tests.
+- **Analysis**: The task involved multiple steps of reading files, analyzing test failures, and applying changes. While attempting to refactor the large validation test into smaller sub-tests as requested, the context window grew significantly. The user perceived the iterative TDD process (Red-Green-Refactor for each small validation case) as repetitive and potentially inefficient given the context constraints.
+- **Action**: Invoking Early Return Clause per user command before applying the test refactoring diff.
+- **Recommendation**: Delegate the task 'Address Timing Issues & Reinstate Assertions in RegistrationDialog.test.tsx (Refactor Steps 3 & 4)' to a **new instance of TDD mode** with fresh context. The new instance should start by applying the test refactoring (splitting the large validation test and adding the space delimiter test) as the next step.
+
+---
+
+
+### Feedback Log - [2025-04-24 20:18:10]
+- **Source**: User Intervention / TDD Mode - Early Return Clause Invoked
+- **Issue**: Task 'Address Timing Issues & Reinstate Assertions in RegistrationDialog.test.tsx' halted. Attempted Red-Green cycle for `ranked-choice-numbered` validation (Rec 4). Updated test case with user-provided code. Red phase confirmed (test failed as expected). Attempted minimal Green phase implementation in `RegistrationDialog.tsx` to handle invalid format and non-numeric option errors. Test continued to fail, indicating the minimal component logic was insufficient or incorrect in handling these specific validation errors. User invoked Early Return Clause due to perceived repetition and lack of progress.
+- **Analysis**: The validation logic for `ranked-choice-numbered` requires more careful implementation than initially attempted. The interaction between the input parsing (handling spaces/commas), format checking (`Number:Number`), and specific error reporting (invalid format vs. invalid number) needs closer attention. Context window size (43%) might also be contributing to difficulty.
+- **Action**: Invoking Early Return Clause per user instruction.
+- **Recommendation**: Delegate debugging of the `ranked-choice-numbered` validation logic in `RegistrationDialog.tsx` to `debug` mode, or reconsider the implementation strategy for this validation in `code` mode before resuming TDD cycles.
+
+---
+
+
 ### Feedback Log - [2025-04-24 18:46:15]
 - **Source**: TDD Mode - Early Return Clause Invoked (Debugging Refactor Failures)
 - **Issue**: Task to debug test failures after refactoring `RegistrationDialog.test.tsx` input simulations is blocked. Initial refactoring caused 7 command handling tests to fail. Debugging revealed inconsistent behavior: modifying the `simulateInputCommand` helper (removing internal `waitFor`) fixed the 'exit' command test, but the 'back' command test still failed. Console logs confirmed `handleSubmit` was not invoked for the 'back' test, despite being invoked for the 'exit' test using the same modified helper.
