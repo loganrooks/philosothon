@@ -2030,9 +2030,7 @@ describe('RegistrationDialog (V3.1)', () => {
       });
 
       // Assert success message was shown
-      await waitFor(() => {
-        expect(mockAddOutputLine).toHaveBeenCalledWith("Progress saved.");
-      });
+      await assertOutputLine(expect, mockAddOutputLine, "Progress saved.");
 
       // Assert the prompt for the *same* question is shown again
       // Assert the prompt for the *same* question is shown again after the save message
