@@ -122,6 +122,19 @@ export const __setMockMachineState = (
         mockAddOutputLine(newState.context.error, { type: 'error' });
         mockAddOutputLine("Please create a password (min. 8 characters):");
      }
+  } else if (newState.value === "earlyAuth.promptingConfirmPassword") {
+     // Simulate entry action for earlyAuth.promptingConfirmPassword state
+     mockAddOutputLine("Please confirm your password:");
+     // Also simulate re-prompt if error context exists (for validation tests)
+     if (newState.context && 'error' in newState.context && typeof newState.context.error === 'string') {
+        if (newState.context.error.includes("Passwords do not match")) {
+           mockAddOutputLine(newState.context.error, { type: 'error' });
+           mockAddOutputLine("Please confirm your password:");
+        } else if (newState.context.error.includes("Sign-up failed")) { // Handle sign-up failure
+           mockAddOutputLine(newState.context.error, { type: 'error' });
+           mockAddOutputLine("Please confirm your password:"); // Machine transitions back here on signup error
+        }
+     }
   } else if (newState.value === "signingUp") {
      // Simulate entry action for signingUp state
      mockAddOutputLine("Creating account...");
@@ -1034,7 +1047,7 @@ await assertOutputLine(
         error: otpError,
       });
 
-      // 2. Set initial mock state (assuming machine is in 'signingUp' after password confirmation)
+      // 2. Set initial mock state to 'signingUp'
       const initialContext = {
         answers: {
           firstName: "Fail",
@@ -1043,7 +1056,7 @@ await assertOutputLine(
         },
       }; // Context after password confirmation
       __setMockMachineState({
-        value: "earlyAuth.signingUp",
+        value: "signingUp", // Corrected state name
         context: initialContext,
       });
 
@@ -1058,34 +1071,27 @@ await assertOutputLine(
       const inputElement = container.querySelector("input"); // May not be needed if no input simulation
       expect(inputElement).not.toBeNull();
 
-      // 4. Assert any output associated with 'signingUp' state (optional)
-      // await assertOutputLine(expect, mockAddOutputLine, "Signing up...");
-      // Clear mocks if needed
+      // 4. Assert the "Creating account..." message (simulated by helper)
+      await assertOutputLine(expect, mockAddOutputLine, "Creating account...");
+      // Clear mocks
       mockAddOutputLine.mockClear();
 
-      // 5. Set the mock state to reflect the failure transition
-      //    (Assuming machine transitions back to 'enteringPassword' on SIGNUP_FAILURE)
+      // 5. Manually simulate the service failure by setting the state
+      //    to the correct error state (earlyAuth.promptingConfirmPassword) with the error context.
+      //    The helper will simulate the error message and re-prompt.
+      const expectedError = `Sign-up failed: ${otpError.message}`;
       const errorContext = {
         ...initialContext,
-        error: `Sign-up failed: ${otpError.message}`,
+        error: expectedError,
       };
       __setMockMachineState({
-        value: "earlyAuth.enteringPassword",
+        value: "earlyAuth.promptingConfirmPassword", // Machine transitions back here on signup error
         context: errorContext,
       });
 
-      // 6. Assert the error message and re-display of the "Password" prompt
-      await assertOutputLine(
-        expect,
-        mockAddOutputLine,
-        `Sign-up failed: ${otpError.message}`,
-        { type: "error" },
-      );
-      await assertOutputLine(
-        expect,
-        mockAddOutputLine,
-        "Please create a password (min. 8 characters):",
-      ); // Re-prompt
+      // 6. Assert the error message and re-prompt (simulated by helper)
+      await assertOutputLine(expect, mockAddOutputLine, expectedError, { type: "error" });
+      await assertOutputLine(expect, mockAddOutputLine, "Please confirm your password:"); // Re-prompt for confirm password
     });
     it('should transition to "awaiting_confirmation" state after successful initiateOtpSignIn', async () => {
       // 1. Mock initiateOtpSignIn to succeed
