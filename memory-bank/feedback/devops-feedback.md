@@ -12,6 +12,14 @@ This file logs feedback received specifically for the DevOps mode, including iss
 - **Learning**: [Key takeaway or improvement for future tasks]
 -->
 
+## Feedback Entry - 2025-04-25 01:33:28
+- **Source**: User
+- **Issue/Suggestion**: User denied the `git reset --hard 094a9e3` operation for the `feature/registration-v3.1-impl` branch revert task. User stated they had manually fixed the syntax errors in `RegistrationDialog.test.tsx` that prompted the revert request, making the reset unnecessary.
+- **Context**: Task 'Revert to Previous Commit on feature/registration-v3.1-impl Branch'.
+- **Action Taken**: Halted the revert task as requested. Preparing `attempt_completion` to report cancellation.
+- **Learning**: User actions can supersede planned tasks. Always confirm the current state and necessity before proceeding with potentially destructive operations like `git reset --hard`.
+
+
 ## Feedback Entry - 2025-04-22 11:22:27
 - **Source**: Tool (`execute_command` - supabase db push)
 - **Issue/Suggestion**: The `supabase db push` command initially failed with "Remote migration versions not found in local migrations directory." suggesting a history mismatch. Subsequent `db pull` also failed, suggesting the *new* local migration should be marked `applied`. The history was successfully repaired by running `supabase migration repair --status reverted 20250422113204` followed by `supabase migration repair --status applied 20250422151859`.

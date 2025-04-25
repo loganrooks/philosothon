@@ -1,3 +1,81 @@
+### Feedback Log - [2025-04-25 17:02:00] (Early Return - Test Failures / Mock Issue)
+- **Source**: TDD Mode - Early Return Clause Invoked (User Command / Test Failures)
+- **Task**: Rewrite RegistrationDialog.test.tsx using XState Test Redesign Strategy (Attempt 2 - Read Reports)
+- **Objective**: Rewrite `platform/src/app/register/components/RegistrationDialog.test.tsx` to accurately test the XState-based `RegistrationDialog.tsx` by implementing the "Test Redesign Strategy".
+- **Progress**:
+    *   Activated Memory Bank.
+    *   Read analysis reports (`xstate_refactor_current_state_analysis_20250425.md`, `registration_dialog_xstate_refactor_report_20250425.md`).
+    *   Performed initial cleanup: Removed obsolete `simulateFlowToQuestion` helper, `currentDialogState` variable, `dialogState` prop from `defaultProps`, and obsolete mocks (`mockSetDialogState`, `mockClearDialogState`, `mockChangeMode`). Fixed syntax errors introduced by `search_and_replace`.
+    *   Implemented a new mock for `@xstate/react`'s `useMachine` hook, including helper functions (`__setMockMachineState`, `__getMockMachineSend`, `__getMockMachineState`).
+    *   Rewrote the first 8 tests in the 'Early Authentication Flow' section using the Test Redesign Strategy (setting mock state, simulating input, asserting events/output).
+- **Blocker**: Running the test suite (`npm test -- src/app/register/components/RegistrationDialog.test.tsx`) resulted in 30 test failures. The primary error is `TypeError: undefined is not iterable (cannot read property Symbol(Symbol.iterator))` originating from the `const [state, send] = useMachine(...)` line within the `RegistrationDialog` component (`RegistrationDialog.tsx:41:21`).
+- **Analysis / Things Tried**:
+    *   The error indicates the `useMachine` mock is returning `undefined` instead of the expected `[state, send]` array.
+    *   The mock implementation (`vi.mock('@xstate/react', ...)` block added in this session) is the most likely cause. It might not be correctly returning the `[mockMachineState, mockMachineSend]` array from the factory function, or there could be scope/hoisting issues.
+    *   Ran `prettier --write` to ensure no syntax errors remained after previous diff issues.
+- **Lessons Learned**:
+    *   Implementing mocks for complex hooks like `useMachine` requires careful attention to the factory function's return value and potential scope interactions within Vitest.
+    *   Even after fixing syntax errors, underlying issues with mocks or test setup can cause widespread failures.
+- **Action**: Invoking Early Return Clause per user command due to critical test failures blocking further progress and the need for focused debugging on the `useMachine` mock. Context window at 46%.
+- **Recommendations for Next Agent**:
+    *   **Delegate to `debug` mode:** Focus specifically on debugging the `vi.mock('@xstate/react', ...)` implementation in `RegistrationDialog.test.tsx`.
+        *   Verify the mock factory function correctly returns the `[mockMachineState, mockMachineSend]` array.
+        *   Investigate potential scope issues with `mockMachineState` and `mockMachineSend` variables.
+        *   Add console logs inside the mock factory and the component to trace the return value of `useMachine`.
+        *   Ensure `vi.mock` is correctly hoisted and applied before the component is imported/rendered.
+    *   **Once the mock is fixed:** Resume the `tdd` task of rewriting the remaining tests (starting from `should transition to "awaiting_confirmation"...`) using the established Test Redesign Strategy (set state -> render -> assert output -> simulate input -> assert event -> set next state -> assert next output). Use targeted test runs (`-t`) and small commits.
+
+---
+
+
+### Feedback Log - [2025-04-25 14:43:01] (Early Return - Detailed)
+- **Source**: TDD Mode - Early Return Clause Invoked (Unexpected Test Failure / Context)
+- **Task**: Continue Fixing RegistrationDialog.test.tsx for XState (Attempt 6)
+- **Objective**: Fix remaining failing tests in `platform/src/app/register/components/RegistrationDialog.test.tsx` using manual simulation pattern. Target: 32 failures remaining.
+- **Progress**:
+    *   Confirmed 36 initial failures via full suite run.
+    *   Fixed assertion in `should handle valid numeric input and advance state` (commit `3b8836b`). Test now passes. (Failure count: 35)
+    *   Applied manual simulation setup to `should handle multi-select-numbered input...` test (commit `9fefda3`). Test now passes. (Failure count: 34)
+    *   Applied manual simulation setup to `should validate multi-select-numbered input...` test (commit `39531d1`). Test now fails correctly due to missing component validation logic (Red phase achieved). (Failure count: 33 - adjusted as this is now a "good" failure)
+    *   Applied manual simulation setup via `beforeEach` to 'Command Handling' describe block (starting line 2380). Removed redundant setup from `exit` command test (commit `2df7938`).
+- **Blocker**: Verification of the 'Command Handling' `beforeEach` setup failed unexpectedly. The targeted test run for `should handle "exit" command...` failed *within the `beforeEach` hook itself*.
+    *   **Specific Error:** The assertion `await assertOutputLine(expect, mockAddOutputLine, 'Year of Study');` (line ~2438 after modifications) failed with `AssertionError: expected "spy" to be called with arguments: [ 'Year of Study' ] Received: Number of calls: 0`.
+    *   **Problem:** This assertion runs at the *end* of the `beforeEach` simulation, which simulates the flow up to the 'Year of Study' prompt. The simulation block contains ~50 calls involving `assertOutputLine` or `simulateInputCommand` (which uses `assertOutputLine`). The error indicates that `mockAddOutputLine` had zero recorded calls when the final assertion was checked, which contradicts the simulation steps executed just before it.
+- **Analysis / Things Tried**:
+    *   The simulation logic itself appears correct and follows the pattern used successfully in previous tests. The debug logs in the test output confirm the simulation steps within `beforeEach` were being executed up to the point of failure.
+    *   The failure suggests an issue with mock state persistence or clearing between the simulation steps and the final assertion within `beforeEach`, or potentially between the `beforeEach` hook and the test (`it`) execution.
+    *   **Mock Resetting:** The `beforeEach` uses `vi.resetAllMocks()` at the start and `mockAddOutputLine.mockClear()` near the end. Could `vi.resetAllMocks()` be interfering with the `mockAddOutputLine` spy created in the outer scope? Could `mockClear()` be happening too early or interfering with the final assertion? Tried removing `vi.clearAllMocks()` previously without success in similar situations. Did not explicitly test removing `vi.resetAllMocks()`.
+    *   **Async Timing:** Is there an async race condition where the test execution somehow interferes with the `beforeEach` completion or mock state? Vitest should prevent this, but the behavior is anomalous. The simulation involves multiple `await` calls for `assertOutputLine` and `simulateInputCommand`.
+    *   **Helper Function:** Could the `assertOutputLine` helper behave differently within `beforeEach`? This seems unlikely as it worked in individual tests, but wasn't explicitly tested by replacing it with direct `waitFor/expect` calls within this `beforeEach`.
+    *   **Error in Simulation:** Did the simulation *actually* complete without error? The test runner output doesn't show errors *during* the `beforeEach` simulation itself, only the final assertion failure. However, a silent failure or unhandled promise rejection within the simulation could potentially lead to this state. No specific evidence of this was observed.
+    *   **Self-Correction Attempted:** Identified and fixed scoping issues with `inputElement` declaration when moving simulation into `beforeEach`. Removed redundant `render` calls from the `exit` test.
+- **Lessons Learned**:
+    *   Using complex, async simulation logic within `beforeEach` can introduce subtle and hard-to-debug issues related to mock state and execution timing, especially in large test files (>2000 lines). The benefits of DRY code might be outweighed by the debugging cost in such cases.
+    *   Verifying the state *at the end* of `beforeEach` is crucial before relying on it for subsequent tests. The failure occurred during this verification step.
+    *   When mocks behave unexpectedly (e.g., zero calls when calls were expected), suspect issues with mock setup, teardown/reset timing, async interactions, or potential interference from other parts of the test suite/environment.
+- **Action**: Invoking Early Return Clause. Context at 30%. Debugging this mock/`beforeEach` interaction requires deeper investigation than is efficient or reliable at this context level. Last commit: `2df7938`.
+- **Recommendations for Next Agent**:
+    *   **Option 1: Debug `beforeEach` (Delegate to `debug` mode):**
+        *   **Goal:** Understand why `mockAddOutputLine` has 0 calls at the end of the `beforeEach` simulation in the 'Command Handling' block.
+        *   **Steps:**
+            *   Add detailed logging (`console.log`) *inside* the `beforeEach` simulation (lines 2398-2434) to track progress and mock calls (`mockAddOutputLine.mock.calls.length` before and after key steps, especially near the end).
+            *   Verify the simulation *completes* without throwing hidden errors (wrap sections in try/catch if necessary).
+            *   Experiment with mock reset strategies: Try removing `vi.resetAllMocks()` from the start of `beforeEach` (line 2383). Try moving `mockAddOutputLine.mockClear()` (line 2441) to an `afterEach` hook instead.
+            *   Temporarily replace `assertOutputLine` calls within `beforeEach` with direct `waitFor(() => expect(mockAddOutputLine)...)` calls to rule out the helper function causing issues in this context.
+    *   **Option 2: Revert & Apply Individually (New `tdd` task):**
+        *   **Goal:** Apply simulation setup reliably, avoiding `beforeEach` complexity for the 'Command Handling' tests.
+        *   **Steps:**
+            *   Revert the last commit: `git revert 2df7938` (or `git reset --hard HEAD~1` if preferred, use caution). This will remove the `beforeEach` and restore the original `exit` test setup.
+            *   Address command tests (`exit`, `back`, `review`, `help`, `save`, `edit`) one by one.
+            *   For each test: Read the existing code, remove the direct render/setup block, insert the full simulation block (adjusting target index as needed, e.g., index 3 for most commands), run targeted test, commit.
+        *   **Trade-off:** This increases code duplication significantly (~50 lines per test for ~6 tests) but avoids the current `beforeEach` blocker and might be faster overall than debugging the `beforeEach`.
+    *   **General:**
+        *   Continue using targeted test runs (`-t`).
+        *   Be mindful of context window (~30% currently, but simulations are large, ~70 lines each). Applying simulations individually will increase context faster than using `beforeEach`.
+        *   Remember the `loadSavedState` workaround in the machine file (`platform/src/app/register/machines/registrationDialogMachine.ts`) is still active (commit `9b3e65e`).
+
+---
+
 ### Feedback Log - [2025-04-25 13:29:42] (Detailed Handover)
 - **Source**: TDD Mode - Early Return Clause Invoked (High Context / User Command)
 - **Task**: Continue Fixing RegistrationDialog.test.tsx for XState (Attempt 4 - Revised Strategy)
@@ -38,7 +116,7 @@
     *   **Manual Simulation:** Explicit simulation is the most reliable way to test XState components with complex initialization/flows in Vitest, but it's verbose and significantly increases context size.
     *   **Targeted Testing:** Crucial for efficiency and isolating failures.
     *   **Observed vs. Expected Behavior:** When fixing tests (not component code), simulations must follow the component's *actual* (even if buggy) behavior (e.g., skip logic) to test subsequent steps.
-    *   **Tooling (`apply_diff`):** Remains unreliable for large/complex changes on this file. Partial failures require careful verification (`read_file`) before retrying. Consider `insert_content` or `search_and_replace` as alternatives.
+    *   **Tooling (`apply_diff`)**: Remains unreliable for large/complex changes on this file. Partial failures require careful verification (`read_file`) before retrying. Consider `insert_content` or `search_and_replace` as alternatives.
     *   **Context Window:** Reached 55%. This significantly impacts the ability to apply large simulation blocks or debug complex failures effectively. Proactive monitoring and invoking Early Return is necessary.
 - **Recommendations for Next Agent**:
     *   **Read Key Files:**
@@ -111,7 +189,7 @@
     *   **Targeted Testing (`execute_command`)**: Running the full test suite after each small change is inefficient. Use targeted test runs (`npm test -- src/app/... -t "test name pattern"`) to focus only on the specific test(s) being fixed. This significantly speeds up the Red-Green-Refactor cycle.
     *   **XState Testing Strategy**: Testing components using XState machines within Vitest/JSDOM presents challenges, particularly simulating the initial asynchronous state transitions and side effects. Helper functions attempting to abstract this setup (like `simulateFlowToQuestion`) have proven unreliable. The **manual simulation pattern** (explicitly simulating each command/input and waiting for expected output/state changes) is currently the most robust, albeit verbose, approach.
     *   **Context Management**: Be mindful of context window growth during complex, multi-step tasks involving large files and repeated simulations. Proactively invoke Early Return or suggest delegation via `new_task` if approaching limits (e.g., >50-60%) to avoid performance degradation or errors. This task reached 46% context.
-    *   **Understanding Implementation**: Reading related implementation files (e.g., `registrationDialogMachine.ts`) is crucial for understanding component behavior and diagnosing test failures accurately.
+    *   **Understanding Implementation**: Reading related implementation files (e.g., `registrationDialogMachine.ts`) is crucial for understanding test failures accurately.
 - **Recommendation**: Delegate fixing the remaining 38 tests to a **new instance of TDD mode** with fresh context. The new instance should:
     1.  Verify the current test failure count (expected: 38).
     2.  Continue applying the **manual simulation pattern** to test setups, focusing on the next failing groups (e.g., multi-select, ranked-choice, commands, local storage, mount behavior). Identify specific failing tests from the test output.
@@ -144,7 +222,7 @@
 ---
 
 
-l### Feedback Log - [2025-04-25 01:27:03]
+### Feedback Log - [2025-04-25 01:27:03]
 - **Source**: TDD Mode - Early Return Clause Invoked
 - **Issue**: Task 'Refactor RegistrationDialog.test.tsx: Implement Helper Functions (Rec 1 - Cautious Approach - Attempt 2)' halted. After successfully creating `assertOutputLine` helper and applying it to 3 instances using `apply_diff` and `search_and_replace`, subsequent `apply_diff` operations introduced syntax errors ('}' expected) near the end of the file (line ~2288) that could not be resolved by removing the apparent extra brace.
 - **Analysis**: The large file size (>2200 lines) and nested structure make it susceptible to syntax errors when `apply_diff` modifies line counts. Manually fixing brace mismatches with `apply_diff` is unreliable. Context window at 30%.
@@ -176,7 +254,7 @@ l### Feedback Log - [2025-04-25 01:27:03]
 
 ### Feedback Log - [2025-04-24 20:26:24]
 - **Source**: User Intervention / TDD Mode - Early Return Clause Invoked (Clarification)
-- **Issue**: Task 'Address Timing Issues & Reinstate Assertions in RegistrationDialog.test.tsx' halted by user invoking Early Return Clause. User forcefully clarified several points: 
+- **Issue**: Task 'Address Timing Issues & Reinstate Assertions in RegistrationDialog.test.tsx' halted by user invoking Early Return Clause. User forcefully clarified several points:
     1.  Misunderstanding of the current TDD phase: I incorrectly attempted Green phase logic before properly establishing the Red phase by refactoring the large `ranked-choice-numbered` validation test into smaller, focused sub-tests.
     2.  Confusion regarding 'Timing Issues' (Rec 3) vs. 'Validation Assertions' (Rec 4): User questioned the reality of timing issues in this session and emphasized the need to focus on the commented-out validation assertions first.
     3.  Context Window Size: User reiterated concerns about high context (51%).
@@ -231,14 +309,12 @@ l### Feedback Log - [2025-04-25 01:27:03]
 - **Recommendation**: Delegate further investigation to `debug` mode to analyze component state (`useReducer`, `useEffect`) and event handling more deeply, potentially using interactive debugging. Alternatively, revert the refactoring changes (`search_and_replace` and subsequent helper modifications) before proceeding with other tasks on this file.
 
 
-
 ### Feedback Log - [2025-04-24 18:35:36]
 - **Source**: TDD Mode - Early Return Clause Invoked
 - **Issue**: Task 'Complete Input Simulation Replacement in RegistrationDialog.test.tsx using Batch Replace' failed. While `search_and_replace` successfully replaced manual input simulations with the `simulateInputCommand` helper, subsequent test execution (`npm test -- src/app/register/components/RegistrationDialog.test.tsx`) revealed 7 new failures in command handling tests (`exit`, `back`, `review`, `edit`).
 - **Analysis**: The failures indicate the refactoring introduced regressions, likely due to subtle timing changes or interactions with the component's internal `handleSubmit` logic that were not present with the original manual simulation code blocks. The component appears to re-display the current prompt instead of processing the commands correctly in the test environment after the refactoring. Given the known fragility of this test suite (see Holistic Review `docs/reviews/holistic_review_20250424.md` Sec 4 & previous feedback logs), debugging these regressions is deemed unproductive without first addressing the fundamental test structure issues.
 - **Action**: Invoking Early Return Clause. The `search_and_replace` changes were applied but resulted in test failures.
 - **Recommendation**: Prioritize the test suite refactoring recommended in the holistic review (reducing repetition, improving assertions, addressing timing issues) before re-attempting the replacement of input simulation blocks. Reverting the changes made by `search_and_replace` might be necessary before proceeding with other tasks on this file.
-
 
 
 ### Feedback Log - [2025-04-24 18:18:00]
@@ -265,14 +341,12 @@ l### Feedback Log - [2025-04-25 01:27:03]
 - **Learning**: Recognize loops involving repeated tool failures and inconsistent state/error messages. Verify file state meticulously using appropriate `read_file` parameters before attempting modifications, especially after partial `apply_diff` failures. Construct diffs carefully, ensuring SEARCH and REPLACE are distinct. Consider smaller batches or alternative tools (`insert_content`, `search_and_replace`) if `apply_diff` proves unreliable.
 
 
-
 ### Feedback Log - [2025-04-24 12:57:43]
 - **Source**: User Intervention
 - **Issue**: Repeatedly used `read_file` without specifying `start_line` and `end_line` on a large file (`RegistrationDialog.test.tsx`, >2100 lines), risking analysis based on truncated content (default read limit might be ~1000 lines).
 - **Analysis**: This likely contributed to misdiagnosing the state of the file after partial `apply_diff` failures and incorrectly constructing subsequent diffs, leading to repeated errors (e.g., "Search and replace content are identical", incorrect scope errors).
 - **Action**: Acknowledged error. Will explicitly use `start_line` and `end_line` when reading large files or specific sections to ensure complete context for analysis and modification.
 - **Learning**: Always consider potential file truncation with `read_file`. Use explicit line ranges for large files or when full context is critical for operations like `apply_diff`.
-
 
 
 ### Feedback Log - [2025-04-24 12:41:03]
@@ -283,14 +357,12 @@ l### Feedback Log - [2025-04-25 01:27:03]
 - **Learning**: Always analyze uncommitted changes before discarding them, especially when resuming a task or dealing with files with a history of issues.
 
 
-
 ### Feedback Log - [2025-04-24 12:21:00]
 - **Source**: TDD Mode - Early Return Clause Invoked
 - **Issue**: Task to stabilize `RegistrationDialog.test.tsx` blocked. After multiple attempts to fix syntax errors (duplicate test, nested describe, extra braces), the test runner still fails with `ReferenceError: initialStateAtIndex6 is not defined` at line 822. The variable appears correctly scoped, suggesting the error is misleading, potentially due to subtle file corruption or test environment issues resulting from previous diff operations.
 - **Analysis**: Incremental fixes using `apply_diff` have proven ineffective and potentially introduced further issues. The file's size and modification history make pinpointing the exact remaining error difficult.
 - **Action**: Invoking Early Return Clause due to intractable errors and high context (54%).
 - **Recommendation**: Delegate debugging to `debug` mode for a more thorough investigation, or consider resetting the file to commit `3fa31c0` and reapplying the necessary test logic fixes (confirmation flow bypass, REG-TEST-TIMING-001 workarounds) in a single, clean operation.
-
 
 
 ### Feedback Log - [2025-04-24 11:12:03]
