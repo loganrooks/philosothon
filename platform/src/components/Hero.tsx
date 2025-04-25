@@ -24,11 +24,13 @@ const Hero = () => {
           Register Now
         </Link>
       </div>
-        <p className="text-sm text-light-text mt-4 text-center px-8">
+      <div className="px-16">
+        <p className="text-sm text-light-text mt-4 text-center max-w-3xl mx-auto mb-8">
           <span className="font-bold">UPDATE:</span> 
             {' '} 
         Extending online registrations until 8AM morning of. Try to get them in the night before, but we will try to find you a team if you come between 8:30-9:00AM.
       </p>
+        </div>
     </div>
   );
 };
