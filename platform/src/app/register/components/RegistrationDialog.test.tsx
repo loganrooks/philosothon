@@ -3006,51 +3006,64 @@ await assertOutputLine(
       it.todo('should handle "save" command to save progress to local storage');
       it.todo("should display a confirmation message after saving");
       it('should handle "exit" command to exit the registration flow', async () => {
-        const handleInput = vi.fn();
-        // Initialize state directly in 'questioning' mode at index 3 (Year of Study)
-        const initialState = {
-          mode: "questioning",
-          currentQuestionIndex: 3, // Index for 'Year of Study'
+        // 1. Set initial mock state to questioning at index 3
+        const initialContext = {
           answers: {
             firstName: "Exit",
             lastName: "User",
             email: "exit-test@example.com",
           },
-          isSubmitting: false,
-          error: null,
-          userId: "mock-exit-user-id", // Assume user ID is available
+          userEmail: "exit-test@example.com",
+          currentQuestionIndex: 3,
+          questions: questions, // Pass questions array
         };
+        __setMockMachineState({
+          value: "questioning.prompting",
+          context: initialContext,
+        });
 
+        // 2. Render the component
         const { container } = render(
           <RegistrationDialog
             {...defaultProps}
             dialogState={{}}
-            // Removed duplicate dialogState={initialState}
-            onInput={handleInput}
+            onInput={vi.fn()}
           />,
         );
-
         const inputElement = container.querySelector("input");
         expect(inputElement).not.toBeNull();
         if (!inputElement) return;
 
-        // Wait for the initial prompt (Year of Study) to ensure component rendered correctly
-        await assertOutputLine(expect, mockAddOutputLine, "Year of Study");
+        // 3. Assert the initial prompt (simulated by helper)
+        await assertOutputLine(expect, mockAddOutputLine, questions[3].label);
+        // Clear mocks
+        mockAddOutputLine.mockClear();
+        const mockSend = __getMockMachineSend();
+        mockSend.mockClear();
+        mockSendToShellMachine.mockClear(); // Clear shell mock
 
-        // Simulate user entering 'exit'
+        // 4. Simulate user entering 'exit'
         await simulateInputCommand(inputElement, "exit");
-        // We still need to wait for potential async updates triggered by submit
 
-        // Assert sendToShellMachine was called with EXIT event
-        await waitFor(
-          () => {
-            expect(mockSendToShellMachine).toHaveBeenCalledTimes(1);
-            expect(mockSendToShellMachine).toHaveBeenCalledWith({
-              type: "EXIT",
-            }); // Assuming EXIT type based on V2 arch doc intent
-          },
-          { timeout: 3000 },
-        ); // Increased timeout
+        // 5. Assert the input echo
+        await assertOutputLine(expect, mockAddOutputLine, "> exit", { type: 'input' });
+
+        // 6. Assert the COMMAND_RECEIVED event was sent to the dialog machine
+        expect(mockSend).toHaveBeenCalledTimes(1);
+        expect(mockSend).toHaveBeenCalledWith({
+          type: "COMMAND_RECEIVED",
+          command: "exit",
+          args: [],
+        });
+
+        // 7. Manually simulate the side effect of the 'exit' command action
+        mockSendToShellMachine({ type: 'EXIT' });
+
+        // 8. Assert sendToShellMachine was called with EXIT event
+        await waitFor(() => {
+          expect(mockSendToShellMachine).toHaveBeenCalledTimes(1);
+          expect(mockSendToShellMachine).toHaveBeenCalledWith({ type: "EXIT" });
+        });
       });
       it('should handle "back" command to go to the previous question', async () => {
         const handleInput = vi.fn();
