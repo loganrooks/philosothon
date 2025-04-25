@@ -107,6 +107,19 @@ export const __setMockMachineState = (
   } else if (newState.value === "earlyAuth.enteringEmail") {
      // Simulate entry action for earlyAuth.enteringEmail state
      mockAddOutputLine("Please enter your University Email Address:");
+     // Also simulate re-prompt if error context exists (for validation tests)
+     // Use 'in' operator for safer property check
+     if (newState.context && 'error' in newState.context && typeof newState.context.error === 'string' && newState.context.error.includes("Invalid email format")) {
+        // Simulate error message output first, then the re-prompt
+        mockAddOutputLine(newState.context.error, { type: 'error' });
+        mockAddOutputLine("Please enter your University Email Address:");
+     }
+  } else if (newState.value === "earlyAuth.enteringPassword") {
+     // Simulate entry action for earlyAuth.enteringPassword state
+     mockAddOutputLine("Please create a password (min. 8 characters):");
+  } else if (newState.value === "earlyAuth.promptingConfirmPassword") {
+     // Simulate entry action for earlyAuth.promptingConfirmPassword state
+     mockAddOutputLine("Please confirm your password:");
   }
   // Add more else if blocks here for other states as needed by tests
 };
@@ -580,12 +593,30 @@ await assertOutputLine(
       const invalidEmailInput = "invalid-email";
       await simulateInputCommand(inputElement, invalidEmailInput);
 
-      // 5. Assert the INPUT_RECEIVED event was sent
+      // 5. Assert the input echo
+      await assertOutputLine(expect, mockAddOutputLine, `> ${invalidEmailInput}`, { type: 'input' });
+
+      // 6. Assert the INPUT_RECEIVED event was sent
       expect(mockSend).toHaveBeenCalledTimes(1);
       expect(mockSend).toHaveBeenCalledWith({
         type: "INPUT_RECEIVED",
         value: invalidEmailInput,
       });
+
+      // 7. Set the mock state to reflect validation failure
+      //    The helper will simulate the error message and re-prompt.
+      const expectedError = "Invalid email format.";
+      __setMockMachineState({
+        value: "earlyAuth.enteringEmail", // Stay in the same state
+        context: {
+          ...initialContext, // Keep previous context
+          error: expectedError, // Add error to context
+        },
+      });
+
+      // 8. Assert the error message and re-prompt (simulated by helper)
+      await assertOutputLine(expect, mockAddOutputLine, expectedError, { type: 'error' });
+      await assertOutputLine(expect, mockAddOutputLine, "Please enter your University Email Address:");
 
       // 6. Set the mock state to reflect validation failure
       //    (Machine likely stays in 'enteringEmail' but adds an error to context)
