@@ -213,6 +213,113 @@ export async function submitRegistration(
   // return { success: true, message: 'Registration submitted successfully!' };
 }
 
+
+// New action specifically for XState machine invocation
+export async function submitRegistrationFromMachine(
+  answers: Record<string, any> // Accept processed answers directly
+): Promise<{ success: boolean; message: string | null }> { // Return simple status
+  console.log("Submitting registration from machine...");
+  const supabase = await createClient();
+
+  // --- User Authentication ---
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (userError || !user) {
+    console.error("User fetch error:", userError);
+    return { success: false, message: 'Authentication error: Could not retrieve user.' };
+  }
+  const userId = user.id;
+
+  // --- Validation ---
+  // Assume answers object already contains processed data (booleans converted etc.)
+  // If not, add processing logic here similar to submitRegistration
+  const validatedFields = RegistrationSchema.safeParse(answers);
+
+  if (!validatedFields.success) {
+    console.log("Machine Validation Errors:", validatedFields.error.flatten().fieldErrors);
+    // Construct a user-friendly error message from Zod errors
+    const errorMessages = Object.values(validatedFields.error.flatten().fieldErrors)
+        .flat()
+        .filter(Boolean) // Remove undefined/empty strings
+        .join(' ');
+    return {
+      success: false,
+      message: `Validation failed: ${errorMessages || 'Please check your answers.'}`,
+    };
+  }
+  const registrationData = validatedFields.data as ValidatedRegistrationData;
+
+  // --- Check for existing registration ---
+  try {
+    const { registration: existingRegistration, error: checkError } = await fetchRegistrationByUserId(userId);
+    if (checkError) throw checkError;
+    if (existingRegistration) {
+      console.warn(`User ${userId} attempted to submit registration again via machine.`);
+      // Treat as success if already submitted
+      return { success: true, message: 'Registration already submitted.' };
+    }
+  } catch (error: any) {
+    console.error("DB Check Error:", error);
+    return { success: false, message: 'Database error checking registration status.' };
+  }
+
+  // --- Prepare data for insertion ---
+  // Map validated data to RegistrationInput type (same mapping as submitRegistration)
+  const dataToInsert: RegistrationInput = {
+      user_id: userId,
+      email: registrationData.email,
+      full_name: registrationData.full_name,
+      university: registrationData.university,
+      program: registrationData.program,
+      year_of_study: parseInt(registrationData.academic_year.split(' ')[0]) || 0,
+      can_attend_may_3_4: 'maybe', // Default
+      may_3_4_comment: null,
+      prior_courses: registrationData.philosophy_coursework ? [registrationData.philosophy_coursework] : null,
+      discussion_confidence: 5, // Default
+      writing_confidence: 5, // Default
+      familiarity_analytic: 3, // Default
+      familiarity_continental: 3, // Default
+      familiarity_other: 3, // Default
+      areas_of_interest: registrationData.philosophy_interests,
+      philosophical_traditions: [], // Default
+      philosophical_interests: [], // Default
+      theme_rankings: {} as Json, // Default
+      theme_suggestion: null,
+      workshop_rankings: {} as Json, // Default
+      preferred_working_style: 'balanced', // Default
+      teammate_similarity: 5, // Default
+      skill_writing: 3, // Default
+      skill_speaking: 3, // Default
+      skill_research: 3, // Default
+      skill_synthesis: 3, // Default
+      skill_critique: 3, // Default
+      preferred_teammates: null,
+      complementary_perspectives: null,
+      mentorship_preference: 'no_preference', // Default
+      mentorship_areas: null,
+      familiarity_tech_concepts: 3, // Default
+      prior_hackathon_experience: false, // Default
+      prior_hackathon_details: null,
+      dietary_restrictions: registrationData.dietary_restrictions,
+      accessibility_needs: registrationData.accessibility_needs,
+      additional_notes: null,
+      how_heard: 'other', // Default
+      how_heard_other: null,
+  };
+
+  // --- Database Insert ---
+  try {
+    const { error: insertError } = await insertRegistration(dataToInsert);
+    if (insertError) throw insertError;
+    console.log(`Registration inserted successfully for user ${userId} via machine.`);
+    // Revalidation should be handled by the caller if needed
+    return { success: true, message: 'Registration submitted successfully!' };
+  } catch (error: any) {
+    console.error('Registration Insert Error (Machine):', error);
+    return { success: false, message: `Database Error: Failed to save registration. ${error.message}` };
+  }
+}
+
+
 // Placeholder for email sending logic (to be implemented or called via trigger)
 // async function sendConfirmationEmail(email: string, name: string) {
 //   console.log(`Sending confirmation email to ${email} for ${name}...`);
