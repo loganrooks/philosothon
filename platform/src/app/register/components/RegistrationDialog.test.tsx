@@ -337,9 +337,7 @@ describe('RegistrationDialog (V3.1)', () => {
         const { container } = render(<RegistrationDialog {...defaultProps} onInput={handleInput} />);
 
         // Wait for initial prompt
-        await waitFor(() => {
-          expect(mockAddOutputLine).toHaveBeenCalledWith("Please enter your First Name:");
-        });
+        await assertOutputLine(expect, mockAddOutputLine, "Please enter your First Name:");
 
         // Simulate entering first name
         const inputElement = container.querySelector('input');
@@ -349,17 +347,13 @@ describe('RegistrationDialog (V3.1)', () => {
         await simulateInputCommand(inputElement, 'Test');
 
         // Wait for last name prompt
-        await waitFor(() => {
-            expect(mockAddOutputLine).toHaveBeenCalledWith("Please enter your Last Name:");
-        });
+        await assertOutputLine(expect, mockAddOutputLine, "Please enter your Last Name:");
 
          // Simulate entering last name using helper
         await simulateInputCommand(inputElement, 'User');
 
         // Check for Email prompt
-        await waitFor(() => {
-            expect(mockAddOutputLine).toHaveBeenCalledWith("Please enter your University Email Address:");
-        });
+        await assertOutputLine(expect, mockAddOutputLine, "Please enter your University Email Address:");
     });
 
     it('should show validation error for invalid email format', async () => {
