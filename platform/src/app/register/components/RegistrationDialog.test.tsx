@@ -670,7 +670,7 @@ await assertOutputLine(
       expect(inputElement).not.toBeNull();
       if (!inputElement) return;
 
-      // 3. Assert the "Email" prompt
+      // 3. Assert the "Email" prompt (simulated by helper)
       await assertOutputLine(
         expect,
         mockAddOutputLine,
@@ -685,14 +685,18 @@ await assertOutputLine(
       const validEmailInput = "test@example.com";
       await simulateInputCommand(inputElement, validEmailInput);
 
-      // 5. Assert the INPUT_RECEIVED event was sent
+      // 5. Assert the input echo
+      await assertOutputLine(expect, mockAddOutputLine, `> ${validEmailInput}`, { type: 'input' });
+
+      // 6. Assert the INPUT_RECEIVED event was sent
       expect(mockSend).toHaveBeenCalledTimes(1);
       expect(mockSend).toHaveBeenCalledWith({
         type: "INPUT_RECEIVED",
         value: validEmailInput,
       });
 
-      // 6. Set the mock state to the expected next state
+      // 7. Set the mock state to the expected next state
+      //    The helper will simulate the entry action.
       const updatedContext = {
         ...initialContext,
         answers: { ...initialContext.answers, email: validEmailInput },
@@ -702,7 +706,7 @@ await assertOutputLine(
         context: updatedContext,
       });
 
-      // 7. Assert the "Password" prompt
+      // 8. Assert the "Password" prompt (simulated by helper)
       await assertOutputLine(
         expect,
         mockAddOutputLine,
