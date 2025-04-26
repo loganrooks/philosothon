@@ -1,4 +1,5 @@
-import { createMachine, assign, fromPromise } from 'xstate';
+import { createMachine, assign, fromPromise, type ErrorActorEvent } from 'xstate';
+
 import { questions } from '@/app/register/data/registrationQuestions';
 import * as regActions from '@/app/register/actions';
 // Corrected import paths and function name
@@ -41,6 +42,8 @@ export interface RegistrationContext {
   isSubmitting: boolean; // Used for async operations
   userId: string | null; // Added from ADR
   lastSavedIndex: number; // Added from ADR - Track last successfully saved index
+  password: string | null; // Added for sign-in
+
   // Add flags for command handling if needed, e.g., isExiting: boolean;
 }
 
@@ -146,16 +149,21 @@ const services = {
     return { status: 'confirmation_required', email };
   }),
 
-  signInService: fromPromise(async ({ input }: { input: { email: string | null, password?: string } }) => {
+  signInService: fromPromise(async ({ input }: { input: { email: string | null, password?: string | null } }) => { // Updated input type
       if (!input.email || !input.password) {
           throw new Error('Email and password required for sign in.');
       }
       // signInWithPassword already imported at top level
       const result = await signInWithPassword({ email: input.email, password: input.password });
-      if (!result.success || !result.userId) {
-          throw new Error(result.message || 'Sign in failed');
+      if (!result.success || !result.userId) { // Check userId from AuthActionResult
+          // Use specific message if available
+          const message = result.message.toLowerCase().includes('invalid login credentials')
+              ? registrationMessages.signInFlow.signInErrorInvalidCredentials
+              : registrationMessages.signInFlow.signInErrorGeneric.replace('{message}', result.message || 'Sign in failed');
+          throw new Error(message);
       }
-      return { userId: result.userId, email: input.email }; // Return userId and email
+      // Return userId and email on success
+      return { userId: result.userId, email: input.email };
   }),
 
   checkAuthConfirmationService: fromPromise(async () => {
@@ -211,6 +219,8 @@ export const registrationDialogMachine = createMachine({
     isSubmitting: false,
     userId: null, // Initialize userId
     lastSavedIndex: -1, // Initialize lastSavedIndex
+    password: null, // Initialize password
+
   }),
   initial: 'idle', // Set initial state to idle
   states: {
@@ -518,102 +528,83 @@ export const registrationDialogMachine = createMachine({
       } // End signUpFlow states
     }, // End signUpFlow
 
-    // --- Sign In Flow ---
     signInFlow: {
       initial: 'promptingEmail',
       states: {
         promptingEmail: {
-          entry: ({ context }: { context: RegistrationContext }) => context.shellInteractions.addOutputLine('Enter your email to sign in:'),
+          entry: ['displaySignInEmailPrompt'],
           on: {
-            INPUT_RECEIVED: {
-              // TODO: Add validation? Maybe reuse earlyAuth email validation?
-              target: 'promptingPassword',
-              actions: assign({
-                userEmail: ({ event }: { event: InputEvent }) => event.value,
-                currentInput: '', // Clear input buffer
-                error: null,
-              })
-            },
-            COMMAND_RECEIVED: [ // Handle back/exit/help
+            INPUT_RECEIVED: [
               {
-                target: '#registrationDialog.promptingSignInOrUp', // Absolute target
-                guard: ({ event }: { event: CommandEvent }) => event.command === 'back'
+                target: 'promptingPassword',
+                guard: 'isValidEmailInput',
+                actions: ['assignEmail'] // Assigns to context.userEmail
               },
-              {
-                 guard: ({ event }: { event: CommandEvent }) => event.command === 'exit',
-                 actions: [ ({ context }: { context: RegistrationContext }) => context.shellInteractions.sendToShellMachine({ type: 'EXIT' }) ]
-              },
-              { // Handle help or invalid commands
-                 actions: ({ context, event }: { context: RegistrationContext, event: CommandEvent }) => {
-                     const reprompt = 'Enter your email to sign in:';
-                     if (event.command === 'help') {
-                         context.shellInteractions.addOutputLine("Available commands: back, exit, help.");
-                     } else {
-                         context.shellInteractions.addOutputLine(registrationMessages.errors.invalidCommandGeneral.replace('{command}', event.command), { type: 'error' });
-                     }
-                     context.shellInteractions.addOutputLine(reprompt);
-                 }
+              { // Handle invalid email
+                actions: [
+                  assign({ error: registrationMessages.validationErrors.invalidEmail }),
+                  ({ context }: { context: RegistrationContext }) => context.shellInteractions.addOutputLine(registrationMessages.validationErrors.invalidEmail, { type: 'error' }),
+                  'displaySignInEmailPrompt' // Re-prompt
+                ]
               }
-            ]
+            ],
+            COMMAND_RECEIVED: { // Handle global commands like back/exit/help
+              target: '#registrationDialog.promptingSignInOrUp', // Go back to choice
+              guard: ({ event }: { event: CommandEvent }) => event.command === 'back',
+              // TODO: Add exit/help handling similar to signUpFlow.earlyAuth
+            }
           }
         },
         promptingPassword: {
-          entry: ({ context }: { context: RegistrationContext }) => context.shellInteractions.addOutputLine('Enter your password:'),
+          entry: ['displaySignInPasswordPrompt'],
           on: {
             INPUT_RECEIVED: {
               target: 'authenticating',
-              actions: assign({
-                 currentInput: ({ event }: { event: InputEvent }) => event.value, // Store password temporarily
-                 error: null,
-              })
+              actions: ['assignPassword'] // Assigns to context.password
             },
-             COMMAND_RECEIVED: [ // Handle back/exit/help
-              {
-                target: 'promptingEmail', // Relative target within signInFlow
-                guard: ({ event }: { event: CommandEvent }) => event.command === 'back'
-              },
-              {
-                 guard: ({ event }: { event: CommandEvent }) => event.command === 'exit',
-                 actions: [ ({ context }: { context: RegistrationContext }) => context.shellInteractions.sendToShellMachine({ type: 'EXIT' }) ]
-              },
-              { // Handle help or invalid commands
-                 actions: ({ context, event }: { context: RegistrationContext, event: CommandEvent }) => {
-                     const reprompt = 'Enter your password:';
-                     if (event.command === 'help') {
-                         context.shellInteractions.addOutputLine("Available commands: back, exit, help.");
-                     } else {
-                         context.shellInteractions.addOutputLine(registrationMessages.errors.invalidCommandGeneral.replace('{command}', event.command), { type: 'error' });
-                     }
-                     context.shellInteractions.addOutputLine(reprompt);
-                 }
-              }
-            ]
+            COMMAND_RECEIVED: { // Handle global commands like back/exit/help
+              target: 'promptingEmail', // Go back to email prompt
+              guard: ({ event }: { event: CommandEvent }) => event.command === 'back',
+              // TODO: Add exit/help handling
+            }
           }
         },
         authenticating: {
-          entry: [assign({ isSubmitting: true, error: null }), ({ context }: { context: RegistrationContext }) => context.shellInteractions.addOutputLine('Signing in...', { type: 'system' })],
+          entry: [
+            assign({ isSubmitting: true, error: null }),
+            ({ context }: { context: RegistrationContext }) => context.shellInteractions.addOutputLine("Authenticating...", { type: 'system' })
+          ],
           invoke: {
             id: 'signInService',
-            src: 'signInService', // Use service key defined in actors
-            input: ({ context }: { context: RegistrationContext }) => ({ email: context.userEmail, password: context.currentInput }),
+            src: 'signInService',
+            input: ({ context }: { context: RegistrationContext }) => ({
+              email: context.userEmail, // Use userEmail from context
+              password: context.password // Use password from context
+            }),
             onDone: {
-              target: '#registrationDialog.fetchingRegistration', // Absolute target
+              // Target top-level state after successful sign-in
+              target: '#registrationDialog.fetchingRegistration',
               actions: assign({
-                  isSubmitting: false,
-                  error: null,
-                  userId: ({ event }) => event.output.userId,
-                  userEmail: ({ event }) => event.output.email, // Store email too
-                  currentInput: '', // Clear password
+                isSubmitting: false,
+                error: null,
+                userId: ({ event }) => event.output.userId, // Assign userId from service output
+                userEmail: ({ event }) => event.output.email, // Ensure email is updated/confirmed
+                password: null // Clear password from context
               })
             },
             onError: {
-              target: 'promptingPassword', // Relative target
+              target: 'promptingEmail', // Go back to email prompt on error
               actions: [
+                // Assign error, isSubmitting, and password in one go
                 assign({
-                    isSubmitting: false,
-                    error: ({ event }) => event.error instanceof Error ? event.error.message : String(event.error) || 'Sign in failed',
-                    currentInput: '',
+                  isSubmitting: false,
+                  password: null, // Clear password attempt
+                  error: ({ event }: { event: ErrorActorEvent }) => { // Explicitly type event
+                      const err = event.error; // Access error from event.error property
+                      return err instanceof Error ? err.message : String(err || 'Unknown sign-in error');
+                  }
                 }),
+                // Display the error message (now assigned to context.error)
                 ({ context }: { context: RegistrationContext }) => context.shellInteractions.addOutputLine(context.error!, { type: 'error' })
               ]
             }
@@ -1153,6 +1144,23 @@ export const registrationDialogMachine = createMachine({
             return result.message || registrationMessages.validationErrors.generic;
         }
     }),
+    displaySignInEmailPrompt: ({ context }: { context: RegistrationContext }) => {
+      context.shellInteractions.addOutputLine(registrationMessages.signInFlow.promptEmail);
+    },
+    displaySignInPasswordPrompt: ({ context }: { context: RegistrationContext }) => {
+      context.shellInteractions.addOutputLine(registrationMessages.signInFlow.promptPassword);
+    },
+    assignEmail: assign({
+      userEmail: ({ event }) => event.type === 'INPUT_RECEIVED' ? event.value : null, // Type check added
+      error: null // Clear previous errors
+      // Echoing action moved to transition
+    }),
+    assignPassword: assign({
+      password: ({ event }) => event.type === 'INPUT_RECEIVED' ? event.value : null, // Type check added
+      error: null // Clear previous errors
+      // Echoing action moved to transition
+    }),
+    // assignSignInError removed - will be handled inline in the transition
   },
   guards: {
     // --- Named Guards ---
@@ -1169,6 +1177,14 @@ export const registrationDialogMachine = createMachine({
         const question = context.questions[context.currentQuestionIndex];
         return utils.validateAnswer(question, context.currentInput, context.answers).isValid;
      },
+    isValidEmailInput: ({ event }: { event: RegistrationEvent }) => {
+      // Basic email validation regex
+      if (event.type !== 'INPUT_RECEIVED') return false;
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      return emailRegex.test(event.value);
+    },
   },
+
+
 } // <-- Closing brace for options object
 );

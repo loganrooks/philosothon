@@ -145,6 +145,9 @@
 - **[2025-04-23 22:19:40] - Debug:** Diagnosed REG-TEST-STATE-INIT-001 failure in 'boolean input' test. Added console logs to `RegistrationDialog`. Logs confirmed component initializes state correctly (index 45). Test failure is due to outdated assertion expecting `setDialogState` prop call instead of internal `useReducer` dispatch. [See MB Issue REG-TEST-STATE-INIT-001 Update]
 
 
+- **[2025-04-26 03:59:00] - SPARC:** Received confirmation from Code that idle/promptingSignInOrUp states implementation (ADR Step 2.1) is complete. Machine refactored.
+
+
 - **[2025-04-26 03:36:00] - SPARC:** Received confirmation from Code that localStorage logic removal (ADR Step 1.4) is complete (commit `7954a7d`). Machine refactored.
 
 
@@ -164,6 +167,10 @@
 
 
 # Progress
+- **[2025-04-26 04:19:00] - Code:** Completed ADR Step 2.2: Implemented `signInFlow` states and `signInAction` wrapper. Build verified. [See MB Active Log 2025-04-26 04:19:00]
+
+
+
 - **[2025-04-26 03:58:00] - Code:** Completed ADR Step 2.1: Implemented `idle` and `promptingSignInOrUp` states in `registrationDialogMachine.ts`, including structural refactor (adding `signUpFlow`, `signInFlow` top-level states) and fixing build errors. Build verified. [See MB Active Log 2025-04-26 03:58:00]
 
 
@@ -427,6 +434,15 @@ This file consolidates less frequently updated global project information, inclu
 *   **[2025-04-18] Admin CRUD Pattern:** Implemented using Server Components for list/edit page shells, Client Components for forms (`useFormState`), and Server Actions (`actions.ts`) for data mutation (create, update, delete). Edit pages use query parameters (`?id=...`) instead of dynamic route segments to avoid previous build issues.
 
 # Decision Log
+
+### [2025-04-26 04:10:00] Decision: Resolve XState `assign` Type Errors Inline
+- **Context:** Encountered persistent TypeScript errors when defining named actions using `assign` with function arguments (e.g., `assignSignInError`). TypeScript struggled to infer the correct `context` and `event` types within the named action definition.
+- **Decision:** Instead of defining named actions for complex assignments (especially within `onError`), use inline `assign` functions directly within the transition's `actions` array. If multiple context properties need updating, use separate inline `assign` calls for computed values vs. static values.
+- **Rationale:** Placing the `assign` logic directly in the transition allows TypeScript to correctly infer the context and event types available at that specific point in the machine's flow, resolving the type errors.
+- **Alternatives Considered:** More complex explicit type casting within named actions (verbose, potentially brittle), ignoring TS errors (unsafe).
+- **Reference:** `platform/src/app/register/machines/registrationDialogMachine.ts` (Lines ~597-609)
+
+
 
 ### [2025-04-26 03:57:00] Decision: Refactor Machine Structure for Top-Level Flows
 - **Context:** Build failed repeatedly with "Child state ... does not exist" errors when targeting states like `signUpFlow.earlyAuth` from `promptingSignInOrUp`.

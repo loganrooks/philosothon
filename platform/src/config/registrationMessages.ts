@@ -56,6 +56,15 @@ export const registrationMessages = {
   },
 
 
+  // Sign In Flow
+  signInFlow: {
+    promptEmail: "Enter your Email Address:",
+    promptPassword: "Enter your Password:",
+    signInErrorInvalidCredentials: "Invalid email or password. Please try again.",
+    signInErrorGeneric: "Sign in failed: {message}",
+  },
+
+
   // Awaiting Confirmation State
   awaitingConfirmation: {
     checkFailed: "Email not confirmed yet. Please check your email or use 'resend'.",

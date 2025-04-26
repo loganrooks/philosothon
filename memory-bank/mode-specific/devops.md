@@ -11,6 +11,27 @@
 - **Notes**: Archived obsolete documentation files as recommended by holistic review (`docs/reviews/holistic_review_20250424.md`).
 
 
+### Git Commit: [2025-04-26 03:09:26] - feat(db): Update registrations table schema and RLS for incremental saves
+- **Branch**: feature/registration-v3.1-impl
+- **Commit ID**: c47f33a
+- **Files**: `supabase/migrations/20250426054315_update_registrations_for_incremental.sql`
+- **Notes**: Committed migration to update registrations table schema and RLS for incremental saves per ADR `2025-04-26`.
+
+
+
+### Deployment: [2025-04-26 03:09:15] - Supabase Migration (Update Registrations Table V3.1)
+- **Env**: Remote DB (`egdmaehmjuytscswybum`)
+- **Comps**: `registrations` table schema, `upsert_registration_answer` function, RLS policies
+- **Version**: Migration `20250426054315_update_registrations_for_incremental.sql`
+- **Trigger**: Manual (`supabase db push`)
+- **Status**: Success
+- **Duration**: ~2 min (across multiple attempts)
+- **Rollback**: `supabase db reset` (destructive) or manual `ALTER TABLE`, `DROP FUNCTION`, `DROP POLICY`
+- **Issues Encountered**: Initial attempts failed due to SSL error and migration history mismatch. History repaired (`migration repair --status reverted 20250421165124`). Subsequent attempt failed due to SQL syntax error (`RAISE NOTICE`). Final attempt succeeded after removing standalone `RAISE NOTICE` and fixing RLS policy syntax (`role::text`).
+- **Notes**: Aligned `registrations` table with simplified ADR requirements.
+
+
+
 ## Deployment History Log
 ### Git Branch Creation: [2025-04-23 10:24:44] - feature/registration-v3.1-impl
 - **Source Branch**: main

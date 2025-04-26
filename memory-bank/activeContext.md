@@ -1,3 +1,12 @@
+[2025-04-26 04:19:00] - Code - Completed Task (Implement signInFlow States - ADR Step 2.2) - Added `signInFlow` states (`promptingEmail`, `promptingPassword`, `authenticating`), `signInService` logic update, related actions/guards to `registrationDialogMachine.ts`. Added `signInAction` wrapper to `actions.ts`. Added messages to `registrationMessages.ts`. Fixed multiple TS errors during implementation. Build successful. [See MB Code Log 2025-04-26 04:19:00]
+
+---
+
+
+[2025-04-26 03:59:00] - SPARC - Task Update - Code completed idle/promptingSignInOrUp states implementation (Step 2.1) for simplified registration. Commit details in MB. Proceeding to Step 2.2.
+
+---
+
 [2025-04-26 03:58:00] - Code - Completed Task (Implement idle & promptingSignInOrUp States - ADR Step 2.1) - Added `idle` state logic, `promptingSignInOrUp` state, and related actions (`displaySignInOrUpPrompt`, `resetRegistrationState`) to `registrationDialogMachine.ts`. Added `signInOrUpPrompt` message to `registrationMessages.ts`. Refactored machine structure (added `signUpFlow`, `signInFlow` top-level states) and fixed multiple build errors related to state targets. Build successful. [See MB Code Log 2025-04-26 03:58:00]
 
 ---

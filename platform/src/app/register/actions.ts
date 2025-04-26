@@ -1,5 +1,7 @@
 'use server';
 import { generateRegistrationSchema } from '../../../config/registrationSchema';
+import { registrationMessages } from '@/config/registrationMessages';
+
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
@@ -699,5 +701,52 @@ export async function checkCurrentUserConfirmationStatus(): Promise<boolean> {
   } catch (error) {
     console.error('Unexpected error during confirmation status check:', error);
     return false;
+  }
+}
+
+// Server action wrapper for signInWithPassword, callable from client/machine
+export async function signInAction(
+  credentials: { email: string; password: string }
+): Promise<{ success: boolean; userId?: string; message: string }> {
+  'use server'; // Ensure this is marked as a server action
+
+  if (!credentials.email || !credentials.password) {
+    return { success: false, message: 'Email and password are required.' };
+  }
+
+  try {
+    // Import the actual auth action
+    const { signInWithPassword } = await import('@/app/auth/actions');
+    const result = await signInWithPassword(credentials);
+
+    if (!result.success) {
+      // Use specific message if available, otherwise generic
+      const message = result.message.toLowerCase().includes('invalid login credentials')
+          ? registrationMessages.signInFlow.signInErrorInvalidCredentials // Use message from SSOT
+          : registrationMessages.signInFlow.signInErrorGeneric.replace('{message}', result.message || 'Sign in failed');
+      return { success: false, message: message };
+    }
+
+    // On success, we need the userId. signInWithPassword doesn't return it directly.
+    // We need to get the user from the session after successful sign-in.
+    const supabase = await createClient();
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+        console.error("signInAction: User fetch error after sign in:", userError);
+        // Sign-in succeeded but couldn't get user session immediately?
+        // This might indicate a timing issue or configuration problem.
+        // Return success=false for now, as we need the userId for the machine flow.
+        return { success: false, message: 'Sign in successful, but failed to retrieve user session.' };
+    }
+
+    console.log(`signInAction successful for user ${user.id}`);
+    // Return success, userId, and message
+    return { success: true, userId: user.id, message: 'Sign in successful.' };
+
+  } catch (err) {
+    const error = err instanceof Error ? err : new Error('An unknown error occurred during sign in.');
+    console.error('signInAction caught error:', error);
+    return { success: false, message: error.message || 'Unknown server error during sign in.' };
   }
 }
