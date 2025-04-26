@@ -84,6 +84,7 @@ export const registrationMessages = {
       currentAnswer: "Current answer: {answer}",
       instructions: "Enter new answer or 'save' to keep current, 'exit' to cancel.",
       invalidNumber: "Invalid question number: {number}",
+      answerUpdated: "Answer updated.",
     },
     help: {
         // Define help text for different contexts if needed
@@ -123,6 +124,7 @@ export const registrationMessages = {
   errors: {
     questionNotFound: "Question not found.",
     loadStateFailed: "Failed to load saved state: {message}",
+    clearStateFailed: "Failed to clear saved state: {message}",
     submitFailed: "Submission failed: {message}",
     invalidCommandIntro: "Command '{command}' not available. Use 'register new' or 'register continue'.",
     invalidCommandConfirmation: "Command '{command}' not available. Use 'continue', 'resend', or 'exit'.",
