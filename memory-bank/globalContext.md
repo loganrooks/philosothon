@@ -1,3 +1,7 @@
+- **[2025-04-25 19:44:36] - Debug:** Corrected `vi.mock` implementation for `@xstate/react` in `RegistrationDialog.test.tsx` (commit `1a8c5b9`), resolving the critical `TypeError` blocker. Test suite now runs, showing 51 failures (expected due to previous mock removal). [See MB Active Log 2025-04-25 19:44:36]
+
+
+
 - **[2025-04-25 09:39:56] - Code:** Refactored `RegistrationDialog.tsx` to use XState (`useMachine`), created `registrationDialogMachine.ts`, added `submitRegistrationFromMachine` server action. Commit `d5823a7`. Test updates deferred due to tooling issues. [See MB Active Log 2025-04-25 09:39:56, MB Code Log 2025-04-25 09:39:56]
 
 

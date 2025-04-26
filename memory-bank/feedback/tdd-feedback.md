@@ -1,3 +1,22 @@
+### Feedback Log - [2025-04-25 18:43:00] (Early Return - Critical Mock Failure)
+- **Source**: TDD Mode - Early Return Clause Invoked (Test Execution Failure)
+- **Task**: Rewrite Remaining Failing Tests in RegistrationDialog.test.tsx using Fixed XState Mock (Attempt 7)
+- **Objective**: Fix the remaining failing tests in `platform/src/app/register/components/RegistrationDialog.test.tsx` by rewriting their logic using the functional `useMachine` mock and adhering strictly to the Test Redesign Strategy.
+- **Progress**:
+    *   Activated Memory Bank.
+    *   Read required reports (`xstate_refactor_current_state_analysis_20250425.md`, `registration_dialog_xstate_refactor_report_20250425.md`).
+    *   Ran test suite for `RegistrationDialog.test.tsx` to verify current state.
+- **Blocker**: Test execution failed with **34 failures**. Critically, the error `TypeError: undefined is not iterable (cannot read property Symbol(Symbol.iterator))` occurred at `RegistrationDialog.tsx:41:21` (`const [state, send] = useMachine(...)`). This confirms the `useMachine` mock in `RegistrationDialog.test.tsx` is returning `undefined`, preventing the component from rendering and blocking any test rewriting.
+- **Analysis**: This matches the blocker identified in the previous feedback log ([2025-04-25 17:02:00]). The `vi.mock('@xstate/react', ...)` implementation is faulty.
+- **Action**: Invoking Early Return Clause. Cannot proceed with rewriting tests until the `useMachine` mock is fixed.
+- **Recommendations for Next Agent**:
+    *   **Delegate to `debug` mode:** Focus *exclusively* on fixing the `vi.mock('@xstate/react', ...)` implementation in `RegistrationDialog.test.tsx` as recommended in the [2025-04-25 17:02:00] feedback log entry.
+        *   Verify the mock factory function returns `[mockMachineState, mockMachineSend]`. Investigate scope/hoisting. Add console logs.
+    *   **Once the mock is fixed:** Create a *new* `tdd` task to resume rewriting the tests, starting from the first failing test according to the Test Redesign Strategy.
+
+---
+
+
 ### Feedback Log - [2025-04-25 17:02:00] (Early Return - Test Failures / Mock Issue)
 - **Source**: TDD Mode - Early Return Clause Invoked (User Command / Test Failures)
 - **Task**: Rewrite RegistrationDialog.test.tsx using XState Test Redesign Strategy (Attempt 2 - Read Reports)

@@ -1,5 +1,157 @@
 # Specification Writer Specific Memory
 
+### Feature: RegistrationDialog Testing Strategy (Layered)
+- Added: [2025-04-25 20:26:18]
+- Description: Implement a layered testing strategy for the XState `RegistrationDialog` involving machine unit tests (`@xstate/test`), component integration tests (RTL/Vitest with mocked `useMachine`), SSOT for messages, and refactoring.
+- Acceptance criteria: 1. Machine logic tested via `@xstate/test`. 2. Component integration tested via RTL/Vitest with mocks. 3. SSOT for messages implemented and used. 4. Machine/Component refactored for testability.
+- Dependencies: `@xstate/test`, Vitest, RTL, `docs/adr/2025-04-25-registration-testing-strategy.md`.
+- Status: Specified
+
+
+### Pseudocode: SSOT Structure (`registrationMessages.ts`)
+- Created: [2025-04-25 20:26:18]
+```typescript
+// platform/src/config/registrationMessages.ts
+export const registrationMessages = {
+  dialogHeader: "Registration Mode",
+  prompts: { /* ... */ },
+  intro: { /* ... */ },
+  earlyAuth: { /* ... */ },
+  awaitingConfirmation: { /* ... */ },
+  questioning: { /* ... */ },
+  commands: { /* ... */ },
+  validationErrors: { /* ... */ },
+  // ... other categories
+} as const;
+```
+#### TDD Anchors:
+- Test importability.
+- Test specific key values.
+- Test message formatting/interpolation.
+
+
+### Pseudocode: Extracted Machine Logic (Example)
+- Created: [2025-04-25 20:26:18]
+```typescript
+// Outside createMachine
+function validateInput(input: string, question: Question): { isValid: boolean; errorKey?: string; context?: object } { /* ... */ }
+function shouldSkipQuestion(question: Question, formData: object): boolean { /* ... */ }
+
+// Inside createMachine actions/guards
+validateAnswer: assign((ctx, event) => { /* ... call validateInput ... */ });
+isNextQuestionSkippable: (ctx) => { /* ... call shouldSkipQuestion ... */ };
+```
+#### TDD Anchors:
+- Test extracted validation functions independently.
+- Test extracted skip logic function independently.
+
+
+### Pseudocode: Machine Async Operation (`invoke` Example)
+- Created: [2025-04-25 20:26:18]
+```typescript
+// Outside createMachine
+async function signUpService(context, event) { /* ... call server action, handle results/errors ... */ }
+
+// Inside createMachine state
+signingUp: {
+  invoke: {
+    id: 'signUpServiceInvoke',
+    src: signUpService,
+    onDone: [ /* ... handle success states ... */ ],
+    onError: { /* ... handle error state ... */ }
+  }
+}
+```
+#### TDD Anchors:
+- (Covered by Machine Unit Tests)
+
+
+### Pseudocode: Machine Unit Test (`@xstate/test` Example)
+- Created: [2025-04-25 20:26:18]
+```typescript
+import { createTestMachine } from '@xstate/test';
+import { registrationDialogMachine } from './registrationDialogMachine';
+
+const mockSignUpService = vi.fn().mockResolvedValue({ status: 'success' });
+const machineWithMocks = registrationDialogMachine.withConfig({ services: { signUpService: mockSignUpService } });
+const testMachine = createTestMachine(machineWithMocks);
+
+it('should transition correctly on EVENT', () => {
+  const nextState = testMachine.transition('currentState', { type: 'EVENT' });
+  expect(nextState.matches('expectedState')).toBe(true);
+  expect(nextState.context.someValue).toBe('expected');
+});
+
+it('should call mocked service', () => {
+  testMachine.transition('stateBeforeService', { type: 'TRIGGER_SERVICE' });
+  expect(mockSignUpService).toHaveBeenCalled();
+});
+```
+#### TDD Anchors:
+- Test specific transitions.
+- Test context updates.
+- Test guard logic.
+- Test action/service calls (mocked).
+- Test path coverage (`testModel`).
+
+
+### Pseudocode: Component Integration Test Helpers (RTL/Vitest)
+- Created: [2025-04-25 20:26:18]
+```typescript
+import { render } from '@testing-library/react';
+import { mocked } from 'vitest';
+import { useMachine } from '@xstate/react';
+
+vi.mock('@xstate/react');
+const mockUseMachine = mocked(useMachine);
+const mockSend = vi.fn();
+
+interface MockState { /* ... value, context, matches ... */ }
+
+const createMockState = (value, context = {}): MockState => { /* ... */ };
+
+const renderWithMachineState = (initialState: MockState, props = {}) => {
+  mockUseMachine.mockReturnValue([initialState, mockSend, undefined as any]);
+  return render(<RegistrationDialog {...props} />);
+};
+
+const getMockSend = () => mockSend;
+
+beforeEach(() => { vi.clearAllMocks(); });
+```
+#### TDD Anchors:
+- (Helpers support component tests)
+
+
+### Pseudocode: Component Integration Test (RTL/Vitest Example)
+- Created: [2025-04-25 20:26:18]
+```typescript
+describe('when in state "some.state"', () => {
+  it('should render the correct prompt', () => {
+    const state = createMockState('some.state', { promptKey: 'somePrompt' });
+    renderWithMachineState(state);
+    expect(screen.getByText(registrationMessages.prompts[state.context.promptKey])).toBeInTheDocument();
+  });
+
+  it('should send EVENT on input submit', () => {
+    const state = createMockState('some.state');
+    renderWithMachineState(state);
+    const input = screen.getByRole('textbox');
+    const send = getMockSend();
+
+    fireEvent.change(input, { target: { value: 'test input' } });
+    fireEvent.submit(input);
+
+    expect(send).toHaveBeenCalledWith({ type: 'EVENT', value: 'test input' });
+  });
+});
+```
+#### TDD Anchors:
+- Test rendering based on specific mock states.
+- Test event dispatch (`send` call) on user interactions.
+- Test `addOutputLine` calls based on mock state (optional).
+
+
 ### Constraint: Testing Complex Terminal UI
 - Added: [2025-04-24 16:17:03]
 - Description: Testing complex, asynchronous terminal UI components (like RegistrationDialog) in Vitest/JSDOM has proven challenging, particularly regarding state updates and timing (e.g., REG-TEST-TIMING-001).

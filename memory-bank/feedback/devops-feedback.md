@@ -110,3 +110,9 @@ This file logs feedback received specifically for the DevOps mode, including iss
 - **Context**: Attempting to push commit `e3514e4` containing upgraded theme descriptions.
 - **Action Taken**: Will retry the push using the simpler `git push` command, which should push to the tracked upstream branch.
 - **Learning**: Verify remote branch names carefully, especially when explicit push commands are used. `git status` often provides clues about the correct upstream branch name. The simpler `git push` command is often safer when an upstream branch is already tracked.
+## Feedback Entry - 2025-04-25 20:29:18
+- **Source**: Tool (`execute_command` - npm install)
+- **Issue/Suggestion**: `npm install --save-dev @xstate/test` failed with ERESOLVE error. The project has `xstate@5.19.2`, but `@xstate/test@0.5.1` requires a peer dependency of `xstate@^4.29.0`. These versions are incompatible.
+- **Context**: Task 'Add @xstate/test Dependency (Attempt 2)'. Attempting to install the dependency in the `platform` workspace.
+- **Action Taken**: Invoking Early Return Clause as per task instructions. Halted further actions (commit).
+- **Learning**: Peer dependency conflicts must be resolved before installation can succeed. This might involve upgrading/downgrading dependencies or finding compatible versions.

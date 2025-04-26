@@ -1,3 +1,23 @@
+[%DATE% %TIME%] - Code - Completed Task (Testing Strategy Step 2 - Machine Refactor) - Refactored `platform/src/app/register/machines/registrationDialogMachine.ts` per spec `p1_registration_testing_strategy_spec.md` (Sec 3.2). Integrated SSOT messages, extracted sync logic to `registrationMachineUtils.ts`, refactored async ops using `invoke`. Commits `02f9d15`, `[git log -1 --pretty=format:%h]`. Ready for Step 3 (Machine Unit Tests).
+
+---
+
+
+[2025-04-25 20:37:36] - Code - Completed Task (Testing Strategy Step 1 - SSOT File) - Created SSOT file `platform/src/config/registrationMessages.ts` with initial structure and example messages per spec `p1_registration_testing_strategy_spec.md`.
+
+---
+
+
+[2025-04-25 20:26:18] - SpecPseudo - Completed Task - Created specification document `docs/specs/p1_registration_testing_strategy_spec.md` detailing the implementation plan for the new RegistrationDialog testing strategy based on ADR `2025-04-25-registration-testing-strategy.md` and related project documents.
+
+---
+
+
+[2025-04-25 19:44:36] - Debug - Completed Task (Fix useMachine Mock) - Corrected vi.mock implementation for @xstate/react in RegistrationDialog.test.tsx, resolving TypeError blocker. Commit 1a8c5b9. 51 tests failing as expected.
+
+---
+
+
 [2025-04-25 09:39:56] - Code - Completed Task (Refactor RegistrationDialog to XState) - Refactored `RegistrationDialog.tsx` to use XState (`useMachine`). Created `registrationDialogMachine.ts` defining states, context, events, and basic actions/services based on spec V3.1. Added `submitRegistrationFromMachine` server action. Committed changes (`d5823a7`). **Note:** Test file (`RegistrationDialog.test.tsx`) updates deferred due to persistent tooling failures (`apply_diff`/`write_to_file`) on the large file; tests are currently failing. [See MB Code Log 2025-04-25 09:39:56]
 
 ---

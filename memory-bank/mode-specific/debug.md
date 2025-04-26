@@ -1,5 +1,21 @@
 # Debug Specific Memory
 
+### Issue: XSTATE-MOCK-TYPEERROR - `useMachine` mock returns undefined - [Status: Resolved] - [2025-04-25 19:44:36]
+- **Reported**: 2025-04-25 17:02:00 (TDD Feedback Log) / **Severity**: Critical (Blocker) / **Symptoms**: Test suite for `RegistrationDialog.test.tsx` fails immediately with `TypeError: undefined is not iterable (cannot read property Symbol(Symbol.iterator))` originating from `RegistrationDialog.tsx:41`.
+- **Investigation**:
+    1. Reviewed TDD feedback logs confirming the issue and previous analysis.
+    2. Read `RegistrationDialog.test.tsx`: Identified complex mock setup using global variables (`mockMachineState`, `mockMachineSend`) and helper functions (`__setMockMachineState`) likely causing hoisting/scope issues with `vi.mock`.
+    3. Applied standard Vitest mock pattern: Removed global variables/helpers, used `vi.mock('@xstate/react', () => ({ useMachine: vi.fn() }))`, and set `mockedUseMachine.mockReturnValue([defaultMockState, defaultMockSend, undefined])` within `beforeEach`.
+    4. Encountered and fixed multiple syntax errors resulting from removing the old mock infrastructure (dangling object literals, incorrect variable references).
+    5. Ran tests (`npm test -- src/app/register/components/RegistrationDialog.test.tsx`): Confirmed `TypeError` is resolved. 51 tests fail as expected due to removed mock logic.
+- **Root Cause**: Faulty `vi.mock('@xstate/react', ...)` implementation using global variables and helpers, which returned `undefined` instead of the required `[state, send, service]` tuple.
+- **Fix Applied**: Refactored mock setup in `RegistrationDialog.test.tsx` to use standard Vitest pattern with `vi.mock` factory and `mockReturnValue` in `beforeEach`. Removed old mock infrastructure and fixed resulting syntax errors. Commit `1a8c5b9`.
+- **Verification**: Test suite execution confirms the `TypeError` is resolved.
+- **Related Issues**: TDD Feedback Logs [2025-04-25 17:02:00], [2025-04-25 18:43:00].
+
+---
+
+
 ## Issue History
 ### Issue: REG-MULTI-SELECT-VALID-001 - Alleged incorrect state advance for valid multi-select-numbered input - [Status: Closed (No Bug Found)] - [2025-04-24 10:13:38]
 - **Reported**: 2025-04-24 10:10:19 (Task Context) / **Severity**: Medium (Reported) / **Symptoms**: Task context claimed test `should handle multi-select-numbered input...` failure indicated component incorrectly advanced state on valid input.
