@@ -1,3 +1,13 @@
+- **[2025-04-26 03:26:00] - Code:** Implemented ADR Step 1.3: Added `upsertRegistrationAnswer` DAL function, `saveAnswerAction` server action, and `saveAnswerService` XState service for incremental answer saving. Build verified. Commit pending. [See MB Active Log 2025-04-26 03:26:00]
+
+
+
+- **[2025-04-26 03:18:15] - Code:** Implemented ADR Step 1.2: Modified `fetchRegistrationByUserId` DAL function, created `fetchRegistrationAction` server action, and added `fetchRegistrationService` to XState machine. Commit `2db64ac` on `feature/registration-v3.1-impl`. [See MB Active Log 2025-04-26 03:18:15]
+
+
+- **[2025-04-26 03:10:00] - DevOps:** Updated Supabase `registrations` table schema and RLS policies via migration `20250426054315` to align with simplified registration plan (ADR `2025-04-26`). Commit `c47f33a` on `feature/registration-v3.1-impl`. [See MB Active Log 2025-04-26 03:10:00]
+
+
 - **[%DATE% %TIME%] - Code:** Integrated `RegistrationDialog` into `TerminalShell` by updating imports, the dialog map, and command handling in `platform/src/app/register/components/TerminalShell.tsx`. [See MB Active Log %DATE% %TIME%]
 
 
@@ -139,8 +149,16 @@
 
 - **[2025-04-24 22:03:11] - TDD:** Fixed 2 failing tests in `RegistrationDialog.test.tsx` related to `ranked-choice-numbered` validation (space delimiter, non-strict count) by correcting test assertions based on user feedback clarifying requirements. No component changes needed. Test suite for file now passes (44 passed, 1 skipped, 31 todo).
 
+- **[2025-04-26 03:19:00] - SPARC:** Received confirmation from Code that fetchRegistrationService implementation (ADR Step 1.2) is complete (commit `2db64ac`). DAL and machine service added.
+
+
 
 # Progress
+
+- **[2025-04-26 03:12:00] - SPARC:** Received confirmation from DevOps that Supabase schema/RLS update (ADR Step 1.1) is complete (commit `c47f33a`). Backend ready for DAL implementation.
+
+- **[2025-04-26 03:10:00] - [DevOps Task] Verify/Update Supabase Schema & RLS for Simplified Registration [Completed]** - Applied migration `20250426054315` to remote DB. Committed (`c47f33a`) and pushed to `feature/registration-v3.1-impl`.
+
 - **[2025-04-24 14:52:24] - HolisticReview:** Completed review of `RegistrationDialog` (commit `f86178b`). Found alignment between V3 docs and SSOT schema. Identified implementation gaps in component (`ranked-choice-numbered`, email confirmation) and significant test suite quality/stability issues. Recommended prioritizing test refactoring before implementing missing features. Full report: `docs/reviews/holistic_review_20250424.md`. [See MB Active Log 2025-04-24 14:51:55]
 
 
@@ -389,6 +407,15 @@ This file consolidates less frequently updated global project information, inclu
 *   **[2025-04-18] Admin CRUD Pattern:** Implemented using Server Components for list/edit page shells, Client Components for forms (`useFormState`), and Server Actions (`actions.ts`) for data mutation (create, update, delete). Edit pages use query parameters (`?id=...`) instead of dynamic route segments to avoid previous build issues.
 
 # Decision Log
+
+### [2025-04-26 03:26:00] Decision: Use Server Action Wrapper for DAL Calls from XState
+- **Context:** Build failed when XState service (`saveAnswerService`) directly called a DAL function (`upsertRegistrationAnswer`) that uses the server-side Supabase client (`next/headers`).
+- **Decision:** Create Server Actions (e.g., `saveAnswerAction`) to wrap DAL functions that need to be invoked from client-side logic like XState machines. The machine's service then calls the Server Action.
+- **Rationale:** Server Actions provide the necessary boundary between client-side components/logic and server-only code/dependencies like the server Supabase client.
+- **Alternatives Considered:** Attempting to use a client-side Supabase client (less secure, not suitable for RPC calls requiring auth/RLS), complex context/prop drilling (less maintainable).
+- **Reference:** `platform/src/app/register/actions.ts`, `platform/src/app/register/machines/registrationDialogMachine.ts`
+
+
 
 ### [2025-04-23] Decision: Recommend XState for Terminal Shell State Management
 - **Context:** The expanded scope of the Terminal UI (including real-time chat, complex gamification state) increases the complexity of managing mode transitions and side effects.

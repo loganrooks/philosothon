@@ -8,6 +8,7 @@ import { z } from 'zod'; // Assuming Zod is used for validation schema
 import { registrationMessages } from '@/config/registrationMessages'; // Removed unused import
 // Removed direct DAL import: import { fetchRegistrationByUserId } from '@/lib/data/registrations';
 import * as utils from './registrationMachineUtils'; // Import utils
+// Removed direct import of DAL function: import { upsertRegistrationAnswer } from '@/lib/data/registrations';
 // initiateOtpSignIn moved to line 5
 
 // --- Types ---
@@ -115,6 +116,21 @@ const services = {
   }),
 
   // Removed faulty fetchUserProfileService definition
+  saveAnswerService: fromPromise(async ({ input }: { input: { userId: string; questionId: string; answer: any; currentQuestionIndex: number } }) => {
+    // Ensure input properties are correctly accessed
+    // Note: userId should come from machine context, not directly from input unless explicitly passed
+    // Assuming userId is available in context and passed correctly when invoking
+    // Call the server action instead of the DAL function
+    const { error } = await regActions.saveAnswerAction(input.userId, input.questionId, input.answer, input.currentQuestionIndex);
+    if (error) {
+      console.error('Error saving answer via action:', error); // Add logging
+      throw new Error(error); // Propagate error message to onError transition
+    }
+    // Return success indication if needed, or nothing for onDone
+    return {};
+  }),
+
+
 
   signUpService: fromPromise(async ({ input }: { input: { answers: Record<string, any> } }) => {
     const { email, password, firstName, lastName } = input.answers; // Extract needed fields

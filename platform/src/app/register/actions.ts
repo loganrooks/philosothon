@@ -394,6 +394,42 @@ export async function fetchRegistrationAction(
 }
 
 
+// Server action to save a single answer, callable from client components/machines
+export async function saveAnswerAction(
+  userId: string,
+  questionId: string,
+  answer: any, // eslint-disable-line @typescript-eslint/no-explicit-any
+  index: number
+): Promise<{ error: string | null }> {
+  'use server'; // Ensure this is marked as a server action
+
+  if (!userId || !questionId) {
+    return { error: 'User ID and Question ID are required.' };
+  }
+
+  try {
+    // Directly call the DAL function (which uses the server client)
+    // Import the specific DAL function needed
+    const { upsertRegistrationAnswer } = await import('@/lib/data/registrations');
+    const { error } = await upsertRegistrationAnswer(userId, questionId, answer, index);
+
+    if (error) {
+      console.error(`saveAnswerAction failed for user ${userId}, question ${questionId}:`, error);
+      // Return a serializable error message
+      return { error: error.message || 'Database error saving answer.' };
+    }
+
+    return { error: null };
+
+  } catch (err) {
+    const error = err instanceof Error ? err : new Error('An unknown error occurred.');
+    console.error(`saveAnswerAction caught error for user ${userId}, question ${questionId}:`, error);
+    return { error: error.message || 'Unknown server error.' };
+  }
+}
+
+
+
 
 // Placeholder for email sending logic (to be implemented or called via trigger)
 // async function sendConfirmationEmail(email: string, name: string) {

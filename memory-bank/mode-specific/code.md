@@ -1,3 +1,35 @@
+### [2025-04-26 03:26:00] saveAnswerService Implementation (ADR Step 1.3)
+- **Purpose**: Implement DAL function, server action wrapper, and XState service to save registration answers incrementally to Supabase via RPC.
+- **Files**:
+    - `platform/src/lib/data/registrations.ts` (Added `upsertRegistrationAnswer`)
+    - `platform/src/app/register/actions.ts` (Added `saveAnswerAction`)
+    - `platform/src/app/register/machines/registrationDialogMachine.ts` (Added `saveAnswerService`, modified to call action)
+- **Status**: Implemented & Build Verified
+- **Dependencies**: `@/lib/data/registrations`, `@/app/register/actions`, `xstate`
+- **API Surface**: Added `saveAnswerAction` server action.
+- **Tests**: None added/run. Manual verification/integration testing needed.
+- **Notes**: Added `upsertRegistrationAnswer` DAL function using server client. Created `saveAnswerAction` server action to wrap DAL call due to client/server boundary issue. Modified `saveAnswerService` in XState machine to invoke the server action. Build successful after fix.
+
+---
+
+
+
+### [2025-04-26 03:18:15] fetchRegistrationService Implementation (ADR Step 1.2)
+- **Purpose**: Implement DAL function and XState service to fetch existing registration data from Supabase.
+- **Files**:
+    - `platform/src/lib/data/registrations.ts` (Modified)
+    - `platform/src/app/register/machines/registrationDialogMachine.ts` (Modified)
+    - `platform/src/app/register/actions.ts` (Added `fetchRegistrationAction`)
+    - `platform/src/config/registrationMessages.ts` (Modified - fixed structure)
+- **Status**: Implemented & Committed (`2db64ac`)
+- **Dependencies**: `@/lib/data/registrations`, `@/app/register/actions`, `xstate`
+- **API Surface**: Added `fetchRegistrationAction` server action.
+- **Tests**: None added/run. Manual verification/integration testing needed.
+- **Notes**: Modified existing `fetchRegistrationByUserId` DAL function to select specific columns per ADR. Created `fetchRegistrationAction` server action to wrap DAL call and resolve client-side import issue. Added `fetchRegistrationService` to XState machine, invoking the server action. Fixed related TS errors in messages/machine files.
+
+---
+
+
 ### [%DATE% %TIME%] Integrate RegistrationDialog into TerminalShell
 - **Purpose**: Configure `TerminalShell` to load and display `RegistrationDialog` for the registration flow.
 - **Files**: `platform/src/app/register/components/TerminalShell.tsx` (Modified)

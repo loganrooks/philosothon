@@ -234,6 +234,46 @@ export async function deleteRegistrationByUserId(userId: string): Promise<{ succ
   }
 }
 
+
+/**
+ * Upserts a single registration answer using the Supabase RPC function.
+ * @param userId The UUID of the user.
+ * @param questionId The ID of the question being answered.
+ * @param answer The answer value (should be JSON compatible).
+ * @param index The index of the question being answered.
+ * @returns An object containing an error if one occurred, otherwise null.
+ */
+export async function upsertRegistrationAnswer(
+  userId: string,
+  questionId: string,
+  answer: any, // eslint-disable-line @typescript-eslint/no-explicit-any
+  index: number
+): Promise<{ error: Error | null }> {
+  if (!userId || !questionId) {
+    return { error: new Error('User ID and Question ID are required.') };
+  }
+  try {
+    const supabase = await createClient();
+    const { error } = await supabase.rpc('upsert_registration_answer', {
+      p_user_id: userId,
+      p_question_id: questionId,
+      p_answer: answer,
+      p_index: index,
+    });
+
+    if (error) {
+      console.error(`Error upserting answer for user ${userId}, question ${questionId}:`, error);
+      throw new Error(`Database RPC error upserting answer: ${error.message}`);
+    }
+
+    return { error: null };
+  } catch (err) {
+    const error = err instanceof Error ? err : new Error(`An unknown error occurred upserting answer for user ${userId}, question ${questionId}.`);
+    console.error(`upsertRegistrationAnswer(${userId}, ${questionId}) failed:`, error);
+    return { error };
+  }
+}
+
 // Removed TODO comments as functions are now added
 // TODO: Implement fetchRegistrationByEmail if needed for linking during OTP flow
 
