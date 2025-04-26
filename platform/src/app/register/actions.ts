@@ -146,50 +146,53 @@ export async function submitRegistration(
 
   // Prepare data for Supabase insertion (use validated data from V2 Zod schema)
   // Map V2 fields to V1.1 RegistrationInput fields expected by the DAL
+  // Prepare data for Supabase insertion (use validated data from V3.1 Zod schema)
+  // Map validated data to the updated RegistrationInput type
   const dataToInsert: RegistrationInput = {
       user_id: userId,
+      // Personal Information
+      firstName: registrationData.firstName,
+      lastName: registrationData.lastName,
       email: registrationData.email,
-      full_name: registrationData.full_name,
-      university: registrationData.university,
-      program: registrationData.program,
-      // Map V2 academic_year (string) to V1.1 year_of_study (number) - requires parsing logic
-      // For now, let's use a placeholder or default. A proper mapping might need adjustment.
-      year_of_study: parseInt(registrationData.academic_year.split(' ')[0]) || 0, // Example: Extract number, default 0
-      // V1.1 fields not in V2 schema - provide defaults or handle nulls
-      can_attend_may_3_4: 'maybe', // Default value
-      may_3_4_comment: null,
-      prior_courses: registrationData.philosophy_coursework ? [registrationData.philosophy_coursework] : null, // Map V2 coursework to V1.1 prior_courses (assuming single string maps to array)
-      discussion_confidence: 5, // Default value
-      writing_confidence: 5, // Default value
-      familiarity_analytic: 3, // Default value
-      familiarity_continental: 3, // Default value
-      familiarity_other: 3, // Default value
-      areas_of_interest: registrationData.philosophy_interests, // Map V2 interests to V1.1 areas_of_interest
-      philosophical_traditions: [], // Default empty array for V1.1 field
-      philosophical_interests: [], // Default empty array for V1.1 field
-      theme_rankings: {} as Json, // Default empty JSON for V1.1 field
-      theme_suggestion: null,
-      workshop_rankings: {} as Json, // Default empty JSON for V1.1 field
-      preferred_working_style: 'balanced', // Default value
-      teammate_similarity: 5, // Default value
-      skill_writing: 3, // Default value
-      skill_speaking: 3, // Default value
-      skill_research: 3, // Default value
-      skill_synthesis: 3, // Default value
-      skill_critique: 3, // Default value
-      preferred_teammates: null,
-      complementary_perspectives: null,
-      mentorship_preference: 'no_preference', // Default value
-      mentorship_areas: null,
-      familiarity_tech_concepts: 3, // Default value
-      prior_hackathon_experience: false, // Default value
-      prior_hackathon_details: null,
-      dietary_restrictions: registrationData.dietary_restrictions, // V2 field matches V1.1
-      accessibility_needs: registrationData.accessibility_needs, // V2 field matches V1.1
-      additional_notes: null,
-      how_heard: 'other', // Default value
-      how_heard_other: null,
-      // Note: V2 fields like pronouns, student_id, consents are ignored as they are not in V1.1 RegistrationInput
+      academicYear: registrationData.academicYear,
+      academicYearOther: registrationData.academicYearOther,
+      universityInstitution: registrationData.universityInstitution,
+      programOfStudy: registrationData.programOfStudy,
+      // Philosophy Background
+      philosophyCoursework: registrationData.philosophyCoursework,
+      philosophyConfidenceDiscussion: registrationData.philosophyConfidenceDiscussion,
+      philosophyConfidenceWriting: registrationData.philosophyConfidenceWriting,
+      philosophyTraditions: registrationData.philosophyTraditions,
+      philosophyTraditionsOther: registrationData.philosophyTraditionsOther,
+      philosophyInterests: registrationData.philosophyInterests,
+      philosophyInterestsOther: registrationData.philosophyInterestsOther,
+      philosophyInfluences: registrationData.philosophyInfluences,
+      // Working Style & Preferences
+      workingStyle: registrationData.workingStyle,
+      workingStyleOther: registrationData.workingStyleOther,
+      communicationStyle: registrationData.communicationStyle,
+      collaborationRole: registrationData.collaborationRole,
+      collaborationRoleOther: registrationData.collaborationRoleOther,
+      presentationComfort: registrationData.presentationComfort,
+      previousCollaborationExperience: registrationData.previousCollaborationExperience,
+      previousCollaborationExperienceOther: registrationData.previousCollaborationExperienceOther,
+      // Technical Background
+      technicalFamiliarity: registrationData.technicalFamiliarity,
+      technicalInterests: registrationData.technicalInterests,
+      hackathonExperience: registrationData.hackathonExperience,
+      hackathonExperienceDetails: registrationData.hackathonExperienceDetails,
+      // Communication & Community
+      discordMember: registrationData.discordMember,
+      discordUsername: registrationData.discordUsername,
+      // Logistics & Consent
+      availability: registrationData.availability,
+      availabilityDetails: registrationData.availabilityDetails,
+      dietaryRestrictions: registrationData.dietaryRestrictions,
+      accessibilityNeeds: registrationData.accessibilityNeeds,
+      codeOfConductAgreement: registrationData.codeOfConductAgreement,
+      photoConsent: registrationData.photoConsent,
+      dataPrivacyConsent: registrationData.dataPrivacyConsent,
+      finalConfirmation: registrationData.finalConfirmation,
   };
 
 
@@ -263,51 +266,58 @@ export async function submitRegistrationFromMachine(
   }
 
   // --- Prepare data for insertion ---
-  // Map validated data to RegistrationInput type (same mapping as submitRegistration)
+  // Explicitly map fields from validated Zod data (registrationData) to RegistrationInput type
   const dataToInsert: RegistrationInput = {
       user_id: userId,
+      // Personal Information
+      firstName: registrationData.firstName,
+      lastName: registrationData.lastName,
       email: registrationData.email,
-      full_name: registrationData.full_name,
-      university: registrationData.university,
-      program: registrationData.program,
-      year_of_study: parseInt(registrationData.academic_year.split(' ')[0]) || 0,
-      can_attend_may_3_4: 'maybe', // Default
-      may_3_4_comment: null,
-      prior_courses: registrationData.philosophy_coursework ? [registrationData.philosophy_coursework] : null,
-      discussion_confidence: 5, // Default
-      writing_confidence: 5, // Default
-      familiarity_analytic: 3, // Default
-      familiarity_continental: 3, // Default
-      familiarity_other: 3, // Default
-      areas_of_interest: registrationData.philosophy_interests,
-      philosophical_traditions: [], // Default
-      philosophical_interests: [], // Default
-      theme_rankings: {} as Json, // Default
-      theme_suggestion: null,
-      workshop_rankings: {} as Json, // Default
-      preferred_working_style: 'balanced', // Default
-      teammate_similarity: 5, // Default
-      skill_writing: 3, // Default
-      skill_speaking: 3, // Default
-      skill_research: 3, // Default
-      skill_synthesis: 3, // Default
-      skill_critique: 3, // Default
-      preferred_teammates: null,
-      complementary_perspectives: null,
-      mentorship_preference: 'no_preference', // Default
-      mentorship_areas: null,
-      familiarity_tech_concepts: 3, // Default
-      prior_hackathon_experience: false, // Default
-      prior_hackathon_details: null,
-      dietary_restrictions: registrationData.dietary_restrictions,
-      accessibility_needs: registrationData.accessibility_needs,
-      additional_notes: null,
-      how_heard: 'other', // Default
-      how_heard_other: null,
+      academicYear: registrationData.academicYear,
+      academicYearOther: registrationData.academicYearOther,
+      universityInstitution: registrationData.universityInstitution,
+      programOfStudy: registrationData.programOfStudy,
+      // Philosophy Background
+      philosophyCoursework: registrationData.philosophyCoursework,
+      philosophyConfidenceDiscussion: registrationData.philosophyConfidenceDiscussion,
+      philosophyConfidenceWriting: registrationData.philosophyConfidenceWriting,
+      philosophyTraditions: registrationData.philosophyTraditions,
+      philosophyTraditionsOther: registrationData.philosophyTraditionsOther,
+      philosophyInterests: registrationData.philosophyInterests,
+      philosophyInterestsOther: registrationData.philosophyInterestsOther,
+      philosophyInfluences: registrationData.philosophyInfluences,
+      // Working Style & Preferences
+      workingStyle: registrationData.workingStyle,
+      workingStyleOther: registrationData.workingStyleOther,
+      communicationStyle: registrationData.communicationStyle,
+      collaborationRole: registrationData.collaborationRole,
+      collaborationRoleOther: registrationData.collaborationRoleOther,
+      presentationComfort: registrationData.presentationComfort,
+      previousCollaborationExperience: registrationData.previousCollaborationExperience,
+      previousCollaborationExperienceOther: registrationData.previousCollaborationExperienceOther,
+      // Technical Background
+      technicalFamiliarity: registrationData.technicalFamiliarity,
+      technicalInterests: registrationData.technicalInterests,
+      hackathonExperience: registrationData.hackathonExperience,
+      hackathonExperienceDetails: registrationData.hackathonExperienceDetails,
+      // Communication & Community
+      discordMember: registrationData.discordMember,
+      discordUsername: registrationData.discordUsername,
+      // Logistics & Consent
+      availability: registrationData.availability,
+      availabilityDetails: registrationData.availabilityDetails,
+      dietaryRestrictions: registrationData.dietaryRestrictions,
+      accessibilityNeeds: registrationData.accessibilityNeeds,
+      codeOfConductAgreement: registrationData.codeOfConductAgreement,
+      photoConsent: registrationData.photoConsent,
+      dataPrivacyConsent: registrationData.dataPrivacyConsent,
+      finalConfirmation: registrationData.finalConfirmation,
   };
+  // Note: Ensure the database schema for 'registrations' table matches these fields.
 
   // --- Database Insert ---
   try {
+    // Pass the correctly typed data directly to the DAL function
     const { error: insertError } = await insertRegistration(dataToInsert);
     if (insertError) throw insertError;
     console.log(`Registration inserted successfully for user ${userId} via machine.`);
@@ -408,22 +418,52 @@ export async function updateRegistration(
     // Import updateRegistrationById from DAL
     const { updateRegistrationById } = await import('@/lib/data/registrations');
 
-    // Explicitly map fields for update, mapping V2 Zod data to V1.1 DAL type
+    // Explicitly map fields for update, mapping V3.1 Zod data to the updated RegistrationInput type
     const dataToUpdate: Partial<RegistrationInput> = {
-        email: registrationData.email,
-        full_name: registrationData.full_name,
-        university: registrationData.university,
-        program: registrationData.program,
-        // Map V2 academic_year to V1.1 year_of_study
-        year_of_study: parseInt(registrationData.academic_year.split(' ')[0]) || undefined, // Use undefined if parsing fails
-        // Map V2 coursework/interests to V1.1 fields
-        prior_courses: registrationData.philosophy_coursework ? [registrationData.philosophy_coursework] : null,
-        areas_of_interest: registrationData.philosophy_interests,
-        // Include V2 fields that also exist in V1.1 RegistrationInput
-        dietary_restrictions: registrationData.dietary_restrictions,
-        accessibility_needs: registrationData.accessibility_needs,
-        // V1.1 fields not present in V2 schema will not be updated unless explicitly added here
-        // e.g., can_attend_may_3_4, rankings, skills etc. are not mapped from V2 data
+        // Personal Information
+        firstName: registrationData.firstName,
+        lastName: registrationData.lastName,
+        email: registrationData.email, // Assuming email might be updatable, though unlikely
+        academicYear: registrationData.academicYear,
+        academicYearOther: registrationData.academicYearOther,
+        universityInstitution: registrationData.universityInstitution,
+        programOfStudy: registrationData.programOfStudy,
+        // Philosophy Background
+        philosophyCoursework: registrationData.philosophyCoursework,
+        philosophyConfidenceDiscussion: registrationData.philosophyConfidenceDiscussion,
+        philosophyConfidenceWriting: registrationData.philosophyConfidenceWriting,
+        philosophyTraditions: registrationData.philosophyTraditions,
+        philosophyTraditionsOther: registrationData.philosophyTraditionsOther,
+        philosophyInterests: registrationData.philosophyInterests,
+        philosophyInterestsOther: registrationData.philosophyInterestsOther,
+        philosophyInfluences: registrationData.philosophyInfluences,
+        // Working Style & Preferences
+        workingStyle: registrationData.workingStyle,
+        workingStyleOther: registrationData.workingStyleOther,
+        communicationStyle: registrationData.communicationStyle,
+        collaborationRole: registrationData.collaborationRole,
+        collaborationRoleOther: registrationData.collaborationRoleOther,
+        presentationComfort: registrationData.presentationComfort,
+        previousCollaborationExperience: registrationData.previousCollaborationExperience,
+        previousCollaborationExperienceOther: registrationData.previousCollaborationExperienceOther,
+        // Technical Background
+        technicalFamiliarity: registrationData.technicalFamiliarity,
+        technicalInterests: registrationData.technicalInterests,
+        hackathonExperience: registrationData.hackathonExperience,
+        hackathonExperienceDetails: registrationData.hackathonExperienceDetails,
+        // Communication & Community
+        discordMember: registrationData.discordMember,
+        discordUsername: registrationData.discordUsername,
+        // Logistics & Consent
+        availability: registrationData.availability,
+        availabilityDetails: registrationData.availabilityDetails,
+        dietaryRestrictions: registrationData.dietaryRestrictions,
+        accessibilityNeeds: registrationData.accessibilityNeeds,
+        codeOfConductAgreement: registrationData.codeOfConductAgreement,
+        photoConsent: registrationData.photoConsent,
+        dataPrivacyConsent: registrationData.dataPrivacyConsent,
+        finalConfirmation: registrationData.finalConfirmation,
+        // Note: user_id is handled by the .eq() clause and should not be in the update payload
     };
 
     const { registration: updatedReg, error: updateError } = await updateRegistrationById(userId, dataToUpdate);

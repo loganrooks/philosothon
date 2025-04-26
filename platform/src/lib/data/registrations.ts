@@ -60,48 +60,53 @@ export interface Registration {
   // V2 fields not in V1.1 (like pronouns, student_id, academic_year, consents) are assumed not yet in DB
 }
 
-// Define input type for insert/update (reflecting V1.1 DB schema + user_id)
+// Define input type for insert/update (reflecting V3.1 schema)
 export interface RegistrationInput {
-  user_id?: string | null; // Optional for initial insert
-  email: string;
-  full_name: string;
-  university: string;
-  program: string;
-  year_of_study: number; // V1.1 field
-  can_attend_may_3_4: AttendanceOption; // V1.1 field
-  may_3_4_comment?: string | null; // V1.1 field
-  prior_courses?: string[] | null; // V1.1 field
-  discussion_confidence: number; // V1.1 field
-  writing_confidence: number; // V1.1 field
-  familiarity_analytic: number; // V1.1 field
-  familiarity_continental: number; // V1.1 field
-  familiarity_other: number; // V1.1 field
-  areas_of_interest?: string | null; // V1.1 field
-  philosophical_traditions: string[]; // V1.1 field
-  philosophical_interests: string[]; // V1.1 field
-  theme_rankings: Json; // V1.1 field
-  theme_suggestion?: string | null; // V1.1 field
-  workshop_rankings: Json; // V1.1 field
-  preferred_working_style: WorkingStyle; // V1.1 field
-  teammate_similarity: number; // V1.1 field
-  skill_writing: number; // V1.1 field
-  skill_speaking: number; // V1.1 field
-  skill_research: number; // V1.1 field
-  skill_synthesis: number; // V1.1 field
-  skill_critique: number; // V1.1 field
-  preferred_teammates?: string | null; // V1.1 field
-  complementary_perspectives?: string | null; // V1.1 field
-  mentorship_preference?: MentorshipRole | null; // V1.1 field
-  mentorship_areas?: string | null; // V1.1 field
-  familiarity_tech_concepts: number; // V1.1 field
-  prior_hackathon_experience: boolean; // V1.1 field
-  prior_hackathon_details?: string | null; // V1.1 field
-  dietary_restrictions?: string | null; // V1.1 field (also in V2)
-  accessibility_needs?: string | null; // V1.1 field (also in V2)
-  additional_notes?: string | null; // V1.1 field
-  how_heard: ReferralSource; // V1.1 field
-  how_heard_other?: string | null; // V1.1 field
-  // V2 fields not in V1.1 (like pronouns, student_id, academic_year, consents) are NOT included here
+  user_id?: string | null; // Keep optional for initial insert
+  // Personal Information
+  firstName: string; // order 1
+  lastName: string; // order 2
+  email: string; // order 3 (also in auth.users)
+  academicYear: string; // order 6
+  academicYearOther?: string | null; // order 7
+  universityInstitution: string; // order 8
+  programOfStudy: string; // order 9
+  // Philosophy Background
+  philosophyCoursework: string; // order 10 (replaces prior_courses)
+  philosophyConfidenceDiscussion: number; // order 11
+  philosophyConfidenceWriting: number; // order 12
+  philosophyTraditions: string[]; // order 13 (replaces familiarity_analytic/continental/other)
+  philosophyTraditionsOther?: string | null; // order 14
+  philosophyInterests: string[]; // order 15 (replaces areas_of_interest)
+  philosophyInterestsOther?: string | null; // order 16
+  philosophyInfluences?: string | null; // order 17
+  // Working Style & Preferences
+  workingStyle: string[]; // order 18 (replaces preferred_working_style)
+  workingStyleOther?: string | null; // order 19
+  communicationStyle: string; // order 20
+  collaborationRole: string[]; // order 21 (replaces skills?)
+  collaborationRoleOther?: string | null; // order 22
+  presentationComfort: number; // order 23
+  previousCollaborationExperience: string; // order 24
+  previousCollaborationExperienceOther?: string | null; // order 25
+  // Technical Background
+  technicalFamiliarity: number; // order 26 (replaces familiarity_tech_concepts)
+  technicalInterests?: string | null; // order 27
+  hackathonExperience: boolean; // order 28 (replaces prior_hackathon_experience)
+  hackathonExperienceDetails?: string | null; // order 29 (replaces prior_hackathon_details)
+  // Communication & Community
+  discordMember: boolean; // order 30
+  discordUsername?: string | null; // order 31
+  // Logistics & Consent
+  availability: string[]; // order 32 (replaces can_attend_may_3_4)
+  availabilityDetails?: string | null; // order 33 (replaces may_3_4_comment)
+  dietaryRestrictions?: string | null; // order 34 (matches old)
+  accessibilityNeeds?: string | null; // order 35 (matches old)
+  codeOfConductAgreement: boolean; // order 36
+  photoConsent: boolean; // order 37 (new)
+  dataPrivacyConsent: boolean; // order 38 (new)
+  finalConfirmation: boolean; // order 39 (new, likely UI only, but map if needed)
+  // Note: Ensure DB schema matches these fields. Old V1.1 fields are removed.
 }
 
 /**
