@@ -98,6 +98,54 @@ export async function requestPasswordReset(credentials: { email: string }): Prom
 
     return { success: true, message: 'Password reset email sent.' };
 }
+
+/**
+ * Initiates the Supabase Magic Link (OTP) sign-in process.
+ * @param email The user's email address.
+ * @returns An object containing data or an error from the Supabase client.
+ */
+export async function initiateOtpSignIn(email: string): Promise<{ data: any; error: Error | null }> {
+  if (!email || !email.includes('@')) {
+    // Return a structure consistent with AuthActionResult if possible, or keep original for now
+    // Let's keep original for minimal change, but ideally align return types later.
+    return { data: null, error: new Error('Invalid email address provided.') };
+  }
+
+  try {
+    const supabase = await createClient();
+    const headersList = headers(); // headers() is allowed here ('use server')
+    const origin = headersList.get('origin');
+
+    // Use a generic callback path, the actual redirect happens after callback processing
+    const redirectUrl = `${origin}/auth/callback`;
+
+    const { data, error } = await supabase.auth.signInWithOtp({
+      email: email,
+      options: {
+        shouldCreateUser: true, // Allow sign-up
+        emailRedirectTo: redirectUrl,
+      },
+    });
+
+    if (error) {
+      console.error('Error initiating OTP sign-in:', error);
+      // Consider returning AuthActionResult structure
+      // return { success: false, message: `Supabase OTP sign-in error: ${error.message}` };
+      throw new Error(`Supabase OTP sign-in error: ${error.message}`); // Keep original throw for now
+    }
+
+    // Consider returning AuthActionResult structure
+    // return { success: true, message: 'OTP sign-in initiated successfully.' };
+    return { data, error: null }; // Keep original return for now
+  } catch (err) {
+    const error = err instanceof Error ? err : new Error('An unknown error occurred during OTP sign-in initiation.');
+    console.error('initiateOtpSignIn failed:', error);
+    // Consider returning AuthActionResult structure
+    // return { success: false, message: error.message };
+    return { data: null, error }; // Keep original return for now
+  }
+}
+
 // Placeholder function to check user verification status
 // TODO: Implement actual Supabase check for user.email_confirmed_at
 export async function checkUserVerificationStatus(): Promise<AuthActionResult> {

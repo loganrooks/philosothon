@@ -1,7 +1,7 @@
 // platform/src/app/admin/components/LogoutButton.tsx
 'use client';
 
-import { signOut } from '@/app/admin/auth/actions';
+import { signOut } from '@/app/auth/actions';
 import { useFormStatus } from 'react-dom';
 
 function LogoutButtonInner() {
@@ -21,9 +21,16 @@ function LogoutButtonInner() {
 
 
 export function LogoutButton() {
+  // Define a wrapper action that calls signOut but returns void implicitly
+  const handleSignOut = async () => {
+    await signOut();
+    // No return value here, so it implicitly returns Promise<void>
+  };
+
   // We wrap the button in a form to call the server action
   return (
-    <form action={signOut}>
+    // Use the wrapper function for the action prop
+    <form action={handleSignOut}>
       <LogoutButtonInner />
     </form>
   );

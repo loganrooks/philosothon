@@ -13,6 +13,7 @@ const config: Config = {
         'hacker-green': '#00FF00',
         'dark-green': '#008F11',
         'medium-gray': '#333333',
+        'accent-orange': '#FFA500', // Added for errors/highlights
       },
       fontFamily: {
         sans: ['var(--font-inter)', 'Inter', 'sans-serif'],

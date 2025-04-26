@@ -1,11 +1,13 @@
 import { createMachine, assign, fromPromise } from 'xstate';
 import { questions } from '@/app/register/data/registrationQuestions';
 import * as regActions from '@/app/register/actions';
-import { initiateOtpSignIn } from '@/lib/data/auth';
-import { checkCurrentUserConfirmationStatus } from '@/app/register/actions';
+// Corrected import paths and function name
+import { initiateOtpSignIn, resendConfirmationEmail, checkUserVerificationStatus } from '@/app/auth/actions'; // Correct function name
+import { checkUserProfileExists } from '@/app/register/actions'; // Keep register-specific actions
 import { z } from 'zod'; // Assuming Zod is used for validation schema
 import { registrationMessages } from '@/config/registrationMessages';
 import * as utils from './registrationMachineUtils'; // Import utils
+// initiateOtpSignIn moved to line 5
 
 // --- Types ---
 
@@ -99,38 +101,69 @@ export type RegistrationEvent = // Export if needed
 const services = {
   loadStateService: fromPromise(utils.loadSavedState),
 
+  // Removed faulty fetchUserProfileService definition
+
   signUpService: fromPromise(async ({ input }: { input: { answers: Record<string, any> } }) => {
-    const { email } = input.answers;
-    // Using initiateOtpSignIn as per spec V3.1 and previous code
-    const { data, error } = await initiateOtpSignIn(email);
-    if (error) {
-      // Check for specific 'user already exists' error if Supabase provides one
-      // Example check (adjust based on actual Supabase error structure):
-      if (error.message.includes("User already registered")) {
-          return { status: 'existing_user', email };
+    const { email, password, firstName, lastName } = input.answers; // Extract needed fields
+    // Import dynamically inside async function if needed, or ensure it's imported at top
+    const { signUpUser } = await import('@/app/auth/actions');
+
+    const result = await signUpUser({ email, password, firstName, lastName });
+
+    if (!result.success) {
+      console.error("signUpUser action failed:", result.message); // Log the actual error message
+      // Check for specific Supabase error indicating user exists (case-insensitive, broader check)
+      const lowerCaseMessage = result.message.toLowerCase();
+      if (lowerCaseMessage.includes("user already registered") || lowerCaseMessage.includes("already exists")) {
+        return { status: 'existing_user', email };
       }
-      throw new Error(error.message || 'Sign-up failed');
+      // Throw other errors to be caught by onError
+      throw new Error(result.message || 'Sign-up failed');
     }
-    // If OTP initiated, it implies user *might* not exist or confirmation is needed
-    return { status: 'confirmation_required', email };
+
+    // If successful, Supabase handles sending confirmation email if needed.
+    // The machine should transition to awaitingConfirmation regardless,
+    // as checkCurrentUserConfirmationStatus will determine the next step later.
+    return { status: 'confirmation_required', email }; // Assume confirmation is always required initially after signup call
   }),
 
-  checkConfirmationService: fromPromise(async () => {
-      const isConfirmed = await checkCurrentUserConfirmationStatus();
-      if (!isConfirmed) {
-          throw new Error(registrationMessages.awaitingConfirmation.checkFailed);
+  // Renamed for clarity
+  checkAuthConfirmationService: fromPromise(async () => {
+      // This service now correctly uses the imported action returning AuthActionResult
+      const result = await checkUserVerificationStatus(); // Correct function name from auth/actions
+      // Correctly check the success property of the AuthActionResult object
+      if (!result.success) {
+          // Use message from action result, or a default
+          throw new Error(result.message || registrationMessages.awaitingConfirmation.checkFailed);
       }
-      return true; // Indicate success
+      // No need to return true explicitly, promise resolution indicates success
+  }),
+
+  // Service to invoke the checkUserProfileExists server action
+  checkProfileService: fromPromise(async () => {
+      const result = await checkUserProfileExists(); // Invoke the action
+      if (!result.success) {
+          // Throw error to be handled by onError
+          throw new Error(result.message || "Failed to check user profile.");
+      }
+      // Return the profileExists status for the guard
+      return { profileExists: result.profileExists };
   }),
 
   resendConfirmationService: fromPromise(async ({ input }: { input: { email: string | null } }) => {
       if (!input.email) {
           throw new Error("Cannot resend confirmation without email.");
       }
-      const { error } = await initiateOtpSignIn(input.email);
-      if (error) {
-          throw new Error(error.message || registrationMessages.awaitingConfirmation.resendError);
+      // Import dynamically inside async function if needed, or ensure it's imported at top
+      const { resendConfirmationEmail } = await import('@/app/auth/actions');
+
+      const result = await resendConfirmationEmail({ email: input.email });
+
+      if (!result.success) {
+          // Throw error to be caught by onError
+          throw new Error(result.message || registrationMessages.awaitingConfirmation.resendError);
       }
+      // Return email on success to potentially use in success message
       return { email: input.email };
   }),
 
@@ -235,9 +268,10 @@ export const registrationDialogMachine = createMachine({
                guard: ({ event }) => event.command === 'register new',
                // TODO: Add confirmation guard/action if context.savedStateExists is true
                actions: [
-                  assign({ currentQuestionIndex: 0, answers: {}, error: null, userEmail: null }), // Reset state
-                  'clearSavedStateAction', // Use named action for service invocation
-                  ({ context }) => context.shellInteractions.addOutputLine(registrationMessages.system.startingNewRegistration, { type: 'system' })
+                 // Removed console.log
+                 assign({ currentQuestionIndex: 0, answers: {}, error: null, userEmail: null }), // Reset state
+                 'clearSavedStateAction', // Use named action for service invocation
+                 ({ context }) => context.shellInteractions.addOutputLine(registrationMessages.system.startingNewRegistration, { type: 'system' })
                ]
              },
              {
@@ -253,17 +287,22 @@ export const registrationDialogMachine = createMachine({
                actions: ({ context }) => context.shellInteractions.addOutputLine(registrationMessages.intro.noContinueData, { type: 'error' })
              },
              {
-               // Handle invalid command in intro state
+               // Strict command handling for intro state
+               guard: ({ event }) => event.command !== 'register new' && event.command !== 'register continue',
                actions: ({ context, event }) => context.shellInteractions.addOutputLine(registrationMessages.errors.invalidCommandIntro.replace('{command}', event.command), { type: 'error' }) // Use SSOT
              }
           ]
         }
       }, // <-- Added missing comma
     earlyAuth: {
+      // Removed console.log entry action
       initial: 'promptingFirstName',
       states: {
         promptingFirstName: {
-          entry: [({ context }) => context.shellInteractions.addOutputLine(registrationMessages.earlyAuth.promptFirstName)],
+          entry: [({ context }) => {
+                    // Removed console.log
+                    context.shellInteractions.addOutputLine(registrationMessages.earlyAuth.promptFirstName);
+                 }],
           on: { INPUT_RECEIVED: { target: 'validating', actions: assign({ currentInput: ({ event }) => event.value }) } }
         },
         promptingLastName: {
@@ -298,7 +337,12 @@ export const registrationDialogMachine = createMachine({
               },
               error: null
             }),
-            ({ context }) => context.shellInteractions.addOutputLine(`> ${context.currentInput}`, { type: 'input' }),
+            // Conditionally echo input, masking password fields
+            ({ context }) => {
+                const stepId = ['firstName', 'lastName', 'email', 'password', 'confirmPassword'][context.currentQuestionIndex];
+                const displayInput = (stepId === 'password' || stepId === 'confirmPassword') ? '********' : context.currentInput;
+                context.shellInteractions.addOutputLine(`> ${displayInput}`, { type: 'input' });
+            },
           ],
           always: [
             { target: '#registrationDialog.signingUp', guard: ({ context }) => context.currentQuestionIndex === 4 },
@@ -328,17 +372,7 @@ export const registrationDialogMachine = createMachine({
           entry: [
             // Error message assigned in 'assignEarlyAuthValidationError' action
             ({ context }) => context.shellInteractions.addOutputLine(context.error!, { type: 'error' }),
-            // Re-prompt based on current index using SSOT messages
-            ({ context }) => {
-                const prompts = [
-                    registrationMessages.earlyAuth.promptFirstName,
-                    registrationMessages.earlyAuth.promptLastName,
-                    registrationMessages.earlyAuth.promptEmail,
-                    registrationMessages.earlyAuth.promptPassword,
-                    registrationMessages.earlyAuth.promptConfirmPassword
-                ];
-                context.shellInteractions.addOutputLine(prompts[context.currentQuestionIndex]);
-            }
+            // REMOVED explicit re-prompt here. The target state's entry action will handle it.
           ],
           always: [ // Go back to the correct prompting state
              { target: 'promptingFirstName', guard: ({ context }) => context.currentQuestionIndex === 0 },
@@ -402,14 +436,24 @@ export const registrationDialogMachine = createMachine({
                  error: null
               }),
             },
-            { // Handle case where user already exists (if service returns this)
+            { // Handle case where user already exists
               target: 'earlyAuth.promptingEmail', // Go back to email prompt
               guard: ({ event }) => event.output.status === 'existing_user',
-              actions: assign({
-                 isSubmitting: false,
-                 error: registrationMessages.earlyAuth.existingUserError, // Use SSOT
-                 userEmail: ({ event }) => event.output.email, // Store email even if exists?
-              }),
+              actions: [
+                  assign({
+                     isSubmitting: false,
+                     error: registrationMessages.earlyAuth.existingUserError, // Use SSOT
+                     userEmail: ({ event }) => event.output.email, // Store email
+                     // Reset password fields as they are not needed for existing user sign-in attempt
+                     answers: ({ context }) => {
+                         const { password, confirmPassword, ...rest } = context.answers;
+                         return rest;
+                     },
+                     currentQuestionIndex: 2 // Reset index to email prompt
+                  }),
+                  // Add output line explaining the user exists
+                  ({ context }) => context.shellInteractions.addOutputLine(registrationMessages.earlyAuth.existingUserError, { type: 'error' })
+              ],
             }
          ],
          onError: {
@@ -435,7 +479,7 @@ export const registrationDialogMachine = createMachine({
         COMMAND_RECEIVED: [
           {
             guard: ({ event }) => event.command === 'continue',
-            target: 'checkingConfirmation'
+            target: 'checkingAuthConfirmation' // Target sibling state
           },
           {
             guard: ({ event }) => event.command === 'resend',
@@ -456,9 +500,69 @@ export const registrationDialogMachine = createMachine({
                     context.shellInteractions.addOutputLine(reprompt);
                 }
             }
-          }
+          },
         ]
       }
+    },
+    // State to check authentication confirmation status
+    checkingAuthConfirmation: {
+      entry: [assign({ isSubmitting: true, error: null }), ({ context }) => context.shellInteractions.addOutputLine(registrationMessages.system.checkingConfirmation, { type: 'system' })],
+      invoke: {
+        id: 'checkAuthConfirmationService',
+        src: 'checkAuthConfirmationService', // Uses corrected function name now
+        onDone: {
+          target: 'checkingProfile', // Proceed to check profile on success
+          actions: assign({ isSubmitting: false, error: null }),
+        },
+        onError: {
+          target: 'awaitingConfirmation', // Go back if auth confirmation fails
+          actions: [
+            assign({
+              isSubmitting: false,
+              error: ({ event }) => registrationMessages.awaitingConfirmation.checkFailedDetailed.replace('{message}', event.error instanceof Error ? event.error.message : 'Unknown error')
+            }),
+            ({ context }) => context.shellInteractions.addOutputLine(context.error!, { type: 'error' })
+          ]
+        }
+      }
+    },
+    // State to check if a profile exists for the confirmed user
+    checkingProfile: {
+        entry: [assign({ isSubmitting: true, error: null }), ({ context }) => context.shellInteractions.addOutputLine(registrationMessages.system.checkingProfile, { type: 'system' })],
+        invoke: {
+            id: 'checkProfileService', // Use the correct service ID
+            src: 'checkProfileService', // Use the correct service key
+            input: ({ context }) => ({}), // No specific input needed, action gets user from session
+            onDone: [
+                {
+                    target: 'intro', // Go back to intro if profile exists
+                    guard: ({ event }) => event.output.profileExists === true,
+                    actions: [
+                        assign({ isSubmitting: false, error: null }),
+                        ({ context }) => context.shellInteractions.addOutputLine(registrationMessages.system.existingProfileFound, { type: 'info' }),
+                        // TODO: Maybe offer 'sign-in' or 'reset' commands here?
+                    ]
+                },
+                {
+                    target: 'questioning', // Proceed to questions if profile doesn't exist
+                    guard: ({ event }) => event.output.profileExists === false,
+                    actions: [
+                        assign({ isSubmitting: false, error: null, currentQuestionIndex: 5 }), // Start questions after early auth (index 5?)
+                        ({ context }) => context.shellInteractions.addOutputLine(registrationMessages.system.startingQuestions, { type: 'system' })
+                    ]
+                }
+            ],
+            onError: {
+                target: 'intro', // Go back to intro on error (e.g., user not authenticated)
+                actions: [
+                    assign({
+                        isSubmitting: false,
+                        error: ({ event }) => registrationMessages.errors.profileCheckFailed.replace('{message}', event.error instanceof Error ? event.error.message : 'Unknown error')
+                    }),
+                    ({ context }) => context.shellInteractions.addOutputLine(context.error!, { type: 'error' })
+                ]
+            }
+        }
     },
     checkingConfirmation: {
       entry: [assign({ isSubmitting: true, error: null }), ({ context }) => context.shellInteractions.addOutputLine(registrationMessages.system.checkingConfirmation, { type: 'system' })],
@@ -791,6 +895,7 @@ export const registrationDialogMachine = createMachine({
   }
 // --- Machine Options (Actions, Guards, Services) ---
 }, {
+  actors: services, // Correct key for invoked promises/services in XState v5
   actions: {
     // --- Named Actions ---
     clearSavedStateAction: ({ context }) => {
@@ -909,3 +1014,4 @@ export const registrationDialogMachine = createMachine({
     // No need for isInvalid guard if using actions to assign error
   },
 });
+

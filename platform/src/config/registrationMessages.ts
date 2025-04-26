@@ -9,10 +9,10 @@ export const registrationMessages = {
   dialogHeader: "Registration Mode",
   awaitingConfirmationHeader: "Awaiting Confirmation",
   prompts: {
-    registration: "[registration]>",
-    auth: "[auth]>",
-    awaitingConfirmation: "[awaiting_confirmation]>",
-    questioning: "[reg {current}/{total}]>", // Example dynamic prompt
+    registration: "[registration] >",
+    auth: "[auth] >",
+    awaitingConfirmation: "[awaiting_confirmation] >",
+    questioning: "[reg {current}/{total}] >", // Example dynamic prompt
   },
 
   // System Messages
@@ -26,6 +26,8 @@ export const registrationMessages = {
     startingQuestions: "Moving to first question...",
     submitting: "Submitting registration...",
   },
+    checkingProfile: "Checking registration status...",
+    existingProfileFound: "Existing registration found. Please sign in or use 'register continue'.",
 
   // Intro State
   intro: {
@@ -54,6 +56,7 @@ export const registrationMessages = {
     checkError: "Failed to check status: {message}", // Added placeholder
     resendSuccess: "Confirmation email resent to {email}.",
     resendError: "Failed to resend email: {message}", // Added placeholder
+    checkFailedDetailed: "Failed to check confirmation status: {message}",
   },
 
   // Questioning State
@@ -132,6 +135,7 @@ export const registrationMessages = {
     invalidCommandEdit: "Command '{command}' not available while editing. Use 'save' or 'exit'.",
     invalidCommandSubmitError: "Command '{command}' not available. Use 'retry' or 'exit'.",
     invalidCommandGeneral: "Command '{command}' not available in this state.",
+    profileCheckFailed: "Failed to check profile status: {message}",
   },
 
   // Submission Error State

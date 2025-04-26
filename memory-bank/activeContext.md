@@ -1,3 +1,13 @@
+[%DATE% %TIME%] - Code - Completed Task (Integrate RegistrationDialog into TerminalShell) - Modified `platform/src/app/register/components/TerminalShell.tsx` to import `RegistrationDialog`, update the `dialogComponents` map, and change the `register` command to switch to `registration` mode. [See MB Code Log %DATE% %TIME%]
+
+---
+
+
+[%DATE% %TIME%] - Code - Completed Task (Verify/Implement submitRegistration Server Action) - Analyzed and updated `platform/src/app/register/actions.ts` (`submitRegistrationFromMachine`) and `platform/src/lib/data/registrations.ts` (`RegistrationInput` type) to align with the V3.1 (36 questions) schema defined in `platform/config/registrationSchema.ts`. Ensured correct validation and data mapping for Supabase insertion. Fixed related TS errors in older actions. [See MB Code Log %DATE% %TIME%]
+
+---
+
+
 [%DATE% %TIME%] - Code - Completed Task (Testing Strategy Step 2 - Machine Refactor) - Refactored `platform/src/app/register/machines/registrationDialogMachine.ts` per spec `p1_registration_testing_strategy_spec.md` (Sec 3.2). Integrated SSOT messages, extracted sync logic to `registrationMachineUtils.ts`, refactored async ops using `invoke`. Commits `02f9d15`, `[git log -1 --pretty=format:%h]`. Ready for Step 3 (Machine Unit Tests).
 
 ---

@@ -1,3 +1,46 @@
+### [%DATE% %TIME%] Integrate RegistrationDialog into TerminalShell
+- **Purpose**: Configure `TerminalShell` to load and display `RegistrationDialog` for the registration flow.
+- **Files**: `platform/src/app/register/components/TerminalShell.tsx` (Modified)
+- **Status**: Implemented
+- **Dependencies**: `RegistrationDialog` component
+- **API Surface**: None changed.
+- **Tests**: None added/run. Manual verification needed.
+- **Notes**: Updated `TerminalShell.tsx` to import `RegistrationDialog`, replaced placeholder in `dialogComponents` map, and modified `processCommand` to switch to `registration` mode on `register` command.
+
+---
+
+
+### [%DATE% %TIME%] Verify/Implement submitRegistration Server Action
+- **Purpose**: Ensure the `submitRegistrationFromMachine` server action correctly validates and saves all 36 registration answers (V3.1 schema) to Supabase.
+- **Files**:
+    - `platform/src/app/register/actions.ts` (Modified)
+    - `platform/src/lib/data/registrations.ts` (Modified)
+    - `platform/config/registrationSchema.ts` (Analyzed)
+    - `platform/src/app/register/machines/registrationDialogMachine.ts` (Analyzed)
+- **Status**: Implemented
+- **Dependencies**: `@/lib/data/registrations`, `@/config/registrationSchema`, `zod`
+- **API Surface**: `submitRegistrationFromMachine` action interface unchanged.
+- **Tests**: No specific tests added/run for this action. Existing component tests may be broken.
+- **Notes**: Identified and fixed a mismatch between the V3.1 schema (used for validation) and the outdated `RegistrationInput` type expected by the DAL. Updated `RegistrationInput` in `registrations.ts` to match V3.1. Removed incorrect mapping logic in `submitRegistrationFromMachine` to pass validated data directly. Also updated mapping in older `submitRegistration` and `updateRegistration` actions for consistency. Assumes the `registrations` DB table schema matches V3.1.
+
+---
+
+
+### [%DATE% %TIME%] RegistrationDialogMachine Refactor (Testing Strategy Step 2)
+- **Purpose**: Refactor XState machine for testability per spec `p1_registration_testing_strategy_spec.md`.
+- **Files**:
+    - `platform/src/app/register/machines/registrationDialogMachine.ts` (Refactored)
+    - `platform/src/app/register/machines/registrationMachineUtils.ts` (Created)
+    - `platform/src/config/registrationMessages.ts` (Updated)
+- **Status**: Implemented & Committed (`[git log -1 --pretty=format:%h]`)
+- **Dependencies**: `xstate`, `@/config/registrationMessages`, `./registrationMachineUtils`
+- **API Surface**: Machine interface unchanged externally. Internal logic refactored.
+- **Tests**: Machine unit tests to be added in Step 3.
+- **Notes**: Integrated SSOT messages. Extracted sync validation, skip logic, and local storage functions to `registrationMachineUtils.ts`. Refactored async operations (`loadState`, `signUp`, `checkConfirmation`, `resendConfirmation`, `submitRegistration`, `saveState`, `clearState`) to use `invoke` pattern via service keys defined in `services` object and implemented in named actions or directly in state transitions. File size remains large (~900 lines), potential future refactor target.
+
+---
+
+
 ### [2025-04-25 09:39:56] RegistrationDialog XState Refactor
 - **Purpose**: Refactor internal state management of RegistrationDialog from `useReducer` to XState to handle complexity and improve maintainability, addressing persistent test failures.
 - **Files**:

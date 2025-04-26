@@ -19,7 +19,7 @@ import {
 import { QuestionType } from "@/../config/registrationSchema"; // Import QuestionType
 // import useLocalStorage from '@/lib/hooks/useLocalStorage'; // TODO: Verify path or existence
 import * as regActions from "@/app/register/actions"; // Import for typed mock
-import * as authActions from "@/lib/data/auth"; // Corrected path to DAL
+import * as authActions from "@/app/auth/actions"; // Use server actions
 import { useMachine } from '@xstate/react';
 // Removed import for actualXStateReact
 

@@ -3,7 +3,8 @@
 
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
-import { initiateOtpSignIn, signOutUser } from '@/lib/data/auth'; // Import DAL functions
+// Removed signOutUser import from DAL
+import { initiateOtpSignIn, signOut} from '@/app/auth/actions'; // Import server actions
 
 // Define schema for form validation
 const LoginSchema = z.object({
@@ -53,14 +54,14 @@ export async function signInWithOtp(
   };
 }
 
-export async function signOut() {
+export async function signOutAdmin() {
     // Call the DAL function to sign out
-    const { error } = await signOutUser();
+    const { success, message} = await signOut();
 
-    if (error) {
+    if (!success) {
         // Error is logged in DAL, but we might want to handle it differently here
         // For now, we still redirect, but maybe show an error message first?
-        console.error("Sign out failed in action:", error);
+        console.error("Sign out failed in action:", message);
         // Optionally: return an error state if this action used useFormState
     }
     redirect('/admin/login');

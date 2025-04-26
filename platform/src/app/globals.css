@@ -18,7 +18,7 @@
 
 body {
   background: var(--background);
-  color: var(--foreground);
+  color: #00FF00; /* Set default text color to hacker-green */
   /* font-family will be handled by Tailwind base styles and config */
 }
 

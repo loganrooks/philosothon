@@ -7,8 +7,9 @@ import { redirect } from 'next/navigation';
 import { headers } from 'next/headers'; // Import headers
 
 // Mock the LoginForm component (assuming named export)
-import { signInWithOtp, signOut, type LoginFormState } from '@/app/admin/auth/actions'; // Import the actions
-import { initiateOtpSignIn, signOutUser } from '@/lib/data/auth'; // Import DAL functions to mock
+import { signInWithOtp, type LoginFormState } from '@/app/admin/auth/actions'; // Import the actions (removed local signOut)
+import { initiateOtpSignIn, signOut } from '@/app/auth/actions'; // Import server actions
+// Removed import { signOutUser } from '@/lib/data/auth';
 vi.mock('@/app/admin/login/components/LoginForm', () => ({
   LoginForm: () => <div data-testid="mock-login-form">Mock Login Form</div>,
 }));
@@ -26,15 +27,15 @@ vi.mock('next/headers');
 
 
 describe('Admin Authentication Tests', () => {
-  // Mock the DAL functions
+  // Mock the Server Actions
   const mockedInitiateOtpSignIn = initiateOtpSignIn as MockedFunction<typeof initiateOtpSignIn>;
-  const mockedSignOutUser = signOutUser as MockedFunction<typeof signOutUser>;
+  const mockedSignOut = signOut as MockedFunction<typeof signOut>; // Renamed mock variable
 
   beforeEach(() => {
     vi.clearAllMocks();
-    // Reset DAL mocks
+    // Reset Action mocks
     mockedInitiateOtpSignIn.mockClear();
-    mockedSignOutUser.mockClear();
+    mockedSignOut.mockClear(); // Use renamed mock variable
 
     // Mock headers (needed by initiateOtpSignIn DAL function)
     vi.mocked(headers).mockReturnValue(new Headers({ origin: 'http://localhost:3000' }));
@@ -165,7 +166,7 @@ describe('Admin Authentication Tests', () => {
     describe('signOut', () => {
       it('should call signOutUser DAL function and redirect to /admin/login', async () => {
         // Arrange
-        mockedSignOutUser.mockResolvedValue({ error: null }); // Mock successful DAL call
+        mockedSignOut.mockResolvedValue({ success: true, message: 'Sign out successful.' }); // Mock successful action call
 
         // Act
         try {
@@ -177,15 +178,15 @@ describe('Admin Authentication Tests', () => {
         }
 
         // Assert
-        expect(mockedSignOutUser).toHaveBeenCalledTimes(1);
+        expect(mockedSignOut).toHaveBeenCalledTimes(1);
         expect(vi.mocked(redirect)).toHaveBeenCalledTimes(1);
         expect(vi.mocked(redirect)).toHaveBeenCalledWith('/admin/login');
       });
 
        it('should still redirect even if signOutUser DAL fails', async () => {
          // Arrange
-        const dalError = new Error('DAL SignOut failed');
-        mockedSignOutUser.mockResolvedValue({ error: dalError }); // Simulate DAL error
+        const actionErrorMsg = 'DAL SignOut failed'; // Use string message
+        mockedSignOut.mockResolvedValue({ success: false, message: actionErrorMsg }); // Simulate failed action call
         console.error = vi.fn(); // Mock console.error
 
         // Act
@@ -198,8 +199,9 @@ describe('Admin Authentication Tests', () => {
         }
 
         // Assert
-        expect(mockedSignOutUser).toHaveBeenCalledTimes(1);
-        expect(console.error).toHaveBeenCalledWith('Sign out failed in action:', dalError); // Check log
+        expect(mockedSignOut).toHaveBeenCalledTimes(1);
+        // Check the console log matches the actual log in the signOut action
+        expect(console.error).toHaveBeenCalledWith('Sign Out Error:', expect.any(Error));
         expect(vi.mocked(redirect)).toHaveBeenCalledTimes(1); // Redirect should still happen
         expect(vi.mocked(redirect)).toHaveBeenCalledWith('/admin/login');
       });

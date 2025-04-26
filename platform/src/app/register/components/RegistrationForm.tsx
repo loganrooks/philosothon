@@ -800,7 +800,7 @@ export function RegistrationForm({ initialAuthStatus }: { initialAuthStatus?: { 
         } else if (answer) { // Only validate non-empty answers further (unless required check failed)
             // TODO: Implement detailed validation based on question.type and question.validationRules
             // Example:
-            if (question.type === 'scale' || question.type === 'number') {
+            if (question.type === 'scale') {
                 const num = parseInt(answer, 10);
                 if (isNaN(num)) validationError = "Invalid number.";
                 // Add min/max checks from validationRules

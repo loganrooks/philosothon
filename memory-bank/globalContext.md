@@ -1,3 +1,14 @@
+- **[%DATE% %TIME%] - Code:** Integrated `RegistrationDialog` into `TerminalShell` by updating imports, the dialog map, and command handling in `platform/src/app/register/components/TerminalShell.tsx`. [See MB Active Log %DATE% %TIME%]
+
+
+
+- **[%DATE% %TIME%] - Code:** Verified and implemented the `submitRegistrationFromMachine` server action in `platform/src/app/register/actions.ts`. Updated the `RegistrationInput` type in the DAL (`platform/src/lib/data/registrations.ts`) and corrected data mapping logic to align with the V3.1 (36 questions) schema. [See MB Active Log %DATE% %TIME%, MB Code Log %DATE% %TIME%]
+
+
+
+- **[%DATE% %TIME%] - Code:** Completed Step 2 of Registration Testing Strategy (Machine Refactor). Integrated SSOT messages, extracted sync logic (`registrationMachineUtils.ts`), and refactored async ops using `invoke` in `registrationDialogMachine.ts`. [See MB Active Log %DATE% %TIME%]
+
+
 - **[2025-04-25 19:44:36] - Debug:** Corrected `vi.mock` implementation for `@xstate/react` in `RegistrationDialog.test.tsx` (commit `1a8c5b9`), resolving the critical `TypeError` blocker. Test suite now runs, showing 51 failures (expected due to previous mock removal). [See MB Active Log 2025-04-25 19:44:36]
 
 
@@ -276,6 +287,14 @@ This file consolidates less frequently updated global project information, inclu
 ---
 
 # System Patterns
+
+
+### [%DATE% %TIME%] System Pattern Update: XState Refinements
+- **Context:** Refactoring `registrationDialogMachine.ts` for testability (Testing Strategy Step 2).
+- **Refinement:** Extracted synchronous validation/skip logic into utility functions (`registrationMachineUtils.ts`). Refactored asynchronous operations (sign-up, confirmation checks, submission) to use XState's `invoke` pattern with `fromPromise`.
+- **Benefit:** Improves machine testability by allowing mocking of invoked services and isolated testing of pure utility functions. Reinforces structured handling of side effects.
+- **Reference:** `platform/src/app/register/machines/registrationDialogMachine.ts` (commit `[git log -1 --pretty=format:%h]`), `platform/src/app/register/machines/registrationMachineUtils.ts`
+
 
 ### [2025-04-25] System Pattern: XState for Complex Component State
 - **Description:** For components with complex, multi-step flows, numerous potential states, and intricate validation/side-effect logic (like `RegistrationDialog`), using XState provides a structured approach compared to `useReducer`.

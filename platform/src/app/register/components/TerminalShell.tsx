@@ -11,6 +11,7 @@ import React, {
 } from 'react';
 import { useFormState } from 'react-dom'; // Needed for dialogs later
 import InterestFormPlaceholder from './InterestFormPlaceholder'; // Placeholder import
+import RegistrationDialog from './RegistrationDialog'; // Import the actual dialog
 
 // --- Types ---
 
@@ -278,13 +279,13 @@ const OutputHistory: React.FC<OutputHistoryProps> = ({ lines }) => {
 
   const getLineClass = (type: OutputLine['type']) => {
     switch (type) {
-      case 'input': return 'text-hacker-green opacity-75';
-      case 'error': return 'text-red-500';
-      case 'success': return 'text-green-500';
-      case 'warning': return 'text-yellow-500';
-      case 'info': return 'text-blue-400';
-      case 'question': return 'text-purple-400 font-bold';
-      case 'prompt': return 'text-hacker-green'; // Same as input for now
+      case 'input': return 'text-light-text'; // User input white/light-gray
+      case 'error': return 'text-accent-orange'; // Orange for errors
+      case 'success': return 'text-hacker-green'; // Green for success
+      case 'warning': return 'text-accent-orange'; // Orange for warnings
+      case 'info': return 'text-blue-400'; // Keep blue for info
+      case 'question': return 'text-hacker-green font-bold'; // Green and bold for questions
+      case 'prompt': return 'text-hacker-green'; // Green for prompt
       case 'output':
       default: return 'text-hacker-green';
     }
@@ -309,7 +310,7 @@ const dialogComponents: Record<TerminalMode, React.FC<any>> = { // Use 'any' for
   main: () => null, // No specific dialog for main mode initially
   interest_capture: InterestFormPlaceholder,
   auth: () => <div>Auth Dialog Placeholder</div>, // Placeholder
-  registration: () => <div>Registration Dialog Placeholder</div>, // Placeholder
+  registration: RegistrationDialog, // Use the actual component
   // Add other modes and their components here
 };
 
@@ -387,7 +388,8 @@ const TerminalShell: React.FC = () => {
 
     // --- Mode Switching Commands (Handled Globally for now) ---
      if (cmd === 'register' && state.mode === 'main') {
-        changeMode('interest_capture');
+        // Switch to registration mode to load the RegistrationDialog
+        changeMode('registration');
         dispatch({ type: 'SET_PENDING', payload: false });
         return;
      }
@@ -439,7 +441,7 @@ const TerminalShell: React.FC = () => {
     <TerminalContext.Provider value={contextValue}>
       <div
         ref={containerRef}
-        className="bg-black text-hacker-green font-mono h-full w-full p-4 flex flex-col overflow-hidden border border-medium-gray"
+        className="bg-black text-hacker-green font-mono h-full w-full p-4 flex flex-col overflow-hidden border border-medium-gray" // Ensure bg-black is applied
         // tabIndex={0} // Make div focusable if needed for global keybinds
       >
         <OutputHistory lines={state.outputLines} />
@@ -448,17 +450,18 @@ const TerminalShell: React.FC = () => {
         {ActiveDialog && (
           <ActiveDialog
             // Pass necessary props based on DialogProps interface
-            processInput={processCommand} // Or maybe dialogs don't need this if using forms? Revisit.
+            // processInput={processCommand} // Dialog handles its own input submission
             addOutputLine={addOutputLine}
-            changeMode={changeMode}
-            setDialogState={setDialogState}
-            currentDialogState={state.dialogState[state.mode] || {}}
+            // sendToShellMachine={send} // Incorrect: 'send' belongs to the dialog's machine
+            // changeMode={changeMode} // Mode changes handled via sendToShellMachine
+            // setDialogState={setDialogState} // Dialog state managed internally or by machine
+            // currentDialogState={state.dialogState[state.mode] || {}} // Dialog state managed internally or by machine
             userSession={{ isAuthenticated: state.isAuthenticated, email: state.userEmail }}
+            currentPrompt={state.prompt} // Pass the current prompt text
           />
         )}
 
-        {/* Only show the main input line if no dialog is handling input OR if the dialog allows it */}
-        {/* For now, assume main input is hidden during dialog modes */}
+        {/* Show main InputLine ONLY in main mode. Dialogs handle their own input. */}
         {state.mode === 'main' && (
              <InputLine
                 prompt={state.prompt}

@@ -10,7 +10,7 @@ import { Database, Json } from '@/lib/supabase/database.types'; // Import genera
 
 
 
-export const RegistrationSchema = generateRegistrationSchema();
+const RegistrationSchema = generateRegistrationSchema(); // Removed export
 // Define an inferred type based on the Zod schema
 type ValidatedRegistrationData = z.infer<typeof RegistrationSchema>;
 
@@ -327,6 +327,40 @@ export async function submitRegistrationFromMachine(
     console.error('Registration Insert Error (Machine):', error);
     return { success: false, message: `Database Error: Failed to save registration. ${error.message}` };
   }
+}
+
+
+
+// Action to check if a profile exists for the current user
+export async function checkUserProfileExists(): Promise<{ success: boolean; profileExists: boolean; message?: string }> {
+  const supabase = await createClient();
+
+  // Get current user
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (userError || !user) {
+    console.error("User fetch error in checkUserProfileExists:", userError);
+    return { success: false, profileExists: false, message: 'Authentication error: Could not retrieve user.' };
+  }
+
+  // Fetch profile
+  const { fetchUserProfile } = await import('@/lib/data/profiles');
+  const { profile, error: profileError } = await fetchUserProfile(user.id);
+
+  if (profileError) {
+    // Check if the error is specifically 'Profile not found'
+    if (profileError.message.includes("Profile not found")) {
+      console.log(`Profile not found for user ${user.id}, proceeding with registration questions.`);
+      return { success: true, profileExists: false }; // Profile doesn't exist, this is a success case for the flow
+    } else {
+      // Handle other database errors
+      console.error("Profile fetch error in checkUserProfileExists:", profileError);
+      return { success: false, profileExists: false, message: `Database error: ${profileError.message}` };
+    }
+  }
+
+  // Profile exists
+  console.log(`Profile found for user ${user.id}.`);
+  return { success: true, profileExists: true };
 }
 
 

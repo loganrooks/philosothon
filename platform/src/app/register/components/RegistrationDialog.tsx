@@ -9,32 +9,31 @@ type DialogMode = 'loadingSavedState' | 'intro' | 'earlyAuth' | 'awaitingConfirm
 
 interface DialogProps {
   addOutputLine: (line: string | React.ReactNode, options?: { timestamp?: boolean; type?: 'input' | 'output' | 'error' | 'system' | 'hint' }) => void;
-  sendToShellMachine: (event: any) => void;
-  // Removed setDialogState, clearDialogState, changeMode as machine handles state
+  sendToShellMachine: (event: any) => void; // Added back prop
   userSession: any; // Replace 'any' with actual UserSession type
-  dialogState: Record<string, any>; // Keep for potential initial state loading? Or remove if machine handles loading.
-  onInput: (input: string) => void; // Assuming this prop exists for handling input submission
+  // currentPrompt prop removed - dialog generates its own prompt
+  // dialogState prop likely not needed if machine handles loading
+  // onInput prop likely not needed as dialog handles its own form submission
 }
 
 // Define ShellInteractions type matching the one in the machine
 interface ShellInteractions {
   addOutputLine: (line: string | React.ReactNode, options?: { timestamp?: boolean; type?: 'input' | 'output' | 'error' | 'system' | 'hint' }) => void;
-  sendToShellMachine: (event: any) => void;
+  sendToShellMachine: (event: any) => void; // Added back - required by machine context
 }
 
 
 const RegistrationDialog: React.FC<DialogProps> = ({
   addOutputLine,
-  sendToShellMachine,
+  sendToShellMachine, // Added back prop
   userSession,
-  dialogState, // May not be needed if machine handles loading entirely
-  onInput,
+  // Removed currentPrompt, dialogState and onInput from destructuring
 }) => {
 
   // Prepare shell interactions object for the machine context
   const shellInteractions: ShellInteractions = {
     addOutputLine,
-    sendToShellMachine,
+    sendToShellMachine, // Added back - required by machine context
   };
 
   // Use the XState machine
@@ -60,9 +59,6 @@ const RegistrationDialog: React.FC<DialogProps> = ({
     event.preventDefault();
     const input = currentLocalInput.trim();
     setCurrentLocalInput(''); // Clear local input field
-
-    // Echo input to the output
-    addOutputLine(`> ${input}`, { type: 'input' });
 
     // Check for global commands first (e.g., help, exit) - Machine can handle this internally
     // Or handle basic commands here and send specific events
@@ -96,20 +92,57 @@ const RegistrationDialog: React.FC<DialogProps> = ({
   // The machine's entry/exit actions handle displaying prompts via addOutputLine.
   // This component mainly provides the input form.
 
+  // Generate prompt based on machine state
+  const generatePrompt = () => {
+    const { currentQuestionIndex, questions } = state.context;
+    const totalQuestions = questions.length; // Should be 41
+
+    // Use a consistent format, adjusting index display for non-questioning states
+    let displayIndex = '?';
+    if (state.matches('questioning') || state.matches('editing')) {
+        // Ensure index is valid before accessing questions
+        if (currentQuestionIndex >= 0 && currentQuestionIndex < totalQuestions) {
+             // Display 1-based index for user
+            displayIndex = (currentQuestionIndex + 1).toString();
+        }
+    } else if (state.matches('earlyAuth')) {
+        // Show early auth step number (0-4) + 1
+        displayIndex = (currentQuestionIndex + 1).toString();
+    } else if (state.matches('awaitingConfirmation')) {
+        displayIndex = 'confirm';
+    } else if (state.matches('reviewing')) {
+        displayIndex = 'review';
+    } else if (state.matches('submitting') || state.matches('submissionError')) {
+        displayIndex = 'submit';
+    } else if (state.matches('success')) {
+        displayIndex = 'done';
+    } else {
+        // Default for intro, loading, etc.
+        displayIndex = 'init';
+    }
+
+    // Use totalQuestions (should be 41) consistently
+    return `[reg ${displayIndex}/${totalQuestions}]> `;
+  };
+
+  const displayPrompt = generatePrompt();
+
   return (
     <div>
       {/* Input Form */}
       <form onSubmit={handleSubmit} className="mt-2">
-        {/* Display prompt indicator based on machine state if needed, though machine handles prompts */}
-        {/* Example: <span className="text-hacker-green">{getPromptIndicator(state)}</span> */}
-        <input
-          type={isPasswordInput ? 'password' : 'text'}
+        {/* Wrap prompt and input in a flex container */}
+        <div className="flex items-baseline"> {/* Added items-baseline */}
+          <span className="text-hacker-green mr-2">{displayPrompt}</span>
+          <input
+            type={isPasswordInput ? 'password' : 'text'}
           value={currentLocalInput}
           onChange={handleInputChange}
           className="bg-transparent text-hacker-green border-none outline-none w-full font-mono"
           autoFocus
           // Add other necessary input attributes (e.g., name, id)
-        />
+          />
+        </div>
         {/* Hidden submit button to allow Enter key submission */}
         <button type="submit" style={{ display: 'none' }} aria-hidden="true"></button>
       </form>
