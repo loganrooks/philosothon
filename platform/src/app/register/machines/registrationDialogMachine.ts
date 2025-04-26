@@ -4,11 +4,13 @@ import * as regActions from '@/app/register/actions';
 import { initiateOtpSignIn } from '@/lib/data/auth';
 import { checkCurrentUserConfirmationStatus } from '@/app/register/actions';
 import { z } from 'zod'; // Assuming Zod is used for validation schema
+import { registrationMessages } from '@/config/registrationMessages';
+import * as utils from './registrationMachineUtils'; // Import utils
 
 // --- Types ---
 
 // TODO: Define Question type properly based on registrationSchema.ts
-interface Question {
+export interface Question {
   id: string;
   label: string;
   type: string; // 'text', 'email', 'password', 'confirmPassword', 'number', 'scale', 'boolean', 'single-select', 'multi-select-numbered', 'ranked-choice-numbered', 'paragraph';
@@ -25,176 +27,132 @@ interface Question {
 
 type DialogMode = 'loadingSavedState' | 'intro' | 'earlyAuth' | 'awaitingConfirmation' | 'questioning' | 'review' | 'submitting' | 'success' | 'submissionError';
 
-interface RegistrationContext {
+export interface RegistrationContext {
   currentQuestionIndex: number;
   answers: Record<string, any>;
   currentInput: string;
-  error: string | null;
+  error: string | null; // Stores general error messages or validation messages from utils
   userEmail: string | null; // Store email after early auth
-  questions: Question[]; // Load questions into context
+  questions: Question[]; // Load questions from import
   // Props from component needed for actions/services
   shellInteractions: ShellInteractions; // Use defined type
   // Internal machine state
-  isSubmitting: boolean;
+  isSubmitting: boolean; // Used for async operations
   savedStateExists: boolean; // Flag to indicate if resumable state was found
-  validationResult: { isValid: boolean; message?: string } | null;
+  // validationResult removed - handled by guards/actions calling utils or specific error context
 }
 
 // Type for input when creating the machine
-interface MachineInput {
+export interface MachineInput { // Export if needed by component
   shellInteractions: ShellInteractions;
 }
 
 // Type for shell interactions passed from the component
-interface ShellInteractions {
+export interface ShellInteractions { // Export if needed by component
   addOutputLine: (line: string | React.ReactNode, options?: { timestamp?: boolean; type?: 'input' | 'output' | 'error' | 'system' | 'hint' }) => void;
   sendToShellMachine: (event: any) => void;
   // Add other needed props like changeMode if shell manages it
 }
 
 
-type RegistrationEvent =
-  | { type: 'INPUT_RECEIVED'; value: string }
+// --- Events ---
+// Define specific event types for better type safety
+type InputEvent = { type: 'INPUT_RECEIVED'; value: string };
+type CommandEvent = { type: 'COMMAND_RECEIVED'; command: string; args?: string[] };
+type LoadEvent =
   | { type: 'LOAD_SUCCESS'; savedState: Partial<RegistrationContext> }
-  | { type: 'LOAD_FAILURE'; error: string }
-  | { type: 'LOAD_NOT_FOUND' }
-  | { type: 'VALIDATION_COMPLETE'; result: { isValid: boolean; message?: string } } // Event from validation service
-  | { type: 'SIGNUP_SUCCESS'; email: string } // Pass email on success
+  | { type: 'LOAD_FAILURE'; error: Error } // Use Error type
+  | { type: 'LOAD_NOT_FOUND' };
+type SignUpEvent =
+  | { type: 'SIGNUP_SUCCESS'; email: string }
   | { type: 'SIGNUP_EXISTS'; email: string }
-  | { type: 'SIGNUP_FAILURE'; error: string }
+  | { type: 'SIGNUP_FAILURE'; error: Error }; // Use Error type
+type ConfirmationEvent =
   | { type: 'CONFIRMATION_SUCCESS' }
-  | { type: 'CONFIRMATION_FAILURE'; error: string }
+  | { type: 'CONFIRMATION_FAILURE'; error: Error }; // Use Error type
+type ResendEvent =
   | { type: 'RESEND_SUCCESS' }
-  | { type: 'RESEND_FAILURE'; error: string }
+  | { type: 'RESEND_FAILURE'; error: Error }; // Use Error type
+type SubmitEvent =
   | { type: 'SUBMIT_SUCCESS' }
-  | { type: 'SUBMIT_FAILURE'; error: string }
-  | { type: 'COMMAND_RECEIVED'; command: string; args?: string[] } // For commands like back, review, edit, save, submit, retry, exit
-  | { type: 'RETRY' } // Generic retry event
-  | { type: 'EDIT_ANSWER'; index: number } // Event to jump to specific question index
+  | { type: 'SUBMIT_FAILURE'; error: Error }; // Use Error type
+type NavigationEvent =
+  | { type: 'RETRY' }
+  | { type: 'EDIT_ANSWER'; index: number }
   | { type: 'GO_TO_REVIEW' }
   | { type: 'GO_TO_SUBMIT' };
 
+export type RegistrationEvent = // Export if needed
+  | InputEvent
+  | CommandEvent
+  | LoadEvent
+  | SignUpEvent
+  | ConfirmationEvent
+  | ResendEvent
+  | SubmitEvent
+  | NavigationEvent;
 
-// --- Helper Functions ---
 
-// Placeholder for validation logic - should be more robust
-// This will likely become an invoked service
-const validateAnswer = (question: Question | undefined, answer: string, allAnswers: Record<string, any>): { isValid: boolean; message?: string } => {
-  if (!question) return { isValid: false, message: "Question not found." };
+// --- Services (Async Logic Wrappers) ---
+// These wrap the actual async functions (server actions, utils)
 
-  if (question.required && !answer) {
-    return { isValid: false, message: question.validationRules?.required || "Input cannot be empty." };
-  }
+const services = {
+  loadStateService: fromPromise(utils.loadSavedState),
 
-  // Add more complex validation based on question.type and question.validationRules
-  // Example for ranked-choice (needs full implementation based on spec V3.1)
-  if (question.type === 'ranked-choice-numbered') {
-    // Parse input (e.g., "5:1 2:2 8:3")
-    // Validate format, uniqueness, range, count (minRanked, strict)
-    // Return { isValid: false, message: "Specific error..." } on failure
-    console.warn("Ranked-choice validation not fully implemented in machine yet.");
-  }
-
-  // Add other type validations...
-
-  return { isValid: true };
-};
-
-// Placeholder for skip logic - needs refinement
-const findNextQuestionIndex = (currentIndex: number, answers: Record<string, any>): number => {
-  let nextIndex = currentIndex + 1;
-  while (nextIndex < questions.length) {
-    const nextQuestion = questions[nextIndex];
-    if (nextQuestion?.dependsOn) {
-      const dependsOnAnswer = answers[nextQuestion.dependsOn];
-      const conditionMet = Array.isArray(nextQuestion.dependsValue)
-        ? nextQuestion.dependsValue.includes(dependsOnAnswer)
-        : dependsOnAnswer === nextQuestion.dependsValue;
-      if (!conditionMet) {
-        nextIndex++;
-        continue;
+  signUpService: fromPromise(async ({ input }: { input: { answers: Record<string, any> } }) => {
+    const { email } = input.answers;
+    // Using initiateOtpSignIn as per spec V3.1 and previous code
+    const { data, error } = await initiateOtpSignIn(email);
+    if (error) {
+      // Check for specific 'user already exists' error if Supabase provides one
+      // Example check (adjust based on actual Supabase error structure):
+      if (error.message.includes("User already registered")) {
+          return { status: 'existing_user', email };
       }
+      throw new Error(error.message || 'Sign-up failed');
     }
-    break; // Found the next valid index
-  }
-  return nextIndex;
-};
+    // If OTP initiated, it implies user *might* not exist or confirmation is needed
+    return { status: 'confirmation_required', email };
+  }),
 
-const findPrevQuestionIndex = (currentIndex: number, answers: Record<string, any>): number => {
-    let prevIndex = currentIndex - 1;
-    const minIndex = 3; // Cannot go below index 3 ('academicYear') in questioning mode
-
-    while (prevIndex >= minIndex) {
-        const prevQuestion = questions[prevIndex];
-        if (prevQuestion?.dependsOn) {
-            const dependsOnAnswer = answers[prevQuestion.dependsOn];
-            const conditionMet = Array.isArray(prevQuestion.dependsValue)
-                ? prevQuestion.dependsValue.includes(dependsOnAnswer)
-                : dependsOnAnswer === prevQuestion.dependsValue;
-            if (!conditionMet) {
-                prevIndex--;
-                continue;
-            }
-        }
-        break; // Found the previous valid index
-    }
-    return Math.max(minIndex, prevIndex); // Ensure it doesn't go below minIndex
-};
-
-// Placeholder for loading state from localStorage
-const loadSavedState = async (): Promise<Partial<RegistrationContext>> => {
-  try {
-    const savedData = localStorage.getItem('philosothon-registration-v3.1');
-    if (savedData) {
-      const decodedData = atob(savedData);
-      const parsedState = JSON.parse(decodedData);
-      // Validate parsedState structure if necessary
-      if (parsedState && typeof parsedState.currentQuestionIndex === 'number') {
-        return parsedState as Partial<RegistrationContext>;
-      } else {
-        throw new Error("Saved data is invalid.");
+  checkConfirmationService: fromPromise(async () => {
+      const isConfirmed = await checkCurrentUserConfirmationStatus();
+      if (!isConfirmed) {
+          throw new Error(registrationMessages.awaitingConfirmation.checkFailed);
       }
-    } else {
-      // Return empty object instead of throwing error for tests
-      // throw new Error("No saved data found.");
-      return {};
-    }
-  } catch (error) {
-    console.error("Failed to load saved state:", error);
-    if (error instanceof Error && error.message === "No saved data found.") {
-        throw error; // Re-throw specific error
-    }
-    throw new Error("Failed to load or parse saved state."); // Generic error
-  }
+      return true; // Indicate success
+  }),
+
+  resendConfirmationService: fromPromise(async ({ input }: { input: { email: string | null } }) => {
+      if (!input.email) {
+          throw new Error("Cannot resend confirmation without email.");
+      }
+      const { error } = await initiateOtpSignIn(input.email);
+      if (error) {
+          throw new Error(error.message || registrationMessages.awaitingConfirmation.resendError);
+      }
+      return { email: input.email };
+  }),
+
+  submitRegistrationService: fromPromise(async ({ input }: { input: { answers: Record<string, any> } }) => {
+      // Assuming submitRegistrationFromMachine is the correct server action
+      const result = await regActions.submitRegistrationFromMachine(input.answers);
+      // Adjust based on actual server action return type { success: boolean; message: string | null; }
+      if (!result.success) {
+          throw new Error(result.message || 'Submission failed');
+      }
+      return result;
+  }),
+
+  saveStateService: fromPromise(async ({ input }: { input: Pick<RegistrationContext, 'currentQuestionIndex' | 'answers' | 'userEmail'> }) => {
+      utils.saveStateToStorage(input); // Util handles try/catch, rethrow on error
+  }),
+
+  clearStateService: fromPromise(async () => {
+      utils.clearSavedState(); // Util handles try/catch, rethrow on error
+  }),
 };
 
-// Placeholder for saving state to localStorage
-const saveStateToStorage = (context: RegistrationContext) => {
-  try {
-    const stateToSave = {
-      currentQuestionIndex: context.currentQuestionIndex,
-      answers: context.answers,
-      userEmail: context.userEmail,
-      // Add other relevant context fields if needed
-    };
-    const encodedData = btoa(JSON.stringify(stateToSave));
-    localStorage.setItem('philosothon-registration-v3.1', encodedData);
-    context.shellInteractions.addOutputLine("Progress saved.", { type: 'system' });
-  } catch (error) {
-    console.error("Failed to save state:", error);
-    context.shellInteractions.addOutputLine("Error saving progress.", { type: 'error' });
-  }
-};
-
-// Placeholder for clearing saved state
-const clearSavedState = () => {
-    try {
-        localStorage.removeItem('philosothon-registration-v3.1');
-    } catch (error) {
-        console.error("Failed to clear saved state:", error);
-        // Optionally inform the user
-    }
-};
 
 // --- Machine Definition ---
 
@@ -203,167 +161,147 @@ export const registrationDialogMachine = createMachine({
   types: {
     context: {} as RegistrationContext,
     events: {} as RegistrationEvent,
-    input: {} as MachineInput, // Define input type
+    input: {} as MachineInput,
   },
-  context: ({ input }: { input: MachineInput }) => ({ // Use input to pass initial props
+  context: ({ input }: { input: MachineInput }) => ({
     currentQuestionIndex: 0,
     answers: {},
     currentInput: '',
     error: null,
     userEmail: null,
     questions: questions, // Load questions from import
-    shellInteractions: input.shellInteractions, // Get shell interactions from props
+    shellInteractions: input.shellInteractions,
     isSubmitting: false,
-    savedStateExists: false, // Initialize flag
-    validationResult: null,
+    savedStateExists: false,
   }),
   initial: 'loadingSavedState',
   states: {
     loadingSavedState: {
       invoke: {
         id: 'loadStateService',
-        src: fromPromise(loadSavedState),
+        src: 'loadStateService', // Use service key from services object
         onDone: {
-          target: 'intro', // Go to intro even if loaded, intro decides next step
+          target: 'intro',
           actions: assign({
             savedStateExists: true,
-            // Optionally merge loaded state here, or handle in intro
-            // answers: ({ event }) => event.output.answers || {},
-            // currentQuestionIndex: ({ event }) => event.output.currentQuestionIndex ?? 0,
-            // userEmail: ({ event }) => event.output.userEmail || null,
+            // Merge loaded state - ensure keys match context
+            answers: ({ event }) => event.output.answers || {},
+            currentQuestionIndex: ({ event }) => event.output.currentQuestionIndex ?? 0,
+            userEmail: ({ event }) => event.output.userEmail || null,
           }),
         },
         onError: [
            {
              target: 'intro',
              guard: ({ event }) => event.error instanceof Error && event.error.message === "No saved data found.",
-             actions: assign({ savedStateExists: false, error: null }), // Clear error if just not found
+             actions: assign({ savedStateExists: false, error: null }),
            },
            {
-             target: 'intro', // Go to intro even on load failure
+             target: 'intro',
              actions: assign({
-               savedStateExists: false, // Assume no usable state
-               error: ({ event }) => `Failed to load saved state: ${event.error instanceof Error ? event.error.message : 'Unknown error'}`,
+               savedStateExists: false,
+               // Use generic error message, specific message handled by service
+               error: ({ event }) => registrationMessages.errors.loadStateFailed.replace('{message}', event.error instanceof Error ? event.error.message : 'Unknown error'),
              }),
            }
         ]
       },
-      entry: [({ context }) => context.shellInteractions.addOutputLine("Checking for saved progress...")],
+      entry: [({ context }) => context.shellInteractions.addOutputLine(registrationMessages.system.checkingSavedProgress, { type: 'system' })],
       exit: [
-        // Display error if loading failed (and wasn't 'not found')
-        assign({ error: null }), // Clear error after displaying/handling
+        // Display error if loading failed
         ({ context }) => {
-            if (context.error && context.error.includes("Failed to load")) {
+            // Check if the error message starts with the generic load failed message
+            if (context.error?.startsWith(registrationMessages.errors.loadStateFailed.split(':')[0])) {
                 context.shellInteractions.addOutputLine(context.error, { type: 'error' });
             }
+        },
+        assign({ error: null }), // Clear error after handling
+      ], // <-- Add missing bracket
+    }, // <-- Correctly placed comma
+      intro: {
+        entry: [
+          ({ context }) => context.shellInteractions.addOutputLine(registrationMessages.intro.welcome),
+          ({ context }) => {
+              if (context.savedStateExists) {
+                  context.shellInteractions.addOutputLine(registrationMessages.intro.overwriteWarning, { type: 'system' });
+              }
+              // No specific message needed if not resuming, welcome message is sufficient.
+          }
+        ],
+        on: {
+          COMMAND_RECEIVED: [
+             {
+               target: 'earlyAuth',
+               guard: ({ event }) => event.command === 'register new',
+               // TODO: Add confirmation guard/action if context.savedStateExists is true
+               actions: [
+                  assign({ currentQuestionIndex: 0, answers: {}, error: null, userEmail: null }), // Reset state
+                  'clearSavedStateAction', // Use named action for service invocation
+                  ({ context }) => context.shellInteractions.addOutputLine(registrationMessages.system.startingNewRegistration, { type: 'system' })
+               ]
+             },
+             {
+               target: 'questioning', // Go directly to questioning if resuming
+               guard: ({ event, context }) => event.command === 'register continue' && context.savedStateExists,
+               actions: [
+                  ({ context }) => context.shellInteractions.addOutputLine(registrationMessages.system.resumingRegistration, { type: 'system' })
+                  // State should already be loaded from loadingSavedState.onDone
+               ]
+             },
+             {
+               guard: ({ event, context }) => event.command === 'register continue' && !context.savedStateExists,
+               actions: ({ context }) => context.shellInteractions.addOutputLine(registrationMessages.intro.noContinueData, { type: 'error' })
+             },
+             {
+               // Handle invalid command in intro state
+               actions: ({ context, event }) => context.shellInteractions.addOutputLine(registrationMessages.errors.invalidCommandIntro.replace('{command}', event.command), { type: 'error' }) // Use SSOT
+             }
+          ]
         }
-      ]
-    },
-    intro: {
-      entry: [
-        ({ context }) => context.shellInteractions.addOutputLine("Welcome to the Philosothon Registration!"), // TODO: Full intro text
-        ({ context }) => context.shellInteractions.addOutputLine("We need to collect some information to get you started."),
-        ({ context }) => {
-            if (context.savedStateExists) {
-                context.shellInteractions.addOutputLine('Existing registration progress found. Use "register continue" to resume, or "register new" to start over (will overwrite).', { type: 'system' });
-            }
-        }
-      ],
-      // Automatically move to earlyAuth or prompt for command
-      // For simplicity, let's assume it waits for 'register new' or 'register continue' via COMMAND_RECEIVED
-      on: {
-        COMMAND_RECEIVED: [
-           {
-             target: 'earlyAuth',
-             guard: ({ event }) => event.command === 'register new',
-             actions: [
-                // TODO: Add confirmation if context.savedStateExists is true
-                assign({ currentQuestionIndex: 0, answers: {}, error: null }), // Reset state
-                clearSavedState, // Clear storage on new registration
-                ({ context }) => context.shellInteractions.addOutputLine("Starting new registration...")
-             ]
-           },
-           {
-             target: 'questioning', // Or a dedicated loading state
-             guard: ({ event, context }) => event.command === 'register continue' && context.savedStateExists,
-             actions: [
-                // Invoke service to load state properly now
-                // For now, just transition and assume state was loaded in loadingSavedState
-                ({ context }) => context.shellInteractions.addOutputLine("Resuming registration...")
-                // Need to properly load state here if not done in loadingSavedState
-             ]
-           },
-           {
-             // Handle invalid command in intro state
-             actions: ({ context, event }) => context.shellInteractions.addOutputLine(`Command "${event.command}" not available. Use 'register new' or 'register continue'.`, { type: 'error' })
-           }
-        ]
-      }
-    },
+      }, // <-- Added missing comma
     earlyAuth: {
       initial: 'promptingFirstName',
-      entry: [
-        assign({ currentQuestionIndex: 0 }) // Ensure starting at first name
-      ],
       states: {
         promptingFirstName: {
-          entry: [({ context }) => context.shellInteractions.addOutputLine("Please enter your First Name:")],
+          entry: [({ context }) => context.shellInteractions.addOutputLine(registrationMessages.earlyAuth.promptFirstName)],
           on: { INPUT_RECEIVED: { target: 'validating', actions: assign({ currentInput: ({ event }) => event.value }) } }
         },
         promptingLastName: {
-          entry: [({ context }) => context.shellInteractions.addOutputLine("Please enter your Last Name:")],
+          entry: [({ context }) => context.shellInteractions.addOutputLine(registrationMessages.earlyAuth.promptLastName)],
           on: { INPUT_RECEIVED: { target: 'validating', actions: assign({ currentInput: ({ event }) => event.value }) } }
         },
         promptingEmail: {
-          entry: [({ context }) => context.shellInteractions.addOutputLine("Please enter your University Email Address:")],
+          entry: [({ context }) => context.shellInteractions.addOutputLine(registrationMessages.earlyAuth.promptEmail)],
           on: { INPUT_RECEIVED: { target: 'validating', actions: assign({ currentInput: ({ event }) => event.value }) } }
         },
         promptingPassword: {
-          entry: [({ context }) => context.shellInteractions.addOutputLine("Please create a password (min. 8 characters):")],
+          entry: [({ context }) => context.shellInteractions.addOutputLine(registrationMessages.earlyAuth.promptPassword)],
           on: { INPUT_RECEIVED: { target: 'validating', actions: assign({ currentInput: ({ event }) => event.value }) } }
         },
         promptingConfirmPassword: {
-          entry: [({ context }) => context.shellInteractions.addOutputLine("Please confirm your password:")],
+          entry: [({ context }) => context.shellInteractions.addOutputLine(registrationMessages.earlyAuth.promptConfirmPassword)],
           on: { INPUT_RECEIVED: { target: 'validating', actions: assign({ currentInput: ({ event }) => event.value }) } }
         },
         validating: {
-           // Invoke a validation service/actor here based on currentQuestionIndex
-           entry: [
-             // Simple inline validation for now
-             assign({
-               validationResult: ({ context }) => {
-                 const stepId = ['firstName', 'lastName', 'email', 'password', 'confirmPassword'][context.currentQuestionIndex];
-                 const input = context.currentInput;
-                 if (!input) return { isValid: false, message: "Input cannot be empty." };
-                 if (stepId === 'email' && !/\S+@\S+\.\S+/.test(input)) return { isValid: false, message: "Invalid email format." };
-                 if (stepId === 'password' && input.length < 8) return { isValid: false, message: "Password must be at least 8 characters." };
-                 if (stepId === 'confirmPassword' && input !== context.answers.password) return { isValid: false, message: "Passwords do not match." };
-                 return { isValid: true };
-               }
-             })
-           ],
+           // Use guards with imported utils instead of entry action
            always: [
-             { target: 'handleValidInput', guard: ({ context }) => context.validationResult?.isValid === true },
-             { target: 'handleInvalidInput', guard: ({ context }) => context.validationResult?.isValid === false }
+             { target: 'handleValidInput', guard: 'isValidEarlyAuthInput' },
+             { target: 'handleInvalidInput', actions: 'assignEarlyAuthValidationError' } // Assign error in action
            ]
         },
         handleValidInput: {
           entry: [
-            // Save answer
             assign({
               answers: ({ context }) => {
                 const stepId = ['firstName', 'lastName', 'email', 'password', 'confirmPassword'][context.currentQuestionIndex];
                 return { ...context.answers, [stepId]: context.currentInput };
               },
-              error: null // Clear previous error
+              error: null
             }),
-            // Echo input
             ({ context }) => context.shellInteractions.addOutputLine(`> ${context.currentInput}`, { type: 'input' }),
           ],
           always: [
-            // Check if last step (confirmPassword)
             { target: '#registrationDialog.signingUp', guard: ({ context }) => context.currentQuestionIndex === 4 },
-            // Otherwise, advance index and go to next prompt
             {
               target: 'promptingLastName',
               guard: ({ context }) => context.currentQuestionIndex === 0,
@@ -388,19 +326,21 @@ export const registrationDialogMachine = createMachine({
         },
         handleInvalidInput: {
           entry: [
-            assign({ error: ({ context }) => context.validationResult?.message || "Invalid input." }),
+            // Error message assigned in 'assignEarlyAuthValidationError' action
             ({ context }) => context.shellInteractions.addOutputLine(context.error!, { type: 'error' }),
-            // Re-prompt based on current index
+            // Re-prompt based on current index using SSOT messages
             ({ context }) => {
-                if (context.currentQuestionIndex === 0) context.shellInteractions.addOutputLine("Please enter your First Name:");
-                else if (context.currentQuestionIndex === 1) context.shellInteractions.addOutputLine("Please enter your Last Name:");
-                else if (context.currentQuestionIndex === 2) context.shellInteractions.addOutputLine("Please enter your University Email Address:");
-                else if (context.currentQuestionIndex === 3) context.shellInteractions.addOutputLine("Please create a password (min. 8 characters):");
-                else if (context.currentQuestionIndex === 4) context.shellInteractions.addOutputLine("Please confirm your password:");
+                const prompts = [
+                    registrationMessages.earlyAuth.promptFirstName,
+                    registrationMessages.earlyAuth.promptLastName,
+                    registrationMessages.earlyAuth.promptEmail,
+                    registrationMessages.earlyAuth.promptPassword,
+                    registrationMessages.earlyAuth.promptConfirmPassword
+                ];
+                context.shellInteractions.addOutputLine(prompts[context.currentQuestionIndex]);
             }
           ],
-          // Go back to the correct prompting state based on index
-          always: [
+          always: [ // Go back to the correct prompting state
              { target: 'promptingFirstName', guard: ({ context }) => context.currentQuestionIndex === 0 },
              { target: 'promptingLastName', guard: ({ context }) => context.currentQuestionIndex === 1 },
              { target: 'promptingEmail', guard: ({ context }) => context.currentQuestionIndex === 2 },
@@ -409,24 +349,33 @@ export const registrationDialogMachine = createMachine({
           ]
         }
       },
-      // Global commands for earlyAuth
-      on: {
+      on: { // Global commands for earlyAuth
          COMMAND_RECEIVED: {
             actions: ({ context, event }) => {
                 if (event.command === 'exit') {
                     context.shellInteractions.sendToShellMachine({ type: 'EXIT' });
                 } else if (event.command === 'help') {
-                    // Show early auth help
-                    context.shellInteractions.addOutputLine("Early Auth Help..."); // TODO: Add help text
+                    context.shellInteractions.addOutputLine(registrationMessages.commands.help.earlyAuth); // Use SSOT
                     // Re-prompt
-                     if (context.currentQuestionIndex === 0) context.shellInteractions.addOutputLine("Please enter your First Name:");
-                     else if (context.currentQuestionIndex === 1) context.shellInteractions.addOutputLine("Please enter your Last Name:");
-                     // ... etc.
+                    const prompts = [
+                        registrationMessages.earlyAuth.promptFirstName,
+                        registrationMessages.earlyAuth.promptLastName,
+                        registrationMessages.earlyAuth.promptEmail,
+                        registrationMessages.earlyAuth.promptPassword,
+                        registrationMessages.earlyAuth.promptConfirmPassword
+                    ];
+                    context.shellInteractions.addOutputLine(prompts[context.currentQuestionIndex]);
                 } else {
-                    context.shellInteractions.addOutputLine(`Command "${event.command}" not available here.`, { type: 'error' });
+                    context.shellInteractions.addOutputLine(registrationMessages.errors.invalidCommandGeneral.replace('{command}', event.command), { type: 'error' }); // Use SSOT
                     // Re-prompt
-                     if (context.currentQuestionIndex === 0) context.shellInteractions.addOutputLine("Please enter your First Name:");
-                     // ... etc.
+                     const prompts = [
+                        registrationMessages.earlyAuth.promptFirstName,
+                        registrationMessages.earlyAuth.promptLastName,
+                        registrationMessages.earlyAuth.promptEmail,
+                        registrationMessages.earlyAuth.promptPassword,
+                        registrationMessages.earlyAuth.promptConfirmPassword
+                    ];
+                    context.shellInteractions.addOutputLine(prompts[context.currentQuestionIndex]);
                 }
             }
          }
@@ -434,43 +383,42 @@ export const registrationDialogMachine = createMachine({
     },
     signingUp: {
        entry: [
-         assign({ isSubmitting: true }),
-         ({ context }) => context.shellInteractions.addOutputLine("Creating account...")
+         assign({ isSubmitting: true, error: null }),
+         ({ context }) => context.shellInteractions.addOutputLine(registrationMessages.system.creatingAccount, { type: 'system' })
        ],
        invoke: {
          id: 'signUpService',
-         src: fromPromise(async ({ input }) => {
-            const { email } = input.answers; // Get context passed via input
-            // Using initiateOtpSignIn as per spec V3.1 and existing code
-            const { data, error } = await initiateOtpSignIn(email);
-            if (error) {
-                // Check for specific 'user already exists' error if Supabase provides one
-                // For now, assume any error means failure
-                throw new Error(error.message || 'Sign-up failed');
-            }
-            // If OTP initiated, it implies user *might* not exist or confirmation is needed
-            // We transition to awaitingConfirmation regardless, as per spec
-            return { email }; // Pass email to onDone event
-         }),
+         src: 'signUpService', // Use service key
          input: ({ context }) => ({ // Pass necessary context to the service
             answers: context.answers
          }),
-         onDone: {
-           target: 'awaitingConfirmation',
-           actions: [
-             assign({
-                isSubmitting: false,
-                userEmail: ({ event }) => event.output.email, // Store email from successful signup
-                error: null
-             }),
-           ]
-         },
+         onDone: [ // Handle different success statuses
+            {
+              target: 'awaitingConfirmation',
+              guard: ({ event }) => event.output.status === 'confirmation_required',
+              actions: assign({
+                 isSubmitting: false,
+                 userEmail: ({ event }) => event.output.email,
+                 error: null
+              }),
+            },
+            { // Handle case where user already exists (if service returns this)
+              target: 'earlyAuth.promptingEmail', // Go back to email prompt
+              guard: ({ event }) => event.output.status === 'existing_user',
+              actions: assign({
+                 isSubmitting: false,
+                 error: registrationMessages.earlyAuth.existingUserError, // Use SSOT
+                 userEmail: ({ event }) => event.output.email, // Store email even if exists?
+              }),
+            }
+         ],
          onError: {
-           target: 'earlyAuth.promptingConfirmPassword', // Go back to confirm password on error
+           target: 'earlyAuth.promptingConfirmPassword', // Go back on error
            actions: [
              assign({
                 isSubmitting: false,
-                error: ({ event }) => `Sign-up failed: ${event.error instanceof Error ? event.error.message : 'Unknown error'}`
+                // Access error message correctly from event.error for onError
+                error: ({ event }) => registrationMessages.earlyAuth.signUpErrorDetailed.replace('{message}', event.error instanceof Error ? event.error.message : 'Unknown error')
              }),
              ({ context }) => context.shellInteractions.addOutputLine(context.error!, { type: 'error' })
            ]
@@ -479,7 +427,9 @@ export const registrationDialogMachine = createMachine({
     },
     awaitingConfirmation: {
       entry: [
-        ({ context }) => context.shellInteractions.addOutputLine(`Account created. Please check your email (${context.userEmail}) for a confirmation link. Enter 'continue' here once confirmed, or 'resend' to request a new link.`)
+        ({ context }) => context.shellInteractions.addOutputLine(
+            registrationMessages.earlyAuth.confirmationRequired.replace('{email}', context.userEmail || 'your email')
+        )
       ],
       on: {
         COMMAND_RECEIVED: [
@@ -493,354 +443,469 @@ export const registrationDialogMachine = createMachine({
           },
           {
             guard: ({ event }) => event.command === 'exit',
-            actions: [
-                ({ context }) => context.shellInteractions.sendToShellMachine({ type: 'EXIT' }) // Or transition to intro?
-            ]
+            actions: [ ({ context }) => context.shellInteractions.sendToShellMachine({ type: 'EXIT' }) ]
           },
           { // Handle help or invalid commands
             actions: ({ context, event }) => {
-                 if (event.command === 'help') {
-                    context.shellInteractions.addOutputLine("Awaiting Confirmation Help..."); // TODO: Add help text
-                 } else {
-                    context.shellInteractions.addOutputLine(`Unknown command: ${event.command}. Use 'continue', 'resend', or 'exit'.`, { type: 'error' });
-                 }
-                 // Re-display prompt
-                 context.shellInteractions.addOutputLine(`Account created... Enter 'continue' or 'resend'.`);
+                const reprompt = registrationMessages.earlyAuth.confirmationRequired.replace('{email}', context.userEmail || 'your email');
+                if (event.command === 'help') {
+                    context.shellInteractions.addOutputLine(registrationMessages.commands.help.awaitingConfirmation); // Use SSOT
+                    context.shellInteractions.addOutputLine(reprompt);
+                } else {
+                    context.shellInteractions.addOutputLine(registrationMessages.errors.invalidCommandConfirmation.replace('{command}', event.command), { type: 'error' }); // Use SSOT
+                    context.shellInteractions.addOutputLine(reprompt);
+                }
             }
           }
         ]
       }
     },
     checkingConfirmation: {
-       entry: [({ context }) => context.shellInteractions.addOutputLine("Checking confirmation status...")],
-       invoke: {
-         id: 'checkConfirmationService',
-         src: fromPromise(checkCurrentUserConfirmationStatus), // Assumes this returns boolean
-         onDone: [
-            {
-                target: 'questioning',
-                guard: ({ event }) => event.output === true, // If function returns true
-                actions: [
-                    assign({ error: null, currentQuestionIndex: 3 }), // Start questioning at index 3
-                    ({ context }) => context.shellInteractions.addOutputLine("Email confirmed. Starting registration questions...")
-                ]
-            },
-            {
-                target: 'awaitingConfirmation', // Stay if not confirmed
-                guard: ({ event }) => event.output === false,
-                actions: [
-                    assign({ error: "Email not confirmed yet. Please check your email or use 'resend'." }),
-                    ({ context }) => context.shellInteractions.addOutputLine(context.error!, { type: 'error' })
-                ]
-            }
-         ],
-         onError: {
-           target: 'awaitingConfirmation',
-           actions: [
-             assign({ error: ({ event }) => `Error checking confirmation: ${event.error instanceof Error ? event.error.message : 'Unknown error'}` }),
-             ({ context }) => context.shellInteractions.addOutputLine(context.error!, { type: 'error' })
-           ]
-         }
-       }
-    },
-    resendingConfirmation: {
-        entry: [({ context }) => context.shellInteractions.addOutputLine("Resending confirmation email...")],
-        invoke: {
-            id: 'resendConfirmationService',
-            src: fromPromise(async ({ input }) => {
-                const { email } = input;
-                if (!email) throw new Error("Email address not found.");
-                const { error } = await initiateOtpSignIn(email); // Use OTP sign-in to resend
-                if (error) throw new Error(error.message || 'Failed to resend');
-                return {}; // Success
-            }),
-            input: ({ context }) => ({ email: context.userEmail }),
-            onDone: {
-                target: 'awaitingConfirmation',
-                actions: [
-                    assign({ error: null }),
-                    ({ context }) => context.shellInteractions.addOutputLine("Confirmation email resent. Please check your inbox.")
-                ]
-            },
-            onError: {
-                target: 'awaitingConfirmation',
-                actions: [
-                    assign({ error: ({ event }) => `Error resending confirmation: ${event.error instanceof Error ? event.error.message : 'Unknown error'}` }),
-                    ({ context }) => context.shellInteractions.addOutputLine(context.error!, { type: 'error' })
-                ]
-            }
-        }
-    },
-    questioning: {
-      initial: 'prompting',
-      states: {
-        prompting: {
-          entry: [
-            // Display question, hint, options based on currentQuestionIndex
-            assign({ error: null }), // Clear previous error
-            ({ context }) => {
-              const question = context.questions[context.currentQuestionIndex];
-              if (question) {
-                context.shellInteractions.addOutputLine(question.label);
-                if (question.hint) {
-                  context.shellInteractions.addOutputLine(question.hint, { type: 'hint' });
-                }
-                if (question.options) {
-                  const optionsText = question.options.map((opt, index) => `${index + 1}: ${opt}`).join('\n');
-                  context.shellInteractions.addOutputLine(optionsText);
-                }
-                // Add prompt indicator
-                context.shellInteractions.addOutputLine(`[reg ${context.currentQuestionIndex + 1}/${context.questions.length}]> `); // Example prompt
-              } else {
-                 // Should transition to review/completed state if index is out of bounds
-                 console.error("Invalid question index in questioning state:", context.currentQuestionIndex);
-                 // TODO: Transition to appropriate end state
-              }
-            }
-          ],
-          on: {
-            INPUT_RECEIVED: {
-              target: 'validating',
-              actions: assign({ currentInput: ({ event }) => event.value })
-            },
-            COMMAND_RECEIVED: { target: 'handlingCommand' }
-          }
-        },
-        validating: {
-          // Invoke validation service
-          invoke: {
-             id: 'validationService',
-             src: fromPromise(async ({ input }) => {
-                 const { question, answer, allAnswers } = input;
-                 // Simulate async validation if needed, or just call sync function
-                 return validateAnswer(question, answer, allAnswers);
-             }),
-             input: ({ context }) => ({
-                 question: context.questions[context.currentQuestionIndex],
-                 answer: context.currentInput,
-                 allAnswers: context.answers
-             }),
-             onDone: {
-                 target: 'handleValidationResult',
-                 actions: assign({ validationResult: ({ event }) => event.output })
-             },
-             onError: { // Handle errors *during* validation itself
-                 target: 'prompting', // Go back to prompting
-                 actions: [
-                     assign({ error: ({ event }) => `Validation error: ${event.error instanceof Error ? event.error.message : 'Unknown error'}` }),
-                     ({ context }) => context.shellInteractions.addOutputLine(context.error!, { type: 'error' })
-                 ]
-             }
-          }
-        },
-        handleValidationResult: {
-           always: [
-             { target: 'processingAnswer', guard: ({ context }) => context.validationResult?.isValid === true },
-             { target: 'prompting', // Go back to prompting on invalid
-               guard: ({ context }) => context.validationResult?.isValid === false,
-               actions: [
-                 assign({ error: ({ context }) => context.validationResult?.message || "Invalid input." }),
-                 ({ context }) => context.shellInteractions.addOutputLine(context.error!, { type: 'error' }),
-                 // Re-display hint if available
-                 ({ context }) => {
-                    const question = context.questions[context.currentQuestionIndex];
-                    if (question?.hint) {
-                        context.shellInteractions.addOutputLine(question.hint, { type: 'hint' });
-                    }
-                 }
-                 // Prompt is re-displayed by re-entering 'prompting' state
-               ]
-             }
-           ]
-        },
-        processingAnswer: {
-          entry: [
-            // Save answer
-            assign({
-              answers: ({ context }) => {
-                const questionId = context.questions[context.currentQuestionIndex]?.id;
-                return questionId ? { ...context.answers, [questionId]: context.currentInput } : context.answers;
-              }
-            }),
-            // Echo input
-            ({ context }) => context.shellInteractions.addOutputLine(`> ${context.currentInput}`, { type: 'input' }),
-            // Find next index considering skips
-            assign({
-              currentQuestionIndex: ({ context }) => findNextQuestionIndex(context.currentQuestionIndex, context.answers)
-            })
-          ],
-          always: [
-             // Check if we've reached the end
-             { target: '#registrationDialog.review', guard: ({ context }) => context.currentQuestionIndex >= context.questions.length },
-             // Otherwise, go to next prompt
-             { target: 'prompting' }
-          ]
-        },
-        handlingCommand: {
-          entry: [
-            ({ context, event }) => {
-              if (event.type !== 'COMMAND_RECEIVED') return;
-              const { command, args } = event;
-
-              if (command === 'back') {
-                 // Find previous index considering skips
-                 const prevIndex = findPrevQuestionIndex(context.currentQuestionIndex, context.answers);
-                 // Remove answer for the *current* index before going back
-                 const currentQuestionId = context.questions[context.currentQuestionIndex]?.id;
-                 const newAnswers = { ...context.answers };
-                 if (currentQuestionId) delete newAnswers[currentQuestionId];
-
-                 assign({ // REMOVED immediate invocation
-                    currentQuestionIndex: prevIndex,
-                    answers: newAnswers, // Update answers state
-                    error: null
-                 })
-              } else if (command === 'save') {
-                 saveStateToStorage(context);
-                 // Stay in prompting state after save
-              } else if (command === 'exit') {
-                 saveStateToStorage(context);
-                 context.shellInteractions.sendToShellMachine({ type: 'EXIT' }); // Or transition to intro?
-              } else if (command === 'review') {
-                 // Transition handled by 'always' below
-              } else if (command === 'edit' && args?.[0]) {
-                 const targetQNum = parseInt(args[0], 10);
-                 if (!isNaN(targetQNum) && targetQNum >= 1 && targetQNum <= context.questions.length) {
-                    // TODO: Need to handle jumping back correctly, considering dependencies.
-                    // For now, just set index. Might need more complex logic.
-                    assign({ currentQuestionIndex: targetQNum - 1 }) // REMOVED immediate invocation
-                 } else {
-                    context.shellInteractions.addOutputLine(`Invalid question number: ${args[0]}. Use 'edit [1-${context.questions.length}]'.`, { type: 'error' });
-                 }
-              } else if (command === 'help') {
-                 context.shellInteractions.addOutputLine("Questioning Mode Help..."); // TODO: Add help text
-              } else {
-                 context.shellInteractions.addOutputLine(`Unknown command: ${command}`, { type: 'error' });
-              }
-            }
-          ],
-          always: [
-             // Transition after handling command
-             { target: 'prompting', guard: ({ event }) => event.type === 'COMMAND_RECEIVED' && ['back', 'save', 'edit', 'help', 'unknown'].includes(event.command) }, // Go back to prompting for most commands
-             { target: '#registrationDialog.review', guard: ({ event }) => event.type === 'COMMAND_RECEIVED' && event.command === 'review' },
-             // Exit is handled directly in entry action
-          ]
-        }
-      }
-    },
-    review: {
-      entry: [
-        ({ context }) => context.shellInteractions.addOutputLine("--- Registration Summary ---"),
-        ({ context }) => {
-          context.questions.forEach((q, index) => {
-            const answer = context.answers[q.id];
-            const displayAnswer = answer !== undefined && answer !== null ? String(answer) : '[No Answer]';
-            context.shellInteractions.addOutputLine(`${index + 1}. ${q.label}: ${displayAnswer}`);
-          });
-        },
-        ({ context }) => context.shellInteractions.addOutputLine("--- End Summary ---"),
-        ({ context }) => context.shellInteractions.addOutputLine("Use 'submit', 'edit [number]', or 'back' to return to questions.")
-      ],
-      on: {
-        COMMAND_RECEIVED: [
-          {
-            target: 'submitting',
-            guard: ({ event }) => event.command === 'submit'
-          },
-          {
-            target: 'questioning.handlingCommand', // Delegate to questioning command handler
-            guard: ({ event }) => event.command === 'edit' && !!event.args?.[0],
-            // actions: assign({ currentQuestionIndex: ... }) // Index set in handlingCommand
-          },
-          {
-            target: 'questioning', // Go back to the last question
-            guard: ({ event }) => event.command === 'back',
-            actions: assign({ currentQuestionIndex: ({ context }) => context.questions.length - 1 }) // Or find last *answered*?
-          },
-          { // Handle help or invalid commands
-            actions: ({ context, event }) => {
-                 if (event.command === 'help') {
-                    context.shellInteractions.addOutputLine("Review Mode Help..."); // TODO: Add help text
-                 } else {
-                    context.shellInteractions.addOutputLine(`Unknown command: ${event.command}. Use 'submit', 'edit [number]', or 'back'.`, { type: 'error' });
-                 }
-                 // Re-display prompt/info
-                 context.shellInteractions.addOutputLine("Use 'submit', 'edit [number]', or 'back'.");
-            }
-          }
-        ]
-      }
-    },
-    submitting: {
-      entry: [
-        assign({ isSubmitting: true }),
-        ({ context }) => context.shellInteractions.addOutputLine("Submitting registration...")
-      ],
+      entry: [assign({ isSubmitting: true, error: null }), ({ context }) => context.shellInteractions.addOutputLine(registrationMessages.system.checkingConfirmation, { type: 'system' })],
       invoke: {
-        id: 'submitRegistrationFromMachineService', // Renamed service ID
-        src: fromPromise(async ({ input }) => {
-            // Call the new server action that accepts the answers object directly
-            const { success, message } = await regActions.submitRegistrationFromMachine(input.answers);
-            if (!success) {
-                throw new Error(message || 'Submission failed');
-            }
-            return {}; // Success
-        }),
-        input: ({ context }) => ({ answers: context.answers }),
+        id: 'checkConfirmationService',
+        src: 'checkConfirmationService', // Use service key
         onDone: {
-          target: 'success',
+          target: 'questioning',
           actions: [
-            assign({ isSubmitting: false, error: null }),
-            clearSavedState // Clear local storage on successful submission
+            assign({ isSubmitting: false, error: null, currentQuestionIndex: 5 }), // Start questions after early auth (index 5?)
+            ({ context }) => context.shellInteractions.addOutputLine(registrationMessages.system.startingQuestions, { type: 'system' }) // Use system message
           ]
         },
         onError: {
-          target: 'submissionError',
+          target: 'awaitingConfirmation',
           actions: [
             assign({
-                isSubmitting: false,
-                error: ({ event }) => `Submission failed: ${event.error instanceof Error ? event.error.message : 'Unknown error'}`
+              isSubmitting: false,
+              // Access error message correctly from event.error
+              error: ({ event }) => registrationMessages.awaitingConfirmation.checkError.replace('{message}', event.error instanceof Error ? event.error.message : 'Unknown error')
             }),
             ({ context }) => context.shellInteractions.addOutputLine(context.error!, { type: 'error' })
           ]
         }
       }
     },
-    success: {
-      entry: [
-        ({ context }) => context.shellInteractions.addOutputLine("Registration submitted successfully! Thank you."),
-        ({ context }) => context.shellInteractions.sendToShellMachine({ type: 'EXIT' }) // Exit after success message
-      ],
-      type: 'final' // End state
+    resendingConfirmation: {
+       entry: [assign({ isSubmitting: true, error: null }), ({ context }) => context.shellInteractions.addOutputLine(registrationMessages.system.resendingConfirmation, { type: 'system' })],
+       invoke: {
+         id: 'resendConfirmationService',
+         src: 'resendConfirmationService', // Use service key
+         input: ({ context }) => ({ email: context.userEmail }),
+         onDone: {
+           target: 'awaitingConfirmation',
+           actions: [
+             assign({ isSubmitting: false, error: null }),
+             ({ context, event }) => context.shellInteractions.addOutputLine(
+                 registrationMessages.awaitingConfirmation.resendSuccess.replace('{email}', event.output.email), { type: 'system' }
+             )
+           ]
+         },
+         onError: {
+           target: 'awaitingConfirmation',
+           actions: [
+             assign({
+               isSubmitting: false,
+               // Access error message correctly from event.error
+               error: ({ event }) => registrationMessages.awaitingConfirmation.resendError.replace('{message}', event.error instanceof Error ? event.error.message : 'Unknown error')
+             }),
+             ({ context }) => context.shellInteractions.addOutputLine(context.error!, { type: 'error' })
+           ]
+         }
+       }
     },
-    submissionError: {
+    questioning: {
       entry: [
-        ({ context }) => context.shellInteractions.addOutputLine("An error occurred during submission. Please try again."),
-        ({ context }) => context.shellInteractions.addOutputLine("Use 'retry' or 'back' to review/edit.")
+        'displayCurrentQuestionAction' // Use named action
+      ],
+      on: {
+        INPUT_RECEIVED: {
+          target: 'validatingAnswer',
+          actions: assign({ currentInput: ({ event }) => event.value })
+        },
+        COMMAND_RECEIVED: [
+           // Target transitions first for state changes
+           {
+             target: 'questioning', // Re-enter to display prev question
+             guard: ({ context, event }) => event.command === 'back' && utils.findPrevQuestionIndex(context.currentQuestionIndex, context.answers) !== context.currentQuestionIndex,
+             actions: assign({ currentQuestionIndex: ({context}) => utils.findPrevQuestionIndex(context.currentQuestionIndex, context.answers), error: null })
+           },
+           {
+             target: 'reviewing',
+             guard: ({ event }) => event.command === 'review',
+             actions: [({ context }) => context.shellInteractions.addOutputLine(registrationMessages.commands.review.header, { type: 'system' })] // Use header
+           },
+           // Actions-only commands
+           {
+             guard: ({ event }) => event.command === 'save',
+             actions: ['saveStateAction'] // Use named action
+           },
+           {
+             guard: ({ event }) => event.command === 'exit',
+             actions: [({ context }) => context.shellInteractions.sendToShellMachine({ type: 'EXIT' })]
+           },
+           {
+             guard: ({ event }) => event.command === 'help',
+             actions: [
+                 ({ context }) => context.shellInteractions.addOutputLine(registrationMessages.commands.help.general), // Use general help
+                 'displayCurrentQuestionAction' // Re-display prompt
+             ]
+           },
+           { // Handle back at boundary and invalid commands
+             actions: ({ context, event }) => {
+               if (event.command === 'back') {
+                 // No specific message for already being at the start
+                 context.shellInteractions.addOutputLine("Cannot go back further.", { type: 'system' }); // Simple message
+               } else {
+                 context.shellInteractions.addOutputLine(registrationMessages.errors.invalidCommandGeneral.replace('{command}', event.command), { type: 'error' }); // Use SSOT
+               }
+               // Re-display prompt
+               const question = context.questions[context.currentQuestionIndex];
+               if (question) context.shellInteractions.addOutputLine(question.label);
+             }
+           }
+        ]
+      }
+    },
+    validatingAnswer: {
+       always: [ // Use guards calling utils
+         { target: 'handleValidAnswer', guard: 'isValidAnswerInput' },
+         { target: 'handleInvalidAnswer', actions: 'assignAnswerValidationError' } // Assign error in action
+       ]
+    },
+    handleValidAnswer: {
+      entry: [
+        assign({
+          answers: ({ context }) => {
+            const questionId = context.questions[context.currentQuestionIndex]?.id;
+            // TODO: Handle potential type conversion based on question.type (e.g., number, boolean)
+            return { ...context.answers, [questionId]: context.currentInput };
+          },
+          error: null
+        }),
+        ({ context }) => context.shellInteractions.addOutputLine(`> ${context.currentInput}`, { type: 'input' }),
+      ],
+      always: [
+        {
+          target: 'reviewing',
+          guard: ({ context }) => utils.findNextQuestionIndex(context.currentQuestionIndex, context.answers) >= context.questions.length,
+          actions: [({ context }) => context.shellInteractions.addOutputLine(registrationMessages.questioning.completionMessage, { type: 'system' })]
+        },
+        {
+          target: 'questioning',
+          actions: assign({
+            currentQuestionIndex: ({ context }) => utils.findNextQuestionIndex(context.currentQuestionIndex, context.answers),
+          })
+        }
+      ]
+    },
+    handleInvalidAnswer: {
+      entry: [
+        // Error message assigned in 'assignAnswerValidationError' action
+        ({ context }) => context.shellInteractions.addOutputLine(context.error!, { type: 'error' }),
+        'displayCurrentQuestionAction' // Re-display prompt
+      ],
+      always: { target: 'questioning' }
+    },
+    reviewing: { // Renamed state
+      entry: [
+        'displayReviewAction' // Use named action
       ],
       on: {
         COMMAND_RECEIVED: [
           {
-            target: 'submitting',
-            guard: ({ event }) => event.command === 'retry'
+            guard: ({ event }) => event.command === 'submit',
+            target: 'submitting'
           },
           {
-            target: 'review',
-            guard: ({ event }) => event.command === 'back'
+            guard: ({ event }) => event.command === 'edit' && !!event.args?.[0] && !isNaN(parseInt(event.args[0], 10)),
+            target: 'editing',
+            actions: assign({
+              currentQuestionIndex: ({ context, event }) => {
+                const targetIndex = parseInt(event.args![0], 10) - 1;
+                // TODO: Add validation: ensure index is within bounds and not an earlyAuth question (index >= 5?)
+                return Math.max(5, Math.min(targetIndex, context.questions.length - 1));
+              },
+              error: null
+            })
+          },
+          {
+            guard: ({ event }) => event.command === 'back',
+            target: 'questioning',
+            actions: assign({
+                // Go back to the actual last question index before review
+                currentQuestionIndex: ({ context }) => context.questions.length -1 // Or find last *answered* index?
+            })
           },
           { // Handle help or invalid commands
             actions: ({ context, event }) => {
-                 if (event.command === 'help') {
-                    context.shellInteractions.addOutputLine("Submission Error Help..."); // TODO: Add help text
-                 } else {
-                    context.shellInteractions.addOutputLine(`Unknown command: ${event.command}. Use 'retry' or 'back'.`, { type: 'error' });
-                 }
-                 // Re-display prompt/info
-                 context.shellInteractions.addOutputLine("Use 'retry' or 'back'.");
+                const reprompt = registrationMessages.commands.review.instructions; // Use instructions as reprompt
+                if (event.command === 'help') {
+                    context.shellInteractions.addOutputLine(registrationMessages.commands.help.review); // Use SSOT
+                } else {
+                    context.shellInteractions.addOutputLine(registrationMessages.errors.invalidCommandReview.replace('{command}', event.command), { type: 'error' }); // Use SSOT
+                }
+                 context.shellInteractions.addOutputLine(reprompt);
             }
           }
         ]
       }
+    },
+    editing: {
+       entry: [
+         'displayEditingQuestionAction' // Use named action
+       ],
+       on: {
+         INPUT_RECEIVED: {
+           target: 'validatingEditedAnswer',
+           actions: assign({ currentInput: ({ event }) => event.value })
+         },
+         COMMAND_RECEIVED: [
+            // Target transitions first
+            {
+              target: 'reviewing',
+              guard: ({ event }) => event.command === 'exit' || event.command === 'review',
+              actions: [({ context }) => context.shellInteractions.addOutputLine(registrationMessages.commands.review.header, { type: 'system' })] // Use review header as confirmation
+            },
+            // Actions-only commands
+            {
+              guard: ({ event }) => event.command === 'save',
+              actions: ['saveStateAction'] // Use named action
+            },
+            {
+              guard: ({ event }) => event.command === 'help',
+              actions: [
+                  ({ context }) => context.shellInteractions.addOutputLine(registrationMessages.commands.help.edit), // Use SSOT
+                  'displayEditingQuestionAction' // Re-prompt
+              ]
+            },
+            { // Handle invalid commands
+              actions: ({ context, event }) => {
+                  context.shellInteractions.addOutputLine(registrationMessages.errors.invalidCommandEdit.replace('{command}', event.command), { type: 'error' }); // Use SSOT
+                  // Re-prompt
+                  const question = context.questions[context.currentQuestionIndex];
+                  if (question) context.shellInteractions.addOutputLine(question.label);
+              }
+            }
+         ]
+       }
+    },
+    validatingEditedAnswer: {
+       always: [ // Use guards calling utils
+         { target: 'handleValidEditedAnswer', guard: 'isValidAnswerInput' }, // Reuse same guard
+         { target: 'handleInvalidEditedAnswer', actions: 'assignAnswerValidationError' } // Assign error in action
+       ]
+    },
+    handleValidEditedAnswer: {
+      entry: [
+        assign({
+          answers: ({ context }) => {
+            const questionId = context.questions[context.currentQuestionIndex]?.id;
+            // TODO: Handle type conversion
+            return { ...context.answers, [questionId]: context.currentInput };
+          },
+          error: null
+        }),
+        ({ context }) => context.shellInteractions.addOutputLine(`> ${context.currentInput}`, { type: 'input' }),
+        ({ context }) => context.shellInteractions.addOutputLine(registrationMessages.commands.edit.answerUpdated, { type: 'system' }),
+        'saveStateAction', // Auto-save after successful edit
+      ],
+      always: { target: 'reviewing' }
+    },
+    handleInvalidEditedAnswer: {
+       entry: [
+         // Error message assigned in 'assignAnswerValidationError' action
+         ({ context }) => context.shellInteractions.addOutputLine(context.error!, { type: 'error' }),
+         'displayEditingQuestionAction' // Re-display edit prompt
+       ],
+       always: { target: 'editing' }
+    },
+    submitting: {
+      entry: [assign({ isSubmitting: true, error: null }), ({ context }) => context.shellInteractions.addOutputLine(registrationMessages.system.submitting, { type: 'system' })],
+      invoke: {
+        id: 'submitRegistrationService',
+        src: 'submitRegistrationService', // Use service key
+        input: ({ context }) => ({ answers: context.answers }),
+        onDone: {
+          target: 'success',
+          actions: [
+            assign({ isSubmitting: false, error: null }),
+            'clearSavedStateAction' // Use named action
+          ]
+        },
+        onError: {
+          target: 'submissionError',
+          actions: [
+            assign({
+              isSubmitting: false,
+              // Access error message correctly from event.error
+              error: ({ event }) => registrationMessages.errors.submitFailed.replace('{message}', event.error instanceof Error ? event.error.message : 'Unknown error')
+            }),
+          ]
+        }
+      }
+    },
+    success: {
+      entry: [
+        ({ context }) => context.shellInteractions.addOutputLine(registrationMessages.success.message),
+        ({ context }) => context.shellInteractions.addOutputLine(registrationMessages.success.thankYou),
+        'clearSavedStateAction', // Use named action
+        ({ context }) => context.shellInteractions.sendToShellMachine({ type: 'REGISTRATION_COMPLETE' })
+      ],
+      type: 'final'
+    },
+    submissionError: {
+      entry: [
+        ({ context }) => context.shellInteractions.addOutputLine(
+            registrationMessages.errors.submitFailed.replace('{message}', context.error || 'Unknown error'), { type: 'error' }
+        ),
+         ({ context }) => context.shellInteractions.addOutputLine(registrationMessages.submissionError.prompt) // Use SSOT
+      ],
+      on: {
+        COMMAND_RECEIVED: [
+            {
+                guard: ({ event }) => event.command === 'retry',
+                target: 'submitting'
+            },
+            {
+                guard: ({ event }) => event.command === 'review', // Changed from 'back'
+                target: 'reviewing'
+            },
+            {
+                guard: ({ event }) => event.command === 'exit',
+                actions: [ ({ context }) => context.shellInteractions.sendToShellMachine({ type: 'EXIT' }) ]
+            },
+            { // Handle help or invalid commands
+                actions: ({ context, event }) => {
+                    const reprompt = registrationMessages.submissionError.prompt;
+                    if (event.command === 'help') {
+                        context.shellInteractions.addOutputLine(registrationMessages.commands.help.general); // Use general help
+                    } else {
+                        context.shellInteractions.addOutputLine(registrationMessages.errors.invalidCommandSubmitError.replace('{command}', event.command), { type: 'error' }); // Use SSOT
+                    }
+                    context.shellInteractions.addOutputLine(reprompt);
+                }
+            }
+        ]
+      }
     }
   }
+// --- Machine Options (Actions, Guards, Services) ---
+}, {
+  actions: {
+    // --- Named Actions ---
+    clearSavedStateAction: ({ context }) => {
+        try {
+            utils.clearSavedState();
+            // No success message needed usually
+        } catch (error) {
+             context.shellInteractions.addOutputLine(
+                registrationMessages.errors.clearStateFailed.replace('{message}', error instanceof Error ? error.message : 'Unknown error'),
+                { type: 'error' }
+            );
+        }
+    },
+    saveStateAction: ({ context }) => {
+         try {
+            utils.saveStateToStorage({
+                currentQuestionIndex: context.currentQuestionIndex,
+                answers: context.answers,
+                userEmail: context.userEmail,
+            });
+             context.shellInteractions.addOutputLine(registrationMessages.commands.save.success, { type: 'system' });
+        } catch (error) {
+             context.shellInteractions.addOutputLine(
+                 `${registrationMessages.commands.save.error}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                 { type: 'error' }
+             );
+        }
+    },
+    displayCurrentQuestionAction: ({ context }) => {
+      const question = context.questions[context.currentQuestionIndex];
+      if (question) {
+        // Use SSOT for progress indicator
+        const progress = registrationMessages.questioning.progressIndicator
+            .replace('{current}', (context.currentQuestionIndex - 4).toString()) // Adjust index based on start (assuming 5 early auth steps)
+            .replace('{total}', (context.questions.length - 5).toString()); // Adjust total count
+        context.shellInteractions.addOutputLine(`--- ${progress} ---`);
+        context.shellInteractions.addOutputLine(question.label);
+        if (question.hint) context.shellInteractions.addOutputLine(registrationMessages.questioning.hint.replace('{hintText}', question.hint), { type: 'hint' }); // Use SSOT
+        if (question.options) {
+          question.options.forEach((opt, i) => context.shellInteractions.addOutputLine(`${i + 1}. ${opt}`));
+        }
+         // Add prompt
+         context.shellInteractions.addOutputLine(registrationMessages.prompts.questioning.replace('{current}', (context.currentQuestionIndex - 4).toString()).replace('{total}', (context.questions.length - 5).toString()));
+      } else {
+        context.shellInteractions.addOutputLine(registrationMessages.errors.questionNotFound, { type: 'error' });
+      }
+    },
+    displayReviewAction: ({ context }) => {
+      context.shellInteractions.addOutputLine(registrationMessages.commands.review.header);
+      context.questions.forEach((q, index) => {
+        if (index < 5) return; // Skip early auth
+        const answer = context.answers[q.id];
+        const displayAnswer = answer ?? "[No Answer]"; // Use simple fallback
+        context.shellInteractions.addOutputLine(
+            registrationMessages.commands.review.itemFormat
+                .replace('{index}', (index + 1).toString())
+                .replace('{label}', q.label)
+                .replace('{answer}', String(displayAnswer)) // Ensure string conversion
+        );
+      });
+      context.shellInteractions.addOutputLine(registrationMessages.commands.review.instructions); // Use SSOT
+    },
+    displayEditingQuestionAction: ({ context }) => {
+       const question = context.questions[context.currentQuestionIndex];
+       if (question) {
+         context.shellInteractions.addOutputLine(registrationMessages.commands.edit.prompt.replace('{index}', (context.currentQuestionIndex + 1).toString()).replace('{label}', question.label)); // Use SSOT
+         context.shellInteractions.addOutputLine(registrationMessages.commands.edit.currentAnswer.replace('{answer}', context.answers[question.id] ?? "[No Answer]")); // Use simple fallback
+         if (question.hint) context.shellInteractions.addOutputLine(registrationMessages.questioning.hint.replace('{hintText}', question.hint), { type: 'hint' }); // Use SSOT
+         if (question.options) {
+           question.options.forEach((opt, i) => context.shellInteractions.addOutputLine(`${i + 1}. ${opt}`));
+         }
+         context.shellInteractions.addOutputLine(registrationMessages.commands.edit.instructions); // Use SSOT
+       } else {
+         context.shellInteractions.addOutputLine(registrationMessages.errors.questionNotFound, { type: 'error' }); // Use SSOT
+         // TODO: Should this transition back to review? Maybe assign error and let state handle?
+       }
+    },
+    // --- Actions for assigning validation errors ---
+    assignEarlyAuthValidationError: assign({
+        error: ({ context }) => {
+            const stepId = ['firstName', 'lastName', 'email', 'password', 'confirmPassword'][context.currentQuestionIndex];
+            let result;
+            if (stepId === 'firstName') result = utils.validateFirstName(context.currentInput);
+            else if (stepId === 'lastName') result = utils.validateLastName(context.currentInput);
+            else if (stepId === 'email') result = utils.validateEmail(context.currentInput);
+            else if (stepId === 'password') result = utils.validatePassword(context.currentInput);
+            else if (stepId === 'confirmPassword') result = utils.validateConfirmPassword(context.currentInput, context.answers.password);
+            else result = { isValid: false, message: 'Unknown validation step' };
+            return result.message || registrationMessages.validationErrors.generic; // Use SSOT
+        }
+    }),
+    assignAnswerValidationError: assign({
+        error: ({ context }) => {
+            const question = context.questions[context.currentQuestionIndex];
+            const result = utils.validateAnswer(question, context.currentInput, context.answers);
+            return result.message || registrationMessages.validationErrors.generic; // Use SSOT
+        }
+    }),
+  },
+  guards: {
+    // --- Named Guards ---
+    isValidEarlyAuthInput: ({ context }) => {
+        const stepId = ['firstName', 'lastName', 'email', 'password', 'confirmPassword'][context.currentQuestionIndex];
+        if (stepId === 'firstName') return utils.validateFirstName(context.currentInput).isValid;
+        if (stepId === 'lastName') return utils.validateLastName(context.currentInput).isValid;
+        if (stepId === 'email') return utils.validateEmail(context.currentInput).isValid;
+        if (stepId === 'password') return utils.validatePassword(context.currentInput).isValid;
+        if (stepId === 'confirmPassword') return utils.validateConfirmPassword(context.currentInput, context.answers.password).isValid;
+        return false;
+    },
+     // No need for isInvalid guard if using actions to assign error
+     isValidAnswerInput: ({ context }) => {
+        const question = context.questions[context.currentQuestionIndex];
+        return utils.validateAnswer(question, context.currentInput, context.answers).isValid;
+     },
+    // No need for isInvalid guard if using actions to assign error
+  },
 });
