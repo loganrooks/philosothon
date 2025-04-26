@@ -364,6 +364,37 @@ export async function checkUserProfileExists(): Promise<{ success: boolean; prof
 }
 
 
+// Server action to fetch registration data, callable from client components/machines
+export async function fetchRegistrationAction(
+  userId: string
+): Promise<{ registration: { answers: Json, last_completed_index: number } | null; error: string | null }> {
+  'use server'; // Ensure this is marked as a server action
+
+  if (!userId) {
+    return { registration: null, error: 'User ID is required.' };
+  }
+
+  try {
+    // Directly call the DAL function (which uses the server client)
+    const { registration, error } = await fetchRegistrationByUserId(userId);
+
+    if (error) {
+      console.error(`fetchRegistrationAction failed for user ${userId}:`, error);
+      // Return a serializable error message
+      return { registration: null, error: error.message || 'Database error fetching registration.' };
+    }
+
+    return { registration, error: null };
+
+  } catch (err) {
+    const error = err instanceof Error ? err : new Error('An unknown error occurred.');
+    console.error(`fetchRegistrationAction caught error for user ${userId}:`, error);
+    return { registration: null, error: error.message || 'Unknown server error.' };
+  }
+}
+
+
+
 // Placeholder for email sending logic (to be implemented or called via trigger)
 // async function sendConfirmationEmail(email: string, name: string) {
 //   console.log(`Sending confirmation email to ${email} for ${name}...`);

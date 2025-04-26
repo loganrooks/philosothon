@@ -142,7 +142,7 @@ export async function insertRegistration(registrationData: RegistrationInput): P
  * @param userId The UUID of the user.
  * @returns An object containing the fetched registration or an error.
  */
-export async function fetchRegistrationByUserId(userId: string): Promise<{ registration: Registration | null; error: Error | null }> {
+export async function fetchRegistrationByUserId(userId: string): Promise<{ registration: { answers: Json, last_completed_index: number } | null; error: Error | null }> {
   if (!userId) {
     return { registration: null, error: new Error('User ID is required.') };
   }
@@ -150,7 +150,7 @@ export async function fetchRegistrationByUserId(userId: string): Promise<{ regis
     const supabase = await createClient();
     const { data, error } = await supabase
       .from('registrations')
-      .select('*')
+      .select('answers, last_completed_index')
       .eq('user_id', userId)
       .maybeSingle(); // Use maybeSingle as registration might not exist yet
 
@@ -159,7 +159,7 @@ export async function fetchRegistrationByUserId(userId: string): Promise<{ regis
       throw new Error(`Database error fetching registration for user ${userId}: ${error.message}`);
     }
 
-    return { registration: data as Registration | null, error: null };
+    return { registration: data as { answers: Json, last_completed_index: number } | null, error: null };
   } catch (err) {
     const error = err instanceof Error ? err : new Error(`An unknown error occurred fetching registration for user ${userId}.`);
     console.error(`fetchRegistrationByUserId(${userId}) failed:`, error);

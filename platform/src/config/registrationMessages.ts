@@ -25,9 +25,9 @@ export const registrationMessages = {
     resendingConfirmation: "Resending confirmation email...",
     startingQuestions: "Moving to first question...",
     submitting: "Submitting registration...",
-  },
     checkingProfile: "Checking registration status...",
     existingProfileFound: "Existing registration found. Please sign in or use 'register continue'.",
+  },
 
   // Intro State
   intro: {

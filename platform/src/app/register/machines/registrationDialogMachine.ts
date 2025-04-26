@@ -5,7 +5,8 @@ import * as regActions from '@/app/register/actions';
 import { initiateOtpSignIn, resendConfirmationEmail, checkUserVerificationStatus } from '@/app/auth/actions'; // Correct function name
 import { checkUserProfileExists } from '@/app/register/actions'; // Keep register-specific actions
 import { z } from 'zod'; // Assuming Zod is used for validation schema
-import { registrationMessages } from '@/config/registrationMessages';
+import { registrationMessages } from '@/config/registrationMessages'; // Removed unused import
+// Removed direct DAL import: import { fetchRegistrationByUserId } from '@/lib/data/registrations';
 import * as utils from './registrationMachineUtils'; // Import utils
 // initiateOtpSignIn moved to line 5
 
@@ -100,6 +101,18 @@ export type RegistrationEvent = // Export if needed
 
 const services = {
   loadStateService: fromPromise(utils.loadSavedState),
+
+  fetchRegistrationService: fromPromise(async ({ input }: { input: { userId: string } }) => {
+    // Ensure input.userId is correctly accessed
+    // Call the server action instead of the DAL function directly
+    const { registration, error } = await regActions.fetchRegistrationAction(input.userId);
+    if (error) {
+      console.error('Error fetching registration via action:', error); // Add logging
+      throw new Error(error); // Propagate error message to onError transition
+    }
+    // Return data in the expected format for onDone transition
+    return { registrationData: registration }; // Action already returns the correct shape
+  }),
 
   // Removed faulty fetchUserProfileService definition
 
@@ -539,7 +552,7 @@ export const registrationDialogMachine = createMachine({
                     guard: ({ event }) => event.output.profileExists === true,
                     actions: [
                         assign({ isSubmitting: false, error: null }),
-                        ({ context }) => context.shellInteractions.addOutputLine(registrationMessages.system.existingProfileFound, { type: 'info' }),
+                        ({ context }) => context.shellInteractions.addOutputLine(registrationMessages.system.existingProfileFound, { type: 'system' }),
                         // TODO: Maybe offer 'sign-in' or 'reset' commands here?
                     ]
                 },
