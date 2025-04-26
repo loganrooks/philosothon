@@ -42,7 +42,6 @@ export interface RegistrationContext {
   shellInteractions: ShellInteractions; // Use defined type
   // Internal machine state
   isSubmitting: boolean; // Used for async operations
-  savedStateExists: boolean; // Flag to indicate if resumable state was found
   // validationResult removed - handled by guards/actions calling utils or specific error context
 }
 
@@ -101,7 +100,6 @@ export type RegistrationEvent = // Export if needed
 // These wrap the actual async functions (server actions, utils)
 
 const services = {
-  loadStateService: fromPromise(utils.loadSavedState),
 
   fetchRegistrationService: fromPromise(async ({ input }: { input: { userId: string } }) => {
     // Ensure input.userId is correctly accessed
@@ -206,13 +204,7 @@ const services = {
       return result;
   }),
 
-  saveStateService: fromPromise(async ({ input }: { input: Pick<RegistrationContext, 'currentQuestionIndex' | 'answers' | 'userEmail'> }) => {
-      utils.saveStateToStorage(input); // Util handles try/catch, rethrow on error
-  }),
 
-  clearStateService: fromPromise(async () => {
-      utils.clearSavedState(); // Util handles try/catch, rethrow on error
-  }),
 };
 
 
@@ -234,59 +226,13 @@ export const registrationDialogMachine = createMachine({
     questions: questions, // Load questions from import
     shellInteractions: input.shellInteractions,
     isSubmitting: false,
-    savedStateExists: false,
   }),
-  initial: 'loadingSavedState',
+  initial: 'idle', // Set initial state to idle
   states: {
-    loadingSavedState: {
-      invoke: {
-        id: 'loadStateService',
-        src: 'loadStateService', // Use service key from services object
-        onDone: {
-          target: 'intro',
-          actions: assign({
-            savedStateExists: true,
-            // Merge loaded state - ensure keys match context
-            answers: ({ event }) => event.output.answers || {},
-            currentQuestionIndex: ({ event }) => event.output.currentQuestionIndex ?? 0,
-            userEmail: ({ event }) => event.output.userEmail || null,
-          }),
-        },
-        onError: [
-           {
-             target: 'intro',
-             guard: ({ event }) => event.error instanceof Error && event.error.message === "No saved data found.",
-             actions: assign({ savedStateExists: false, error: null }),
-           },
-           {
-             target: 'intro',
-             actions: assign({
-               savedStateExists: false,
-               // Use generic error message, specific message handled by service
-               error: ({ event }) => registrationMessages.errors.loadStateFailed.replace('{message}', event.error instanceof Error ? event.error.message : 'Unknown error'),
-             }),
-           }
-        ]
-      },
-      entry: [({ context }) => context.shellInteractions.addOutputLine(registrationMessages.system.checkingSavedProgress, { type: 'system' })],
-      exit: [
-        // Display error if loading failed
-        ({ context }) => {
-            // Check if the error message starts with the generic load failed message
-            if (context.error?.startsWith(registrationMessages.errors.loadStateFailed.split(':')[0])) {
-                context.shellInteractions.addOutputLine(context.error, { type: 'error' });
-            }
-        },
-        assign({ error: null }), // Clear error after handling
-      ], // <-- Add missing bracket
-    }, // <-- Correctly placed comma
       intro: {
         entry: [
           ({ context }) => context.shellInteractions.addOutputLine(registrationMessages.intro.welcome),
           ({ context }) => {
-              if (context.savedStateExists) {
-                  context.shellInteractions.addOutputLine(registrationMessages.intro.overwriteWarning, { type: 'system' });
-              }
               // No specific message needed if not resuming, welcome message is sufficient.
           }
         ],
@@ -299,25 +245,12 @@ export const registrationDialogMachine = createMachine({
                actions: [
                  // Removed console.log
                  assign({ currentQuestionIndex: 0, answers: {}, error: null, userEmail: null }), // Reset state
-                 'clearSavedStateAction', // Use named action for service invocation
                  ({ context }) => context.shellInteractions.addOutputLine(registrationMessages.system.startingNewRegistration, { type: 'system' })
                ]
              },
              {
-               target: 'questioning', // Go directly to questioning if resuming
-               guard: ({ event, context }) => event.command === 'register continue' && context.savedStateExists,
-               actions: [
-                  ({ context }) => context.shellInteractions.addOutputLine(registrationMessages.system.resumingRegistration, { type: 'system' })
-                  // State should already be loaded from loadingSavedState.onDone
-               ]
-             },
-             {
-               guard: ({ event, context }) => event.command === 'register continue' && !context.savedStateExists,
-               actions: ({ context }) => context.shellInteractions.addOutputLine(registrationMessages.intro.noContinueData, { type: 'error' })
-             },
-             {
                // Strict command handling for intro state
-               guard: ({ event }) => event.command !== 'register new' && event.command !== 'register continue',
+               guard: ({ event }) => event.command !== 'register new', // Only allow 'register new' in intro
                actions: ({ context, event }) => context.shellInteractions.addOutputLine(registrationMessages.errors.invalidCommandIntro.replace('{command}', event.command), { type: 'error' }) // Use SSOT
              }
           ]
@@ -669,10 +602,6 @@ export const registrationDialogMachine = createMachine({
            },
            // Actions-only commands
            {
-             guard: ({ event }) => event.command === 'save',
-             actions: ['saveStateAction'] // Use named action
-           },
-           {
              guard: ({ event }) => event.command === 'exit',
              actions: [({ context }) => context.shellInteractions.sendToShellMachine({ type: 'EXIT' })]
            },
@@ -801,10 +730,6 @@ export const registrationDialogMachine = createMachine({
             },
             // Actions-only commands
             {
-              guard: ({ event }) => event.command === 'save',
-              actions: ['saveStateAction'] // Use named action
-            },
-            {
               guard: ({ event }) => event.command === 'help',
               actions: [
                   ({ context }) => context.shellInteractions.addOutputLine(registrationMessages.commands.help.edit), // Use SSOT
@@ -840,7 +765,6 @@ export const registrationDialogMachine = createMachine({
         }),
         ({ context }) => context.shellInteractions.addOutputLine(`> ${context.currentInput}`, { type: 'input' }),
         ({ context }) => context.shellInteractions.addOutputLine(registrationMessages.commands.edit.answerUpdated, { type: 'system' }),
-        'saveStateAction', // Auto-save after successful edit
       ],
       always: { target: 'reviewing' }
     },
@@ -862,7 +786,6 @@ export const registrationDialogMachine = createMachine({
           target: 'success',
           actions: [
             assign({ isSubmitting: false, error: null }),
-            'clearSavedStateAction' // Use named action
           ]
         },
         onError: {
@@ -881,7 +804,6 @@ export const registrationDialogMachine = createMachine({
       entry: [
         ({ context }) => context.shellInteractions.addOutputLine(registrationMessages.success.message),
         ({ context }) => context.shellInteractions.addOutputLine(registrationMessages.success.thankYou),
-        'clearSavedStateAction', // Use named action
         ({ context }) => context.shellInteractions.sendToShellMachine({ type: 'REGISTRATION_COMPLETE' })
       ],
       type: 'final'
@@ -927,32 +849,6 @@ export const registrationDialogMachine = createMachine({
   actors: services, // Correct key for invoked promises/services in XState v5
   actions: {
     // --- Named Actions ---
-    clearSavedStateAction: ({ context }) => {
-        try {
-            utils.clearSavedState();
-            // No success message needed usually
-        } catch (error) {
-             context.shellInteractions.addOutputLine(
-                registrationMessages.errors.clearStateFailed.replace('{message}', error instanceof Error ? error.message : 'Unknown error'),
-                { type: 'error' }
-            );
-        }
-    },
-    saveStateAction: ({ context }) => {
-         try {
-            utils.saveStateToStorage({
-                currentQuestionIndex: context.currentQuestionIndex,
-                answers: context.answers,
-                userEmail: context.userEmail,
-            });
-             context.shellInteractions.addOutputLine(registrationMessages.commands.save.success, { type: 'system' });
-        } catch (error) {
-             context.shellInteractions.addOutputLine(
-                 `${registrationMessages.commands.save.error}: ${error instanceof Error ? error.message : 'Unknown error'}`,
-                 { type: 'error' }
-             );
-        }
-    },
     displayCurrentQuestionAction: ({ context }) => {
       const question = context.questions[context.currentQuestionIndex];
       if (question) {
