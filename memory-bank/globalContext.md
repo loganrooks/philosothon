@@ -1,3 +1,7 @@
+- **[2025-04-26 03:35:35] - Code:** Completed ADR Step 1.4: Removed localStorage logic (services, state, context, actions) from `registrationDialogMachine.ts`. Build verified. Commit `7954a7d` on `feature/registration-v3.1-impl`. [See MB Active Log 2025-04-26 03:35:35]
+
+
+
 - **[2025-04-26 03:26:00] - Code:** Implemented ADR Step 1.3: Added `upsertRegistrationAnswer` DAL function, `saveAnswerAction` server action, and `saveAnswerService` XState service for incremental answer saving. Build verified. Commit pending. [See MB Active Log 2025-04-26 03:26:00]
 
 
@@ -141,8 +145,14 @@
 - **[2025-04-23 22:19:40] - Debug:** Diagnosed REG-TEST-STATE-INIT-001 failure in 'boolean input' test. Added console logs to `RegistrationDialog`. Logs confirmed component initializes state correctly (index 45). Test failure is due to outdated assertion expecting `setDialogState` prop call instead of internal `useReducer` dispatch. [See MB Issue REG-TEST-STATE-INIT-001 Update]
 
 
+- **[2025-04-26 03:36:00] - SPARC:** Received confirmation from Code that localStorage logic removal (ADR Step 1.4) is complete (commit `7954a7d`). Machine refactored.
+
+
 - **[2025-04-23 22:58:00] - Code:** Implemented end-of-questionnaire logic in `RegistrationDialog` (Green Phase for boolean input test). Component now handles reaching the final question correctly. Commit `0ed3f95`. [See MB Log 2025-04-23 22:58:00]
 
+
+
+- **[2025-04-26 03:27:00] - SPARC:** Received confirmation from Code that saveAnswerService implementation (ADR Step 1.3) is complete (commit `1cf8157`). DAL, action, and machine service added.
 
 
 - **[2025-04-24 03:55:06] - Debug:** Analyzed `multi-select-numbered` validation bug in `RegistrationDialog`. Component logic appears correct (commit `469376c` fix with `return;`). Test failure likely due to test suite instability/flawed assertion in commit `cb6499e`. No component changes made. [See MB Debug Log Issue-ID: REG-MULTI-SELECT-VALIDATION-001 Update]
@@ -154,6 +164,10 @@
 
 
 # Progress
+- **[2025-04-26 03:58:00] - Code:** Completed ADR Step 2.1: Implemented `idle` and `promptingSignInOrUp` states in `registrationDialogMachine.ts`, including structural refactor (adding `signUpFlow`, `signInFlow` top-level states) and fixing build errors. Build verified. [See MB Active Log 2025-04-26 03:58:00]
+
+
+
 
 - **[2025-04-26 03:12:00] - SPARC:** Received confirmation from DevOps that Supabase schema/RLS update (ADR Step 1.1) is complete (commit `c47f33a`). Backend ready for DAL implementation.
 
@@ -305,6 +319,12 @@ This file consolidates less frequently updated global project information, inclu
 ---
 
 # System Patterns
+### [2025-04-26 03:58:00] System Pattern: Top-Level Flow States (Sign-Up/Sign-In)
+- **Description:** To manage distinct user flows like Sign-Up and Sign-In within a larger state machine (e.g., `registrationDialogMachine`), define them as separate top-level states (`signUpFlow`, `signInFlow`). This allows clear separation of concerns and simplifies targeting transitions from initial choice states (like `promptingSignInOrUp`). Sub-states within each flow handle specific steps (e.g., `earlyAuth`, `authenticating`).
+- **Reference:** `platform/src/app/register/machines/registrationDialogMachine.ts` (Commit after this task)
+
+
+
 
 
 ### [%DATE% %TIME%] System Pattern Update: XState Refinements
@@ -407,6 +427,25 @@ This file consolidates less frequently updated global project information, inclu
 *   **[2025-04-18] Admin CRUD Pattern:** Implemented using Server Components for list/edit page shells, Client Components for forms (`useFormState`), and Server Actions (`actions.ts`) for data mutation (create, update, delete). Edit pages use query parameters (`?id=...`) instead of dynamic route segments to avoid previous build issues.
 
 # Decision Log
+
+### [2025-04-26 03:57:00] Decision: Refactor Machine Structure for Top-Level Flows
+- **Context:** Build failed repeatedly with "Child state ... does not exist" errors when targeting states like `signUpFlow.earlyAuth` from `promptingSignInOrUp`.
+- **Decision:** Refactor `registrationDialogMachine.ts` to define `signUpFlow` and `signInFlow` as top-level states within the main `states` object, moving relevant sub-states inside them. Update transition targets to use correct absolute (`#machineId.state`) or relative (`stateName`) paths.
+- **Rationale:** XState requires targets to point to valid states within the current scope or use absolute paths. The initial implementation incorrectly assumed nested targets would work without defining the parent states at the correct level.
+- **Alternatives Considered:** Keeping a flat structure (would become very complex), using parallel states (overkill for mutually exclusive flows).
+- **Reference:** Build errors [e.g., 2025-04-26 03:41:08], `platform/src/app/register/machines/registrationDialogMachine.ts` (Commit after this task)
+
+
+
+### [2025-04-26 03:34:08] Decision: Use `apply_diff` for Complex Removals after `search_and_replace` Failure
+- **Context:** Attempting to remove multiple localStorage-related code blocks and references from `registrationDialogMachine.ts` (ADR Step 1.4).
+- **Issue:** The `search_and_replace` tool failed repeatedly with 'Invalid operations JSON format' errors, likely due to the complexity of escaping required for the regex patterns targeting the machine's structure.
+- **Decision:** Switched strategy to use multiple, targeted `apply_diff` operations for the removals, relying on exact text matching instead of complex regex.
+- **Rationale:** `apply_diff` proved more robust for these specific structural removals after `search_and_replace` failures, aligning with feedback about tooling fragility on this file.
+- **Alternatives Considered:** Further attempts to debug `search_and_replace` JSON/regex escaping (deemed inefficient given repeated failures), manual editing (outside of scope).
+- **Reference:** Task Handover [2025-04-26 03:28:56], MB Feedback Log [e.g., 2025-04-25 09:49:08]
+
+
 
 ### [2025-04-26 03:26:00] Decision: Use Server Action Wrapper for DAL Calls from XState
 - **Context:** Build failed when XState service (`saveAnswerService`) directly called a DAL function (`upsertRegistrationAnswer`) that uses the server-side Supabase client (`next/headers`).

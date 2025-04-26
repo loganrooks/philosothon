@@ -50,6 +50,12 @@ export const registrationMessages = {
     accountVerified: "Account verified/created.", // Added for clarity
   },
 
+  // Sign In / Sign Up Prompt
+  signInOrUp: {
+    prompt: "Sign in or Sign up? (Enter 'sign-in' or 'sign-up')",
+  },
+
+
   // Awaiting Confirmation State
   awaitingConfirmation: {
     checkFailed: "Email not confirmed yet. Please check your email or use 'resend'.",

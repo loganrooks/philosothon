@@ -1,3 +1,34 @@
+### [2025-04-26 03:58:00] Implement idle & promptingSignInOrUp States (ADR Step 2.1)
+- **Purpose**: Implement the initial `idle` state logic and the `promptingSignInOrUp` state to handle the `register` command and direct users to sign-up or sign-in flows.
+- **Files**:
+    - `platform/src/app/register/machines/registrationDialogMachine.ts` (Modified)
+    - `platform/src/config/registrationMessages.ts` (Modified)
+- **Status**: Implemented & Build Verified
+- **Dependencies**: `xstate`, `@/config/registrationMessages`
+- **API Surface**: None changed.
+- **Tests**: Build verified. TDD run recommended.
+- **Notes**:
+    - Added `signInOrUp.prompt` message to `registrationMessages.ts`.
+    - Added `idle` state definition with `on: COMMAND_RECEIVED` handler for `register` command, targeting `promptingSignInOrUp`.
+    - Added `promptingSignInOrUp` state definition with `entry: ['displaySignInOrUpPrompt']` and `on: COMMAND_RECEIVED` handlers for `sign-up` (target `signUpFlow`), `sign-in` (target `signInFlow`), and `back` (target `idle`). Includes `resetRegistrationState` action on `sign-up`.
+    - Added `displaySignInOrUpPrompt` and `resetRegistrationState` to machine actions.
+    - **Refactoring:** Encountered multiple build errors due to incorrect state targeting (`signUpFlow.earlyAuth`, `signInFlow.promptingEmail`). Refactored machine structure by defining `signUpFlow` and `signInFlow` as top-level states and moving relevant sub-states into `signUpFlow`. Corrected multiple relative/absolute target paths within transitions (`onError`, `onDone`, `COMMAND_RECEIVED`) using `apply_diff` after `write_to_file` and `search_and_replace` proved problematic. Added `userId` and `lastSavedIndex` to context definition.
+
+---
+
+
+### [2025-04-26 03:35:35] Remove LocalStorage Logic (ADR Step 1.4)
+- **Purpose**: Remove all localStorage-related logic (services, state, context, actions) from the XState machine as per simplified registration plan.
+- **Files**: `platform/src/app/register/machines/registrationDialogMachine.ts` (Modified)
+- **Status**: Implemented & Build Verified & Committed (`7954a7d`)
+- **Dependencies**: None removed that affect external contracts.
+- **API Surface**: None changed.
+- **Tests**: Build verified. TDD run recommended.
+- **Notes**: Used `apply_diff` for removals after `search_and_replace` failed repeatedly due to JSON/regex escaping issues. Removed `loadStateService`, `saveStateService`, `clearStateService`, `loadingSavedState` state, `savedStateExists` context, `clearSavedStateAction`, `saveStateAction`, and related references/calls. Set initial state to `idle`.
+
+---
+
+
 ### [2025-04-26 03:26:00] saveAnswerService Implementation (ADR Step 1.3)
 - **Purpose**: Implement DAL function, server action wrapper, and XState service to save registration answers incrementally to Supabase via RPC.
 - **Files**:
@@ -427,6 +458,16 @@
 
 
 ## Intervention Log
+### [2025-04-26 03:34:08] Intervention: Tooling Failure (`search_and_replace`)
+- **Trigger**: Repeated 'Invalid operations JSON format' errors from `search_and_replace` tool.
+- **Context**: Attempting to remove multiple localStorage-related code blocks and references from `registrationDialogMachine.ts` (ADR Step 1.4).
+- **Action Taken**: Switched strategy to use multiple, targeted `apply_diff` operations instead of `search_and_replace`.
+- **Rationale**: `apply_diff` proved more robust for these specific structural removals after `search_and_replace` failures, aligning with feedback about tooling fragility on this file.
+- **Outcome**: Removals completed successfully using `apply_diff`.
+- **Follow-up**: Continue monitoring tool performance on this file.
+
+
+
 ### [2025-04-20 2:05:00] Intervention: Build Failure - SSOT Script Errors
 - **Trigger**: `npm run build` failed after running `npm run generate:reg`.
 - **Context**: Multiple build failures occurred after updating the SSOT config and running the generation script.

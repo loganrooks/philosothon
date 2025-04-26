@@ -1,3 +1,21 @@
+[2025-04-26 03:58:00] - Code - Completed Task (Implement idle & promptingSignInOrUp States - ADR Step 2.1) - Added `idle` state logic, `promptingSignInOrUp` state, and related actions (`displaySignInOrUpPrompt`, `resetRegistrationState`) to `registrationDialogMachine.ts`. Added `signInOrUpPrompt` message to `registrationMessages.ts`. Refactored machine structure (added `signUpFlow`, `signInFlow` top-level states) and fixed multiple build errors related to state targets. Build successful. [See MB Code Log 2025-04-26 03:58:00]
+
+---
+
+
+[2025-04-26 03:36:00] - SPARC - Task Update - Code completed localStorage logic removal from machine (Step 1.4) for simplified registration. Commit 7954a7d. Proceeding to Step 2.1.
+
+---
+
+[2025-04-26 03:35:35] - Code - Completed Task (Remove LocalStorage Logic - ADR Step 1.4) - Removed localStorage services, state, context, actions, and related logic from `registrationDialogMachine.ts` using `apply_diff`. Build successful. Committed (7954a7d) and pushed to `feature/registration-v3.1-impl`. [See MB Code Log 2025-04-26 03:35:35]
+
+---
+
+
+[2025-04-26 03:27:00] - SPARC - Task Update - Code completed saveAnswerService implementation (Step 1.3) for simplified registration. Commit 1cf8157. Proceeding to Step 1.4.
+
+---
+
 [2025-04-26 03:26:00] - Code - Completed Task (Implement saveAnswerService - ADR Step 1.3) - Added DAL function `upsertRegistrationAnswer`, created server action `saveAnswerAction` to wrap it, and defined XState service `saveAnswerService` in machine. Build successful. [See MB Code Log 2025-04-26 03:26:00]
 
 ---
